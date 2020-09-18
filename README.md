@@ -1,1 +1,2 @@
-# Rukkit
+# Rukkit Project
+## What is Rukkit?
