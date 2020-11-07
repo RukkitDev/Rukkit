@@ -112,6 +112,10 @@ public class GameSave
 					}
 				}
 			}
+			//DataInputStream teamStream = new GameInputStream(in).getUnDecodeStream();//new GameInputStream(s.getDecodeBytes())
+			log.d(in.readShort());
+			log.d(in.readInt());
+			log.d(in.readInt());
 		}
 		
 	}

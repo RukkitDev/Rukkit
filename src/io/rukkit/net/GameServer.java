@@ -13,11 +13,12 @@ import io.rukkit.*;
 import io.rukkit.entity.*;
 
 
-public class GameServer
+public final class GameServer
 {
 	
 	private int port;
 	
+	private static Logger log = new Logger("GameServer");
 	public static int tickTime = -100;
 	public static volatile LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
 	//Set a channelGroup
@@ -96,7 +97,7 @@ public class GameServer
 		return tickTime >= 0;
 	}
 	
-	public void action() throws InterruptedException{
+	public void action(long time) throws InterruptedException{
 		// 用来接收进来的连接
         EventLoopGroup bossGroup = new NioEventLoopGroup(); 
         // 用来处理已经被接收的连接，一旦bossGroup接收到连接，就会把连接信息注册到workerGroup上
@@ -118,7 +119,9 @@ public class GameServer
 						p1.pipeline().addLast(new PacketEncoder()).addLast(new PlayerHandler());
 					}
 				});
-			System.out.println("-Server started!");
+			//System.out.println("-Server started!");
+			Rukkit.getCurrentPluginManager().serverDone(this);
+			log.i("Done! (" + (System.currentTimeMillis()-time) + "ms)");
 			ChannelFuture cf = sbs.bind(port).sync();
 			cf.channel().closeFuture().sync();
 		}finally{

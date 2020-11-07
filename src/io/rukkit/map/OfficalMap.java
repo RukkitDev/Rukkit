@@ -47,7 +47,8 @@ public class OfficalMap
 		"[z;p10]Valley Arena (10p) [by_uber]",
 		"[z;p10]Many Islands Large (10p)",
 		"[z;p10]Crossing Large (10p)",
-		"[z;p10]Enclosed Island (10p)"};
+		"[z;p10]Enclosed Island (10p)",
+		"[z;p10]Two_Large_Islands_(10p)"};
 		
 	public static String[] mapsName = {
 		"Beach landing (2p) [by hxyy]",
@@ -94,5 +95,6 @@ public class OfficalMap
 		"Valley Arena (10p) [by uber]",
 		"Many Islands Large (10p)",
 		"Crossing Large (10p)",
-		"Enclosed Island (10p)"};
+		"Enclosed Island (10p)",
+		"Two Large Islands (10p)"};
 }

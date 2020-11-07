@@ -1,10 +1,12 @@
 package io.rukkit.net;
+import io.rukkit.*;
+import io.rukkit.command.*;
+import io.rukkit.command.ServerQuestionHandler.*;
+import io.rukkit.entity.*;
+import io.rukkit.map.*;
 import io.rukkit.util.*;
 import java.io.*;
 import java.util.*;
-import io.rukkit.*;
-import io.rukkit.command.*;
-import io.rukkit.map.*;
 
 public class Packet
 {
@@ -97,9 +99,10 @@ public class Packet
 	}
 	
 	public Packet serverInfo(boolean isAdmin) throws IOException{
+		//return emptyCommand(0);
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("com.corrodinggames.rts");
-		o.writeInt(136);
+		o.writeInt(137);
 		//地图类型 0=官方 1=自定义 2=保存的游戏
 		o.writeInt(ServerProperties.mapType);
 		o.writeString(ServerProperties.mapName);
@@ -156,8 +159,24 @@ public class Packet
 		o.writeBoolean(false);
 		o.writeBoolean(false);
 		o.writeBoolean(false);
-
+		
+		
 		return (o.createPacket(106));
+	}
+	
+	public Packet sandSave() throws IOException{
+		GameOutputStream o = new GameOutputStream();
+		o.writeString("");
+		return (o.createPacket(150));
+	}
+	
+	public Packet question(Player p, String question, ServerQuestionCallback callback) throws IOException{
+		int qid = ServerQuestionHandler.addQuestion(new ServerQuestion(p, callback));
+		GameOutputStream o = new GameOutputStream();
+		o.writeByte(1);
+		o.writeInt(qid);
+		o.writeString(question);
+		return (o.createPacket(PacketType.PACKET_QUESTION));
 	}
 	
 	public Packet kick(String reason) throws IOException{

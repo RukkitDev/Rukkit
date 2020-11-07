@@ -9,6 +9,8 @@ public class PacketType
 	public static final int PACKET_SEND_CHAT = 141;
 	public static final int PACKET_SERVER_INFO = 106;
 	public static final int PACKET_START_GAME = 120;
+	public static final int PACKET_QUESTION = 117;
+	public static final int PACKET_QUESTION_RESPONCE = 118;
 	
 	//Client Commands
 	public static final int PACKET_PREREGISTER_CONNECTION = 160;

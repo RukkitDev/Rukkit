@@ -9,5 +9,7 @@ public class PluginContainer
 		this.pluginName = name;
 		this.pluginVersion = version;
 		this.plugin = plugin;
+		plugin.pluginName = name;
+		plugin.pluginVersion = version;
 	}
 }

@@ -8,6 +8,7 @@ import io.rukkit.util.*;
 import java.util.*;
 import io.netty.channel.group.*;
 import java.io.*;
+import io.rukkit.event.player.*;
 
 public class ChatCommand
 {
@@ -485,6 +486,10 @@ public class ChatCommand
 					break;
 				case "version":
 					thread.writeAndFlush(new Packet().chat("Server", "Rukkit ver1.1.0 by wtbdev", -1));
+					break;
+				default:
+					PlayerCommandEvent.getListenerList().callListeners(new PlayerCommandEvent(p, command));
+					//Rukkit.getCurrentPluginHandler().onChatRecieve(p, command);
 			}
 		}catch(Exception e){
 			//e.printStackTrace();

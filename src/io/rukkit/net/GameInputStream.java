@@ -22,6 +22,15 @@ public class GameInputStream
 		this.stream = stream;
 	}
 
+	public DataInputStream getUnDecodeStream() throws IOException
+	{
+		this.readString();
+		byte[] bytes = readStreamBytes();
+		return new DataInputStream(new ByteArrayInputStream(bytes));
+		// TODO: Implement this method
+		//return null;
+	}
+
 	public short readShort() throws IOException {
 		return this.stream.readShort();
 	}

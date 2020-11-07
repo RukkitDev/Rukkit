@@ -14,6 +14,7 @@ public class Player
 	public boolean isRandy = false;
 	public boolean isSharingControl = false;
 	public boolean isSurrounded = false;
+	public String UUID = "";
 	public String playerName = "unnamed";
 	public int playerIndex = 0;
 	public int playerTeam = 0;

@@ -59,6 +59,7 @@ public class ServerProperties
 	public static String serverUser = "RUKKIT";
 	public static String serverMotd = "My Rukkit server";
 	public static int maxPlayer = 10;
+	public static int gameVersion = 143;
 	public static int maxWatcher = 5;
 	public static int minStartPlayer = 4;
 	public static boolean singlePlayerMode = false;
