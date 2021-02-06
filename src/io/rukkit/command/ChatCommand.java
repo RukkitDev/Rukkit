@@ -12,7 +12,7 @@ import io.rukkit.event.player.*;
 
 public class ChatCommand
 {
-	private static Logger log = new Logger("Command");
+	private static Logger log = new Logger("ChatCommand");
 	public static AfkTask afkTask = new AfkTask(null, null);
 	public static class AfkTask extends TimerTask
 	{
@@ -74,7 +74,7 @@ public class ChatCommand
 					executeCommand(command.substring(4), thread, p);
 					break;
 				case "self_move":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					log.d("Player Moved");
@@ -90,7 +90,7 @@ public class ChatCommand
 					}
 					break;
 				case "self_team":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					p.moveTeam(Integer.parseInt(cmd[1]) - 1);
@@ -130,16 +130,16 @@ public class ChatCommand
 					}
 					break;
 				case "start":
-					if(GameServer.tickTime >= 0){
+					if(Rukkit.getGame().getTickTime() >= 0){
 						thread.writeAndFlush(new Packet().chat("Server", "游戏已经开始!", -1));
 						return;
 					}
 					if(ChannelGroups.size() < ServerProperties.minStartPlayer){
-						thread.writeAndFlush(new Packet().chat("Server", "至少需要" + ServerProperties.minStartPlayer + "人才可以开始游戏！", -1));
+						thread.writeAndFlush(new Packet().chat("Server", "至少需要 " + ServerProperties.minStartPlayer + " 人才可以开始游戏！", -1));
 						thread.writeAndFlush(new Packet().chat("Server", "Must have" + ServerProperties.minStartPlayer + " players！", -1));
 						return;
 					}
-					Rukkit.game.startGame();
+					Rukkit.getGame().startGame();
 					break;
 				case "afk":
 					if(p.isAdmin){
@@ -160,10 +160,13 @@ public class ChatCommand
 					break;
 				case "give":
 					log.d("executed.");
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
+						return;
+					}
+					if(p.isAI){
 						return;
 					}
 					p.isAdmin = false;
@@ -203,6 +206,7 @@ public class ChatCommand
 								ServerProperties.mapType = 0;
 								ChannelGroups.broadcast(new Packet().serverInfo());
 								thread.writeAndFlush(new Packet().serverInfo(true));
+								
 								break;
 							}
 						}
@@ -221,7 +225,7 @@ public class ChatCommand
 					thread.writeAndFlush(new Packet().serverInfo(true));
 					break;
 				case "income":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					Float income = Float.parseFloat(cmd[1]);
@@ -325,13 +329,18 @@ public class ChatCommand
 					Rukkit.thread.sendSystemBoardcast("检查完成！");
 					break;*/
 				case "kick":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
-					if(p.isAdmin){
-						PlayerGroup.get(Integer.parseInt(cmd[1]) - 1).ctx.writeAndFlush(new Packet().kick("Kicked by Admin.\n你被管理员踢出！"));
+					if(!p.isAdmin){
+						return;
 						//Rukkit.thread.clients.get().sendKick("被房主踢出!");
 					}
+					if(PlayerGroup.get(Integer.parseInt(cmd[1]) - 1).isAI) {
+						PlayerGroup.remove(Integer.parseInt(cmd[1]) - 1);
+						return;
+					}
+					PlayerGroup.get(Integer.parseInt(cmd[1]) - 1).ctx.writeAndFlush(new Packet().kick("Kicked by Admin.\n你被管理员踢出！"));
 					break;
 				case "cmaps":
 					StringBuffer buff = new StringBuffer();
@@ -339,7 +348,7 @@ public class ChatCommand
 					for(int i=li.size() - 1;i>=0;i--){
 						buff.append(String.format("[%d] %s", i, li.get(i)) + "\n");
 					}
-					thread.writeAndFlush(new Packet().chat("Server", "======== 地图列表 Map List =======\n" +
+					thread.writeAndFlush(new Packet().chat("Server", "======== 自定义地图列表 Map List =======\n" +
 														   "管理员发送 .map 地图序号 即可换图！\n" +
 														   buff, -1));
 														   break;
@@ -352,9 +361,10 @@ public class ChatCommand
 					}catch(Exception e){
 
 					}
+					
 					break;
 				case "nukes":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -366,9 +376,10 @@ public class ChatCommand
 					//log.d("Nukes set.");
 					ChannelGroups.broadcast(new Packet().serverInfo());
 					thread.writeAndFlush(new Packet().serverInfo(true));
+					
 					break;
 				case "sharedControl":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -380,7 +391,7 @@ public class ChatCommand
 					//log.d("Nukes set.");
 					break;
 				case "credits":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -392,7 +403,7 @@ public class ChatCommand
 					//log.d("Nukes set.");
 					break;
 				case "fog":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -414,12 +425,13 @@ public class ChatCommand
 					}
 					ChannelGroups.broadcast(new Packet().serverInfo());
 					thread.writeAndFlush(new Packet().serverInfo(true));
+					
 					//ServerProperties.sharedControl = Boolean.parseBoolean(cmd[1]);
 					//log.d(ServerProperties.disableNuke);
 					//log.d("Nukes set.");
 					break;
 				case "startingunits":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -433,7 +445,7 @@ public class ChatCommand
 					//log.d("Nukes set.");
 					break;
 				case "team":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -442,7 +454,7 @@ public class ChatCommand
 					PlayerGroup.get(Integer.parseInt(cmd[1]) - 1).playerTeam = Integer.parseInt(cmd[2]) - 1;
 					break;
 				case "move":
-					if(GameServer.isGaming()){
+					if(Rukkit.getGame().isGaming()){
 						return;
 					}
 					if(!p.isAdmin){
@@ -486,6 +498,20 @@ public class ChatCommand
 					break;
 				case "version":
 					thread.writeAndFlush(new Packet().chat("Server", "Rukkit ver1.1.0 by wtbdev", -1));
+					break;
+				case "addai":
+					if(!p.isAdmin) {
+						return;
+					}
+					PlayerGroup.addAI();
+					break;
+				case "i":
+					//for(String s : cmd) {}
+					StringBuffer ssbuf = new StringBuffer(cmd[1]);
+					for(int i = 2;i< cmd.length; i++){
+						ssbuf.append(" " + cmd[i]);
+					}
+					ChannelGroups.broadcast(new Packet().chat(p.playerName, ssbuf.toString(), -1));
 					break;
 				default:
 					PlayerCommandEvent.getListenerList().callListeners(new PlayerCommandEvent(p, command));

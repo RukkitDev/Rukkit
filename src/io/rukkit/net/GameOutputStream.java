@@ -42,8 +42,8 @@ public class GameOutputStream
         this.stream.writeUTF(val);
     }
 
-	public GzipEncoder getEncodeStream(String key) throws IOException{
-		GzipEncoder enc = new GzipEncoder();
+	public GzipEncoder getEncodeStream(String key, boolean isGzip) throws IOException{
+		GzipEncoder enc = new GzipEncoder(isGzip);
 		enc.str = key;
 		return enc;
 	}
@@ -65,6 +65,7 @@ public class GameOutputStream
 	}
 
 	public void flushEncodeData(GzipEncoder enc) throws IOException{
+		enc.mo1925a();
 		this.writeString(enc.str);
 		this.writeInt(enc.buffer.size());
 		enc.buffer.writeTo((OutputStream)this.stream);

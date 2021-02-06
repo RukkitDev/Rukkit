@@ -7,6 +7,7 @@ public class OfficalMap
 		"[p2]Big Island (2p)",
 		"[p2]Dire_Straight (2p) [by uber]",
 		"[p2]Fire Bridge (2p) [by uber]",
+		"[p2]Hills_(2p)_[By Tstis & KPSS]",
 		"[p2]Ice Island (2p)",
 		"[p2]Lake (2p)",
 		"[p2]Small_Island (2p)",
@@ -48,13 +49,15 @@ public class OfficalMap
 		"[z;p10]Many Islands Large (10p)",
 		"[z;p10]Crossing Large (10p)",
 		"[z;p10]Enclosed Island (10p)",
-		"[z;p10]Two_Large_Islands_(10p)"};
+		"[z;p10]Two_Large_Islands_(10p)",
+		"[z;p10]Wetlands (10p)"};
 		
 	public static String[] mapsName = {
 		"Beach landing (2p) [by hxyy]",
 		"Big Island (2p)",
 		"Dire Straight (2p) [by uber]",
 		"Fire Bridge (2p) [by uber]",
+		"Hills (2p) [By Tstis & KPSS]",
 		"Ice Island (2p)",
 		"Lake (2p)",
 		"Small Island (2p)",
@@ -96,5 +99,6 @@ public class OfficalMap
 		"Many Islands Large (10p)",
 		"Crossing Large (10p)",
 		"Enclosed Island (10p)",
-		"Two Large Islands (10p)"};
+		"Two Large Islands (10p)",
+		"Wetlands (10p)"};
 }

@@ -14,7 +14,7 @@ import io.rukkit.net.*;
 
 public final class PluginManager
 {
-	private static final String PLUGIN_FOLDER= "plugins";
+	private static String PLUGIN_FOLDER= Rukkit.getEnvPath() + "/plugins";
 	private static Logger log = new Logger("PluginManager");
 	private static boolean isServerDone = false;
 	private static List<RukkitPlugin> pluginList = new ArrayList<RukkitPlugin>();
@@ -100,7 +100,7 @@ public final class PluginManager
 		log.i("Load complete!");
 	}
 	
-	public void serverDone(GameServer g) {
+	public void serverDone(Game g) {
 		if (isServerDone) {
 			throw new RuntimeException("Server already started.");
 		} else {

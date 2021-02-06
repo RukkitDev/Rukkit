@@ -23,5 +23,6 @@ public class PacketType
 	//Game Commands
 	public static final int PACKET_ADD_GAMECOMMAND = 20;
 	public static final int PACKET_TICK = 10;
-	public static final int PACKET_SYNC_CHECKSUM = 35;
+	public static final int PACKET_SYNC_CHECKSUM = 30;
+	public static final int PACKET_SYNC_CHECKSUM_RESPONCE = 31;
 }

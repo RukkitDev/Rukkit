@@ -80,8 +80,11 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 			{
 				//log.d("Sending teamlist...");
 				o.writeInt(player.playerIndex);
+				// 1.14新增
+				o.writeBoolean(Rukkit.getGame().isGaming());
 				o.writeInt(ServerProperties.maxPlayer); //最大玩家
-				GzipEncoder enc = o.getEncodeStream("teams");
+				//1.14启用Gzip压缩
+				GzipEncoder enc = o.getEncodeStream("teams", true);
 
 				for (int i =0;i < ServerProperties.maxPlayer;i++)
 				{
@@ -90,8 +93,15 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 					if (playerp == null)
 					{/*log.d("null");*/continue;}
 					//log.d(playerp.playerName);
-					enc.stream.writeInt(0);
+					//1.14
+					//enc.stream.writeByte(0);
+					enc.stream.writeInt(255);
 					playerp.writePlayer(enc.stream);
+					/*if (i-1 == ServerProperties.maxPlayer) {
+						enc.stream.writeInt(0);
+					} else {
+						enc.stream.writeInt(-9999);
+					}*/
 				}
 				o.flushEncodeData(enc);
 
@@ -119,7 +129,8 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 			}
 			catch (IOException e)
 			{
-				e.printStackTrace();
+				log.e(e);
+				//e.printStackTrace();
 				cancel();
 			}
 		}
@@ -210,13 +221,13 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 				log.i("Player UUID: " + uuid);
 				log.d(in.readInt());
 				log.d(in.readString());
-				if (ChannelGroups.size() >= ServerProperties.maxPlayer + 1)
+				if (ChannelGroups.size() > ServerProperties.maxPlayer)
 				{
 					sendPacket(ctx, new Packet().kick("No free slots in this server!\n服务器已满!"));
 					ctx.disconnect();
 					return;
 				}
-				if (GameServer.isGaming())
+				if (Rukkit.getGame().isGaming())
 				{
 					sendPacket(ctx, new Packet().kick("Game had already started!\n游戏已开始！\nPlayers left(剩余玩家):" + (ChannelGroups.size() - 1)));
 					ctx.disconnect();
@@ -234,7 +245,8 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 					sendPacket(ctx, new Packet().serverInfo(true));
 					//sendPacket(ctx, new Packet().serverInfo(true));
 				}
-				sendPacket(ctx, new Packet().chat("Server", "Welcome, " + name + "!", 0));
+				//sendPacket(ctx, new Packet().chat("Server", "Welcome, " + name + "!", 0));
+				sendPacket(ctx, new Packet().chat("Server", String.format(ServerProperties.welcomeMsg, player.playerName), 0));
 				PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(player));
 				//Rukkit.getCurrentPluginHandler().onPlayerJoined(player);
 				/*
@@ -287,11 +299,14 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 			case PacketType.PACKET_ADD_GAMECOMMAND:
 				GameCommand cmd = new GameCommand();
 				cmd.arr = in.getDecodeBytes();
+				cmd.arr[0] = -1;
+				//ChannelGroups.broadcast(new Packet().gameCommand(Rukkit.getGame().getTickTime(), cmd));
 
 				/*synchronized(GameServer.commandQuere){*/
 				//ChannelGroups.broadcast();
 				GameInputStream str = new GameInputStream(cmd.arr);
 				Event act = null;
+				boolean isCustom = false;
 				//log.d(str.readByte());
 				log.d(str.readByte());
 				//是否为单位动作
@@ -487,26 +502,30 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 				{
 					if (act != null)
 					{
+						if (isCustom) {
+							log.d("Player running a custom mod");
+							ListenerList list = (ListenerList) act.getClass().getMethod("getListenerList").invoke(null);
+							list.callListeners(act);
+							player.sendPacket(new Packet().gameCommand(Rukkit.getGame().getTickTime(), cmd));
+							return;
+						}
 						ListenerList list = (ListenerList) act.getClass().getMethod("getListenerList").invoke(null);
 						if (!list.callListeners(act))
 						{
 							log.d("action is false!");
 						} else {
-							synchronized (GameServer.commandQuere)
-							{
-								GameServer.commandQuere.add(cmd);
-							}
+							//Rukkit.getGame().addGameCommand(cmd);
+							ChannelGroups.broadcast(new Packet().gameCommand(Rukkit.getGame().getTickTime(), cmd));
 						}
 					} else {
-						synchronized (GameServer.commandQuere)
-						{
-							GameServer.commandQuere.add(cmd);
-						}
+						//Rukkit.getGame().addGameCommand(cmd);
+						ChannelGroups.broadcast(new Packet().gameCommand(Rukkit.getGame().getTickTime(), cmd));
 					}
 				}
 				catch (Exception e)
 				{
-					e.printStackTrace();
+					log.e(e);
+					//e.printStackTrace();
 				}
 				//}
 				break;
@@ -533,7 +552,7 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 		try
 		{
 			ChannelGroups.broadcast(new Packet().chat("Server", player.playerName + " disconnected!", -1));
-			if (GameServer.isGaming())
+			if (Rukkit.getGame().isGaming())
 			{
 				ChatCommand.executeCommand("t Sharing control due to disconnect. 玩家离线，分享控制已开启", ctx, player);
 				player.isSharingControl = true;
@@ -572,7 +591,7 @@ public class PlayerHandler extends ChannelInboundHandlerAdapter
 	{
 		// TODO: Implement this method
 		super.exceptionCaught(ctx, cause);
-		cause.printStackTrace();
+		log.w(cause);
 	}
 
 }

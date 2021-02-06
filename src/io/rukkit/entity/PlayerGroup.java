@@ -6,11 +6,11 @@ import io.rukkit.net.*;
 
 public class PlayerGroup
 {
-	private static Player[] players = new Player[ServerProperties.maxPlayer + ServerProperties.maxWatcher];
-	private static Player[] inGamePlayers = new Player[10];
+	private static Player[] players = new Player[ServerProperties.maxPlayer];
+	private static Player[] inGamePlayers = new Player[ServerProperties.maxPlayer];
 	
 	public static void add(Player p){
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 				players[i].isNull = false;continue;
 				//if(players[i].isNull)continue;
@@ -22,7 +22,7 @@ public class PlayerGroup
 	}
 	
 	public static void addWithTeam(Player p){
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 				players[i].isNull = false;continue;
 				//if(players[i].isNull)continue;
@@ -37,11 +37,11 @@ public class PlayerGroup
 	}
 	
 	public static void remove(Player p){
-		if(GameServer.isGaming()){
+		if(Rukkit.getGame().isGaming()){
 			p.ping = -1;
 			return;
 		}
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 			if(players[i] == p){
 				players[i] = null;
@@ -53,7 +53,7 @@ public class PlayerGroup
 	}
 	
 	public static void remove(int index){
-		if(GameServer.isGaming()){
+		if(Rukkit.getGame().isGaming()){
 			players[index].ping = -1;
 			return;
 		}
@@ -69,7 +69,7 @@ public class PlayerGroup
 	}
 	
 	public static int getIndex(Player p){
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 			if(players[i] == p){
 				return i;
@@ -82,7 +82,7 @@ public class PlayerGroup
 	}
 	
 	public static Player getAdmin(){
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 				if(players[i].isAdmin){
 					return players[i];
@@ -96,7 +96,7 @@ public class PlayerGroup
 	
 	public static int size(){
 		int size = 0;
-		for(int i=0;i<10;i++){
+		for(int i=0;i<players.length;i++){
 			try{
 				players[i].toString();
 				size++;
@@ -107,6 +107,18 @@ public class PlayerGroup
 		return size;
 	}
 	
+	// ai方法
+	public static void addAI() {
+		Player p = new Player(null);
+		p.isAI = true;
+		p.playerName = "AI - ?";
+		p.ping = -1;
+		add(p);
+	}
+	
+	public static void removeAI() {
+		
+	}
 	
 	public static Player[] getPlayers(){
 		return players;
@@ -117,6 +129,6 @@ public class PlayerGroup
 	}
 	
 	public static void reset(){
-		players = new Player[10];
+		players = new Player[ServerProperties.maxPlayer];
 	}
 }

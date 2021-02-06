@@ -45,11 +45,12 @@ public class Packet
 	}
 	
 	public Packet preRegister() throws IOException{
+		//协议版本？
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("io.rukkit");
 		o.writeInt(1);
-		o.writeInt(137);
-		o.writeInt(137);
+		o.writeInt(151);
+		o.writeInt(151);
 		o.writeString("io.rukkit");
 		o.writeString(ServerProperties.UUID);
 		o.writeInt(114514);
@@ -64,7 +65,7 @@ public class Packet
 		GameOutputStream o = new GameOutputStream();
 		o.writeInt(tick);
 		o.writeInt(1);
-		GzipEncoder enc = o.getEncodeStream("c");
+		GzipEncoder enc = o.getEncodeStream("c", false);
 		enc.stream.write(cmd.arr);
 		//o.stream.write(cmd.arr);
 		o.flushEncodeData(enc);
@@ -91,18 +92,34 @@ public class Packet
 			o.writeFile(CustomMapLoader.getStreamByName(ServerProperties.mapName + ".tmx"));
 			o.writeString(ServerProperties.mapName + ".tmx");
 			}
+		o.writeBoolean(false);
 		return (o.createPacket(120));
+	}
+	public Packet serverInfoWithUnit(ArrayList<ModUnit> units, boolean bool) throws IOException{
+		ArrayList<ModUnit> li = Rukkit.getInternalModUnitsList();
+		li.addAll(Rukkit.getModManager().fetchAllEnabledModUnits());
+		li.addAll(units);
+		return serverInfo(bool, li);
 	}
 	
 	public Packet serverInfo() throws IOException{
-		return serverInfo(false);
+		ArrayList<ModUnit> li = Rukkit.getInternalModUnitsList();
+		li.addAll(Rukkit.getModManager().fetchAllEnabledModUnits());
+		return serverInfo(false, li);
 	}
 	
-	public Packet serverInfo(boolean isAdmin) throws IOException{
+	public Packet serverInfo(Boolean isAdmin) throws IOException {
+		ArrayList<ModUnit> li = Rukkit.getInternalModUnitsList();
+		li.addAll(Rukkit.getModManager().fetchAllEnabledModUnits());
+		return serverInfo(isAdmin, li);
+	}
+	
+	public Packet serverInfo(boolean isAdmin, ArrayList<ModUnit> units) throws IOException{
 		//return emptyCommand(0);
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("com.corrodinggames.rts");
-		o.writeInt(137);
+		//协议版本
+		o.writeInt(151);
 		//地图类型 0=官方 1=自定义 2=保存的游戏
 		o.writeInt(ServerProperties.mapType);
 		o.writeString(ServerProperties.mapName);
@@ -125,22 +142,23 @@ public class Packet
 		o.writeBoolean(false);
 		o.writeBoolean(true);
 
-		GzipEncoder out = o.getEncodeStream("customUnits");
+		GzipEncoder out = o.getEncodeStream("customUnits", false);
 		out.stream.writeInt(1);
-		BufferedReader reader = new BufferedReader(new FileReader(ServerProperties.unitPath));
-		LinkedList<String> li = new LinkedList<String>();
-		String b = null;
+		//BufferedReader reader = new BufferedReader(new InputStreamReader(Packet.this.getClass().getClassLoader().getResourceAsStream("unitmeta.conf")));
+		//LinkedList<String> li = new LinkedList<String>();
+		/*String b = null;
 		while ((b = reader.readLine()) != null)
 		{
 			li.addLast(b);
-		}
-		out.stream.writeInt(li.size());
-		for(String c: li){
-			String unitdata[] = c.split("%#%");
-			out.stream.writeUTF(unitdata[0]);
-			out.stream.writeInt(Integer.parseInt(unitdata[1]));
+		}*/
+		out.stream.writeInt(units.size());
+		for(ModUnit c: units){
+			//String unitdata[] = c.split("%#%");
+			out.stream.writeUTF(c.getUnitName());
+			out.stream.writeInt(c.getUnitId());
 			out.stream.writeBoolean(true);
-			try{
+			out.stream.writeBoolean(false);
+			/*try{
 			if(!unitdata[2].equals("default")){
 				out.stream.writeBoolean(true);
 				out.stream.writeUTF(unitdata[2]);
@@ -149,10 +167,20 @@ public class Packet
 			}}
 			catch(ArrayIndexOutOfBoundsException e){
 				new Logger("ModLoader").w("You are using old unitmeta.Use new unitmeta.conf to support MODs.");
-			}
+			}*/
 			out.stream.writeLong(0);
 			out.stream.writeLong(0);
 		}
+		
+		/*for(ModUnit c :Rukkit.getModManager().fetchAllEnabledModUnits()) {
+			out.stream.writeUTF(c.getUnitName());
+			out.stream.writeInt(c.getUnitId());
+			out.stream.writeBoolean(true);
+			out.stream.writeBoolean(true);
+			out.stream.writeUTF(c.getModName());
+			out.stream.writeLong(0);
+			out.stream.writeLong(0);
+		}*/
 
 		o.flushEncodeData(out);
 

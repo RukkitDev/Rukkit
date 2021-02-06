@@ -1,14 +1,18 @@
 package io.rukkit;
 import java.util.*;
 import java.io.*;
+import io.netty.util.concurrent.*;
 
 public class ServerProperties
 {
 	private static Properties per = new Properties();
+
+	
 	
 	public static void storageProperties() throws IOException{
 		per.put("server-user", serverUser);
 		per.put("server-motd", serverMotd);
+		per.put("welcome-message", welcomeMsg);
 		per.put("min-start-player", ""+minStartPlayer);
 		try{
 			per.put("server-uuid",/* "bad8b8ab-335e-475f-9953-7ac311be7f33"*/ java.util.UUID.randomUUID().toString());
@@ -19,6 +23,7 @@ public class ServerProperties
 		per.put("debug", "false");
 		per.put("online-mode", "false");
 		per.put("single-player-mode", "false");
+		per.put("server-port", "5123");
 		per.store(new FileWriter("server.properties"), "This is rukkit profiles.");
 	}
 	
@@ -26,8 +31,11 @@ public class ServerProperties
 		per.load(new FileReader("server.properties"));
 		serverUser = per.getProperty("server-user", "RUKKIT");
 		serverMotd = per.getProperty("server-motd", "My Rukkit Server");
+		maxPlayer = Integer.parseInt(per.getProperty("max-player", "10"));
+		welcomeMsg = per.getProperty("welcome-message", "Welcome to Rukkit server, %s!");
 		minStartPlayer = Integer.parseInt(per.getProperty("min-start-player", "4"));
 		UUID = per.getProperty("server-uuid", "00000000-0000-0000-0000-000000000000");
+		serverPort = Integer.parseInt(per.getProperty("server-port", "5123"));
 		if(per.getProperty("debug", "false").equals("true")){
 			isDebug = true;
 		}else{
@@ -57,7 +65,9 @@ public class ServerProperties
 	
 	/*Static Properties*/
 	public static String serverUser = "RUKKIT";
+	public static String welcomeMsg = "Welcome to Rukkit server, %s!";
 	public static String serverMotd = "My Rukkit server";
+	public static int serverPort = 5123;
 	public static int maxPlayer = 10;
 	public static int gameVersion = 143;
 	public static int maxWatcher = 5;

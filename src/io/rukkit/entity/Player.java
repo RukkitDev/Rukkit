@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.*;
 import io.netty.channel.*;
 import io.rukkit.net.*;
+import io.rukkit.mod.*;
 
 public class Player
 {
@@ -19,18 +20,39 @@ public class Player
 	public int playerIndex = 0;
 	public int playerTeam = 0;
 	public int playerCredits = 4000;
+	public boolean isAI = false;
 	public int ping = 50;
 	public ChannelHandlerContext ctx;
 	
 	public Player(ChannelHandlerContext ctx){
 		this.ctx = ctx;
 	}
-
+	
+	public void sendPacket(Packet p) {
+		ctx.writeAndFlush(p);
+	}
+	
 	public void writePlayer(DataOutputStream stream) throws IOException{
+		//写玩家数据，按协议版本分割
+		
+		if (Rukkit.getGame().isGaming()) {
+			stream.writeByte(0);
+			//stream.writeInt(playerCredits);
+			stream.writeInt(ping);
+			/*stream.writeBoolean(true);
+			if(isAdmin){
+				stream.writeUTF("[[[" + playerName + "]]]");
+			}else{
+				stream.writeUTF(playerName);
+			}*/
+			stream.writeBoolean(true);
+			stream.writeBoolean(true);
+		} else {
 		stream.writeByte(playerIndex);
 		stream.writeInt(playerCredits);
 		stream.writeInt(playerTeam);
 		stream.writeBoolean(true);
+		
 		if(isAdmin){
 			stream.writeUTF("[[[" + playerName + "]]]");
 		}else{
@@ -41,22 +63,30 @@ public class Player
 		//enc.stream.writeBoolean(true);
 		stream.writeInt(ping);
 		stream.writeLong(System.currentTimeMillis());
-
-		stream.writeBoolean(false);
+		
+		//是否AI
+		stream.writeBoolean(isAI);
 		stream.writeInt(0);
 
 		stream.writeInt(playerIndex);
 		stream.writeByte(0);
+		
 		//分享控制
 		stream.writeBoolean(isSharingControl);
+		//是否掉线
 		stream.writeBoolean(false);
+		
 		//是否投降
 		stream.writeBoolean(isSurrounded);
 		stream.writeBoolean(false);
 		stream.writeInt(-9999);
+		
+		stream.writeBoolean(false);
+		stream.writeInt(-9999);
+		}
 	}
 	
-	public void writePlayer(DataOutputStream stream, int ping) throws IOException{
+	/*public void writePlayer(DataOutputStream stream, int ping) throws IOException{
 		stream.writeByte(playerIndex);
 		stream.writeInt(playerCredits);
 		stream.writeInt(playerTeam);
@@ -82,7 +112,7 @@ public class Player
 		stream.writeBoolean(false);
 		stream.writeBoolean(false);
 		stream.writeInt(-9999);
-	}
+	}*/
 
 	public boolean movePlayer(int index){
 		for(Player p : PlayerGroup.getPlayers()){

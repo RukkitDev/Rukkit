@@ -1,11 +1,12 @@
 package io.rukkit.map;
+import io.rukkit.*;
+import io.rukkit.util.*;
 import java.io.*;
 import java.util.*;
-import io.rukkit.util.*;
 
 public class CustomMapLoader
 {
-	private static String MAP_FOLDER = "maps";
+	private static String MAP_FOLDER = Rukkit.getEnvPath() + "/maps";
 	private static final Logger log = new Logger("CustomMapLoader");
 	
 	public static boolean createDir(){
