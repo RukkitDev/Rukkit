@@ -1,0 +1,13 @@
+cn.rukkit
+cn.rukkit.command
+cn.rukkit.config
+cn.rukkit.event
+cn.rukkit.event.player
+cn.rukkit.game
+cn.rukkit.game.mod
+cn.rukkit.network
+cn.rukkit.network.command
+cn.rukkit.network.packet
+cn.rukkit.plugin
+cn.rukkit.service
+cn.rukkit.util
