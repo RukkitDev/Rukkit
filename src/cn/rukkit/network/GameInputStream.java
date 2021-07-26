@@ -1,0 +1,120 @@
+package cn.rukkit.network;
+
+import cn.rukkit.network.packet.*;
+import java.io.*;
+import java.util.*;
+
+public class GameInputStream
+{
+	public ByteArrayInputStream buffer;
+    public DataInputStream CurrentStream;
+	public DataInputStream stream;
+	public LinkedList<DataInputStream> blockQuere = new LinkedList<DataInputStream>();
+
+    public GameInputStream(Packet packet) {
+        this.buffer = new ByteArrayInputStream(packet.bytes);
+		this.stream = new DataInputStream(this.buffer);
+		this.CurrentStream = new DataInputStream(this.buffer);
+    }
+
+	public GameInputStream(byte[] b){
+		this.buffer = new ByteArrayInputStream(b);
+		this.stream = new DataInputStream(this.buffer);
+		this.CurrentStream = new DataInputStream(this.buffer);
+	}
+
+	public GameInputStream(DataInputStream stream){
+		//this.buffer = new ByteArrayInputStream(b);
+		this.stream = stream;
+	}
+
+	public DataInputStream getUnDecodeStream() throws IOException
+	{
+		this.readString();
+		byte[] bytes = readStreamBytes();
+		return new DataInputStream(new ByteArrayInputStream(bytes));
+		// TODO: Implement this method
+		//return null;
+	}
+
+	public short readShort() throws IOException {
+		return this.stream.readShort();
+	}
+
+    public byte readByte() throws IOException {
+        return this.stream.readByte();
+    }
+
+    public boolean readBoolean() throws IOException {
+        return this.stream.readBoolean();
+    }
+
+    public int readInt() throws IOException {
+        return this.stream.readInt();
+    }
+
+    public float readFloat() throws IOException {
+        return this.stream.readFloat();
+    }
+
+    public long readLong() throws IOException {
+        return this.stream.readLong();
+    }
+
+    public String readString() throws IOException {
+        return this.stream.readUTF();
+    }
+
+	public byte[] readStreamBytes() throws IOException {
+        int n2;
+        int n3 = this.readInt();
+        byte[] arrby = new byte[n3];
+        for (int i2 = 0; i2 < n3 && (n2 = this.stream.read(arrby, i2, n3 - i2)) != -1; i2 += n2) {
+        }
+        return arrby;
+    }
+
+	public DataInputStream getDecodeStream() throws IOException{
+		this.readString();
+		byte[] bytes = readStreamBytes();
+		GzipDecoder coder = new GzipDecoder(bytes);
+		return coder.stream;
+	}
+
+	/*
+	*  get decoded bytes.
+	*
+	*/
+	public byte[] getDecodeBytes() throws IOException{
+		this.readString();
+		byte[] bytes = readStreamBytes();
+		return bytes;
+	}
+
+	public Enum readEnum(Class clazz) throws IOException{
+		int i = this.readInt();
+		return (Enum)clazz.getEnumConstants()[i];
+	}
+	
+	/*
+	* Starts a block to read content.
+	* Block content will buffered to List;
+	*/
+	public void startBlock() throws IOException {
+		stream = getDecodeStream();
+		blockQuere.add(stream);
+	}
+	
+	/*
+	* Ends a block content.
+	* Delete the buffer to get the current stream.
+	*/
+	public void endBlock() {
+		blockQuere.removeLast();
+		if (blockQuere.size() == 0) {
+			stream = CurrentStream;
+		} else {
+			stream = blockQuere.getLast();
+		}
+	}
+}
