@@ -1,5 +1,5 @@
 # Rukkit Project
-!(RukkitLogo)[rukkit.png]
+![RukkitLogo](rukkit.png)
 ## What is Rukkit?
 Rukkit is a Rustedwarfare Server,you can use it to run a private server on your vps or other devices.
 It's more like Dedicated server but more features like custom maps or mods, extra plugins.
