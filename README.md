@@ -12,10 +12,10 @@ This project based on netty framework so it as stable as Dedicated Servers.
 - [x] Basic Plugin System
 - [x] Mod server by mod's metadata (need a exportTool)
 - [x] 10p+ Multiplayer supported (only 1.14+)
-- [] Game hook(Events) supported some event not all.
-- [] Anti-Cheat sync (need a game Simulation layer)
-- [] Advanced gameCommand & save modification. (it's hard to make changes to them,the most result is crash the game.)
-- [] Relay mode (maybe in future version)
+- [ ] Game hook(Events) supported some event not all.
+- [ ] Anti-Cheat sync (need a game Simulation layer)
+- [ ] Advanced gameCommand & save modification. (it's hard to make changes to them,the most result is crash the game.)
+- [ ] Relay mode (maybe in future version)
 
 ## About
 Some plugin system design referenced Nukkit.
