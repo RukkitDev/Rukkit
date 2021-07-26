@@ -44,7 +44,12 @@ public class Packet
 		this.type = 0;
 	}
 	
-	public Packet chat(String from,String msg,int team) throws IOException{
+	/**
+	* Send a player chat packet.
+	* @params from Player who send it.
+	* @params team player team.Suggestion:-1=SERVER chat
+	*/
+	public static Packet chat(String from,String msg,int team) throws IOException{
 		GameOutputStream o2 = new GameOutputStream();
 		o2.writeString(msg);
 		o2.writeByte(3);
@@ -54,16 +59,23 @@ public class Packet
 		o2.writeInt(team);
 		return o2.createPacket(PACKET_SEND_CHAT);
 	}
-
-	public Packet ping() throws IOException{
+	
+	/**
+	* Send a ping packet.
+	*/
+	public static Packet ping() throws IOException{
 		GameOutputStream o = new GameOutputStream();
 		o.writeLong(new Random().nextLong());
 		o.writeByte(0);
 		Packet p = o.createPacket(PACKET_HEART_BEAT);
 		return p;
 	}
-
-	public Packet preRegister() throws IOException{
+	
+	/**
+	* Send a preRegister packet to Client.
+	* Server UUID and verfiy code will be sended.
+	*/
+	public static Packet preRegister() throws IOException{
 		//协议版本？
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("io.rukkit");
@@ -81,8 +93,13 @@ public class Packet
 		
 		return stream.createPacket(;
 	}*/
-
-	public Packet gameCommand(int tick, GameCommand cmd) throws IOException{
+	
+	/**
+	* Send a gameCommand packet to client.
+	* @params tick tickTime in game.
+	* @params cmd gameCommand content.
+	*/
+	public static Packet gameCommand(int tick, GameCommand cmd) throws IOException{
 		GameOutputStream o = new GameOutputStream();
 		o.writeInt(tick);
 		o.writeInt(1);
@@ -92,8 +109,13 @@ public class Packet
 		o.endBlock();
 		return (o.createPacket(10));
 	}
-
-	public Packet emptyCommand(int tick) throws IOException{
+	
+	/**
+	 * Send a empty gameCommand packet to client.
+	 * Always used for keep game running.
+	 * @params tick tickTime in game.
+	 */
+	public static Packet emptyCommand(int tick) throws IOException{
 		// TODO: Implement ths method
 		GameOutputStream o = new GameOutputStream();
 		o.writeInt(tick);
@@ -214,8 +236,13 @@ public class Packet
 
 	 return (o.createPacket(106));
 	 }*/
-
-	public Packet sandSave() throws IOException{
+	 
+	/**
+	* Send a GameSave packet to client.
+	* Useful for sync system.
+	* @param save GameSave data.
+	*/
+	public static Packet sandSave() throws IOException{
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("");
 		return (o.createPacket(150));
@@ -229,8 +256,12 @@ public class Packet
 	 o.writeString(question);
 	 return (o.createPacket(PacketType.PACKET_QUESTION));
 	 }*/
-
-	public Packet kick(String reason) throws IOException{
+	 
+	/**
+	* Send a kick packet to client.
+	* @param reason Kick reason.
+	*/
+	public static Packet kick(String reason) throws IOException{
 		GameOutputStream o = new GameOutputStream();
 		o.writeString(reason);
 		return (o.createPacket(150));

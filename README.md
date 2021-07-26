@@ -6,3 +6,7 @@ This project based on netty framework so it as stable as Dedicated Servers.
 
 ## About
 Some plugin system design referenced Nukkit.
+
+## Unstable warning
+this is still a unstable build.If you find bugs,please commit issues.
+if you fixed some bugs, you can have a PR.
