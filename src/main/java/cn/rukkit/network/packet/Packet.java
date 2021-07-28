@@ -46,7 +46,7 @@ public class Packet
 	
 	/**
 	* Send a player chat packet.
-	* @params from Player who send it.
+	* @params from player who send it.
 	* @params team player team.Suggestion:-1=SERVER chat
 	*/
 	public static Packet chat(String from,String msg,int team) throws IOException{

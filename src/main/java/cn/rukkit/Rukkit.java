@@ -72,49 +72,35 @@ public class Rukkit {
 		return server;
 	}
 
-	public static final void loadRukkitConfig() throws IOException, IllegalAccessException, InstantiationException {
+	public static final void loadRukkitConfig() throws IOException {
 		if (config != null) return;
-		config = (RukkitConfig) new RukkitConfig().loadConfig();
-		/*File confFile = new File(getEnvPath() + "/rukkit.yml");
-		 if (confFile.exists() && confFile.isFile()) {
-		 log.debug("Found Config file.Reading...");
-		 config = new Yaml().loadAs(new FileReader(confFile), RukkitConfig.class);
-		 } else {
-		 log.debug("Config file.not found.Creating...");
-		 confFile.delete();
-		 confFile.createNewFile();
-		 RukkitConfig cfg = new RukkitConfig();
-		 FileWriter writer = new FileWriter(confFile);
-		 writer.write(new Yaml().dumpAs(cfg, null, DumperOptions.FlowStyle.BLOCK));
-		 writer.flush();
-		 writer.close();
-		 config = cfg;
-		 }*/
+		config = getConfig("rukkit.yml", RukkitConfig.class);
 	}
 
 	public static final void loadRoundConfig() throws IOException {
 		if (round != null) return;
-		File confFile = new File(getEnvPath() + "/server.yml");
+		round = getConfig("round.yml", RoundConfig.class);
+	}
+	
+	public static final <T> T getConfig(String path, Class<T> cls) throws FileNotFoundException, IOException {
+		Yaml yaml = new Yaml();
+		File confFile = new File(getEnvPath() + "/" + path);
 		if (confFile.exists() && confFile.isFile()) {
 			log.debug("Found Config file.Reading...");
-			round = new Yaml().loadAs(new FileReader(confFile), RoundConfig.class);
 		} else {
 			log.debug("Config file.not found.Creating...");
 			confFile.delete();
 			confFile.createNewFile();
-			RoundConfig cfg = new RoundConfig();
-			Yaml yaml = new Yaml();
 			FileWriter writer = new FileWriter(confFile);
-			writer.write(yaml.dumpAs(cfg, null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(yaml.dumpAs(cls, null, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
-			round = cfg;
 		}
+		return yaml.loadAs((new FileInputStream(path)), cls);
 	}
 	
-	public static final <T> T getConfig(String path, Class<T> cls) throws FileNotFoundException {
-		Yaml yaml = new Yaml();
-		return yaml.loadAs((new FileInputStream(path)), cls);
+	public static final <T> T getConfig(File confFile, Class<T> cls) throws FileNotFoundException, IOException {
+		return getConfig(confFile.getPath(), cls);
 	}
 
 	public static final String getEnvPath() {
@@ -128,16 +114,26 @@ public class Rukkit {
 	public static final void startServer(int port) {
 
 	}
+	
+	public static final ModManager getModManager() {
+		return modManager;
+	}
 
 	/**
 	 * Start a Rukkit server.
 	 */
-	public static final void startServer() throws IOException, InterruptedException, IllegalAccessException, InstantiationException {
+	public static final void startServer() throws IOException {
 		long time = System.currentTimeMillis();
 		log.info("Loading server config...");
 		loadRukkitConfig();
 		log.info("Loading default round config...");
 		loadRoundConfig();
+		log.info("init::ModManager");
+		modManager = new ModManager();
+		modManager.loadInternalMod();
+		modManager.loadAllModsInDir();
+		log.info("init::CommandManager");
+		commandManager = new CommandManager();
 		log.info("init::GameServer");
 		server = new GameServer(config.serverPort);
 		log.info("init::ConnectionManager");
@@ -145,6 +141,9 @@ public class Rukkit {
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new CommandPlugin());
+		pluginManager.loadPluginInDir();
+		
+		//log.info("init::
 		//server.action(time);
 	}
 }

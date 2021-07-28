@@ -28,7 +28,7 @@ public class ConnectionManager
 	
 	/**
 	* Broadcast a message to all connections.
-	* @params mag Packet msg.
+	* @params msg Packet msg.
 	*/
 	public ChannelGroupFuture broadcast(Packet msg)
 	{
@@ -37,7 +37,7 @@ public class ConnectionManager
 
 	/**
 	 * Broadcast a message to all connections,but using a ChannelMatcher.
-	 * @params mag Packet msg.
+	 * @params msg Packet msg.
 	 * @params matcher ChannelMatcher.
 	 */
 	public ChannelGroupFuture broadcast(Packet msg, ChannelMatcher matcher)
