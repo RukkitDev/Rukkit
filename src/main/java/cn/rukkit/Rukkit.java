@@ -7,6 +7,7 @@ import org.slf4j.*;
 import org.yaml.snakeyaml.*;
 import cn.rukkit.plugin.*;
 import cn.rukkit.game.mod.*;
+import cn.rukkit.plugin.internal.*;
 
 public class Rukkit {
 	public static final String RUKKIT_VERSION = "0.7.0";
@@ -110,6 +111,11 @@ public class Rukkit {
 			round = cfg;
 		}
 	}
+	
+	public static final <T> T getConfig(String path, Class<T> cls) throws FileNotFoundException {
+		Yaml yaml = new Yaml();
+		return yaml.loadAs((new FileInputStream(path)), cls);
+	}
 
 	public static final String getEnvPath() {
 		return System.getProperty("user.dir");
@@ -132,10 +138,13 @@ public class Rukkit {
 		loadRukkitConfig();
 		log.info("Loading default round config...");
 		loadRoundConfig();
+		log.info("init::GameServer");
 		server = new GameServer(config.serverPort);
 		log.info("init::ConnectionManager");
 		connectionManager = new ConnectionManager(server);
-		log.info("init::GameServer");
-		server.action(time);
+		log.info("init::PluginManager");
+		pluginManager = new PluginManager();
+		pluginManager.loadPlugin(new CommandPlugin());
+		//server.action(time);
 	}
 }
