@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Mod 
 {
-	public class ModUnit {
+	public static class ModUnit {
 		private String modName;
 		private String unitName;
 		private int unitId;

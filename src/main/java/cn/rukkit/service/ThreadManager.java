@@ -52,4 +52,12 @@ public class ThreadManager
 	public void shutdownTask(ScheduledFuture future) {
 		future.cancel(true);
 	}
+	
+	public long getTaskCount () {
+		return executorService.getTaskCount();
+	}
+	
+	public int getActiveThreadCount() {
+		return executorService.getActiveCount();
+	}
 }

@@ -34,7 +34,7 @@ public class NetworkPlayer
 		return this.connection;
 	}
 	
-	public void writePlayer(GameOutputStream stream) throws IOException {
+	public void writePlayer(DataOutputStream stream) throws IOException {
 		if (Rukkit.getGameServer().isGaming()) {
 			stream.writeByte(0);
 			stream.writeInt(ping);
@@ -51,9 +51,9 @@ public class NetworkPlayer
 			stream.writeBoolean(true);
 
 			if(isAdmin){
-				stream.writeString("[[[" + name + "]]]");
+				stream.writeUTF("[[[" + name + "]]]");
 			}else{
-				stream.writeString(name);
+				stream.writeUTF(name);
 			}
 			stream.writeBoolean(true);
 

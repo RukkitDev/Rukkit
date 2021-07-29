@@ -132,7 +132,7 @@ public class ModManager
 	}
 
 	public void loadInternalMod() throws IOException {
-		if (fetchMod("default_mod") != null) {
+		if (fetchMod("default") != null) {
 			log.warn("Deafult mod already loaded.Ignoring...");
 			return;
 		}
@@ -144,11 +144,11 @@ public class ModManager
 		{
 			sbuf.append(b);
 		}
-		li = (ArrayList<ModUnit>) JSON.parseArray(sbuf.toString(), ModUnit.class);
+		li = (ArrayList<ModUnit>) JSON.parseArray(sbuf.toString(), Mod.ModUnit.class);
 		/*for(ModUnit u: li) {
 		 log.d(u.getModName());
 		 }*/
-		loadMod("default_mod", new Mod(li));
+		loadMod("default", new Mod(li));
 		//return li;
 	}
 }

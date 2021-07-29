@@ -3,6 +3,7 @@ package cn.rukkit.network;
 import cn.rukkit.network.packet.*;
 import java.io.*;
 import java.util.*;
+import java.util.zip.*;
 
 public class GameOutputStream
 {
@@ -10,6 +11,12 @@ public class GameOutputStream
 	public DataOutputStream stream = new DataOutputStream(buffer);
 	public DataOutputStream currentStream = new DataOutputStream(buffer);
 	public LinkedList<GzipEncoder> blockQuere = new LinkedList<GzipEncoder>();
+
+	private GZIPOutputStream gzipStream;
+
+	private BufferedOutputStream bufferedStream;
+	
+	private ByteArrayOutputStream buff = new ByteArrayOutputStream();
 	
 	public Packet createPacket(int type) {
         try {
@@ -91,6 +98,15 @@ public class GameOutputStream
 		currentStream = stream;
 		stream = enc.stream;
 		blockQuere.addLast(enc);
+		OutputStream outputStream;
+		if (isGzip) {
+			this.gzipStream = new GZIPOutputStream(this.buff);
+			this.bufferedStream = new BufferedOutputStream(this.gzipStream);
+			outputStream = this.bufferedStream;
+		} else {
+			outputStream = this.buff;
+		}
+		stream = new DataOutputStream(outputStream);
 	}
 	
 	/*
@@ -99,10 +115,11 @@ public class GameOutputStream
 	public void endBlock() throws IOException {
 		if (blockQuere.size() != 0) {
 			GzipEncoder enc = blockQuere.removeLast();
-			enc.flush();
-			this.writeString(enc.str);
-			this.writeInt(enc.buffer.size());
-			enc.buffer.writeTo((OutputStream)this.currentStream);
+			//enc.stream = stream;
+			//enc.stream.write(stream.
+			currentStream.writeUTF(enc.str);
+			currentStream.writeInt(stream.size());
+			buff.writeTo((OutputStream)this.currentStream);
 			//判断是否有下一块
 			if (blockQuere.size() == 0) {
 				stream = currentStream;

@@ -5,6 +5,7 @@ import io.netty.util.concurrent.*;
 import java.util.*;
 import cn.rukkit.game.*;
 import cn.rukkit.network.packet.*;
+import cn.rukkit.*;
 
 public class ConnectionManager
 {
@@ -105,6 +106,7 @@ public class ConnectionManager
 	*/
 	public ConnectionManager(GameServer server) {
 		this.server = server;
+		playerManager = new PlayerManager(Rukkit.getConfig().maxPlayer);
 	}
 	
 	public void getPlayerAsList() {
@@ -116,6 +118,13 @@ public class ConnectionManager
 	*/
 	public PlayerManager getPlayerManager() {
 		return playerManager;
+	}
+	
+	/**
+	* Get connections
+	*/
+	public List<Connection> getConnections() {
+		return connections;
 	}
 	
 	public void registerPlayer(Connection connection) {

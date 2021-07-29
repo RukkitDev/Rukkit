@@ -5,7 +5,7 @@ import io.netty.util.internal.logging.*;
 
 public class RukkitLauncher
 {
-	public static void main(String args[]) throws IOException{
+	public static void main(String args[]) throws IOException, InterruptedException{
 		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
 		Rukkit.startServer();
 	}

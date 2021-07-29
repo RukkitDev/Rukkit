@@ -24,6 +24,13 @@ public class GameServer {
 	}
 	
 	/**
+	* Stops server.
+	*/
+	public void stop() {
+		
+	}
+	
+	/**
 	* Start a Server.
 	*/
 	public void action(final long time) throws InterruptedException {

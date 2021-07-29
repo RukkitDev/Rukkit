@@ -18,6 +18,14 @@ public class RukkitConfig extends BaseConfig
 	public int maxPacketFrame = 8192;
 	public String UUID = "00000000-0000-0000-0000-000000000000";
 	//private String configName = "rukkit.yml";
+	//max threads in manager.Default = 8;
+	public int threadPoolCount = 8;
+	
+	//Ping packet receive timeout.default = 8000 (ms)
+	public int pingTimeout = 8000;
+	
+	//registerTimeout default = 5 (s)
+	public int registerTimeout = 5;
 	
 	public RukkitConfig() {
 		this.configName = "rukkit.yml";

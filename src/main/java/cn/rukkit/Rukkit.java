@@ -8,6 +8,7 @@ import org.yaml.snakeyaml.*;
 import cn.rukkit.plugin.*;
 import cn.rukkit.game.mod.*;
 import cn.rukkit.plugin.internal.*;
+import cn.rukkit.service.*;
 
 public class Rukkit {
 	public static final String RUKKIT_VERSION = "0.7.0";
@@ -25,6 +26,10 @@ public class Rukkit {
 	private static ModManager modManager;
 
 	private static GameServer server;
+	
+	private static ThreadManager threadManager;
+
+	public final static String PLUGIN_API_VERSION = "0.6.0";
 
 	public static void shutdown(String message) {
 		// TODO: Implement this method
@@ -34,7 +39,7 @@ public class Rukkit {
 	 *  load Plugin.
 	 */
 	public static final void loadPlugin() {
-
+		
 	}
 
 	/**
@@ -60,6 +65,10 @@ public class Rukkit {
 		return round;
 	}
 
+	public static final ThreadManager getThreadManager() {
+		return threadManager;
+	}
+	
 	public static final CommandManager getCommandManager() {
 		return commandManager;
 	}
@@ -122,12 +131,14 @@ public class Rukkit {
 	/**
 	 * Start a Rukkit server.
 	 */
-	public static final void startServer() throws IOException {
+	public static final void startServer() throws IOException, InterruptedException {
 		long time = System.currentTimeMillis();
 		log.info("Loading server config...");
 		loadRukkitConfig();
 		log.info("Loading default round config...");
 		loadRoundConfig();
+		log.info("init::ThreadManager");
+		threadManager = new ThreadManager(config.threadPoolCount);
 		log.info("init::ModManager");
 		modManager = new ModManager();
 		modManager.loadInternalMod();
@@ -143,7 +154,7 @@ public class Rukkit {
 		pluginManager.loadPlugin(new CommandPlugin());
 		pluginManager.loadPluginInDir();
 		
-		//log.info("init::
-		//server.action(time);
+		log.info("start::game server on port:" + config.serverPort);
+		server.action(time);
 	}
 }

@@ -4,6 +4,9 @@ import cn.rukkit.game.mod.*;
 import java.util.*;
 import org.slf4j.*;
 import cn.rukkit.network.*;
+import cn.rukkit.*;
+import cn.rukkit.network.packet.*;
+import java.io.*;
 
 public class CommandManager 
 {
@@ -22,12 +25,21 @@ public class CommandManager
 	public void execute(Connection connection, String cmd) {
 		String cmds[] = cmd.split(" ", 1);
 		ChatCommand cmdobj = fetchCommand(cmd);
+		boolean result;
 		log.debug("cmd is:" + cmds[0]);
 		if (cmds.length > 1 && cmdobj.args > 0) {
 			String[] args = cmds[1].split(" ", cmdobj.args - 1);
-			cmdobj.getListener().onSend(connection,args);
+			result = cmdobj.getListener().onSend(connection,args);
 		} else {
-			cmdobj.getListener().onSend(connection,null);
+			result = cmdobj.getListener().onSend(connection,new String[0]);
+		}
+		if (result == true) {
+			try {
+				Rukkit.getConnectionManager().broadcast(
+					Packet.chat(connection.player.name,
+								"-" + cmd,
+								connection.player.playerIndex));
+			} catch (IOException e) {}
 		}
 	}
 	
