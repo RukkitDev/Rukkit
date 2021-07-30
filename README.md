@@ -1,3 +1,4 @@
+[中文](README_zh.md)
 # Rukkit Project
 ![RukkitLogo](rukkit.png)
 ## What is Rukkit?
