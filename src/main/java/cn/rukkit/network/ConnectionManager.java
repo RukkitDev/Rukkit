@@ -2,6 +2,8 @@ package cn.rukkit.network;
 import io.netty.channel.*;
 import io.netty.channel.group.*;
 import io.netty.util.concurrent.*;
+
+import java.io.IOException;
 import java.util.*;
 import cn.rukkit.game.*;
 import cn.rukkit.network.packet.*;
@@ -130,4 +132,11 @@ public class ConnectionManager
 	public void registerPlayer(Connection connection) {
 		
 	}
+
+	public void broadcastServerMessage(String msg) {
+		try {
+			broadcast(Packet.chat("SERVER", msg, -1));
+		} catch (IOException ignored) {}
+	}
+
 }

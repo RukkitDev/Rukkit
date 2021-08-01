@@ -23,15 +23,19 @@ public class CommandManager
 	}
 	
 	public void execute(Connection connection, String cmd) {
-		String cmds[] = cmd.split(" ", 1);
-		ChatCommand cmdobj = fetchCommand(cmd);
+		String[] cmds = cmd.split("\\s+", 2);
+		ChatCommand cmdObj = fetchCommand(cmds[0]);
+		if (cmdObj == null) {
+			connection.sendServerMessage("Command not exist.Try '.help' to list all commands.");
+			return;
+		}
 		boolean result;
 		log.debug("cmd is:" + cmds[0]);
-		if (cmds.length > 1 && cmdobj.args > 0) {
-			String[] args = cmds[1].split(" ", cmdobj.args - 1);
-			result = cmdobj.getListener().onSend(connection,args);
+		if (cmds.length > 1 && cmdObj.args > 0) {
+			String[] args = cmds[1].split(" ", cmdObj.args);
+			result = cmdObj.getListener().onSend(connection,args);
 		} else {
-			result = cmdobj.getListener().onSend(connection,new String[0]);
+			result = cmdObj.getListener().onSend(connection,new String[0]);
 		}
 		if (result == true) {
 			try {

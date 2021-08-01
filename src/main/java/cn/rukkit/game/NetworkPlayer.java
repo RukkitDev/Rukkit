@@ -85,7 +85,56 @@ public class NetworkPlayer
 			stream.writeInt(0);
 		}
 	}
-	
+
+	public boolean movePlayer(int index){
+		if (index > Rukkit.getConfig().maxPlayer) return false;
+		PlayerManager playerGroup = Rukkit.getConnectionManager().getPlayerManager();
+		for(NetworkPlayer p : playerGroup.getPlayerArray()){
+			try{
+				if(p.playerIndex == index){
+					return false;
+				}
+			}catch(NullPointerException e){continue;}
+		}
+		this.playerIndex = index;
+		playerGroup.remove(this);
+		playerGroup.set(index, this);
+		return true;
+	}
+
+	public boolean moveTeam(int team){
+		if(team > 9 && team < 0){
+			return false;
+		} else {
+			this.team = team;
+		}
+		return true;
+	}
+
+	public boolean giveAdmin(int index){
+		NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(index);
+		if(index < 9 && index >= 0 && player != null && this.isAdmin){
+			player.isAdmin = true;
+			this.isAdmin = false;
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "NetworkPlayer{" +
+				"name='" + name + '\'' +
+				", uuid='" + uuid + '\'' +
+				", team=" + team +
+				", playerIndex=" + playerIndex +
+				", ping=" + ping +
+				", isAdmin=" + isAdmin +
+				", isSharingControl=" + isSharingControl +
+				", isSurrounded=" + isSurrounded +
+				'}';
+	}
+
 	public boolean isNull() {
 		return false;
 	}

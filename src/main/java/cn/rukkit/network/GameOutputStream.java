@@ -120,7 +120,7 @@ public class GameOutputStream
 			currentStream.writeUTF(enc.str);
 			currentStream.writeInt(stream.size());
 			buff.writeTo((OutputStream)this.currentStream);
-			//判断是否有下一块
+			//detect next block
 			if (blockQuere.size() == 0) {
 				stream = currentStream;
 			} else {

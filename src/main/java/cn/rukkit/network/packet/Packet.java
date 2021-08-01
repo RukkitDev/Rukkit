@@ -146,16 +146,16 @@ public class Packet {
 	 return serverInfo(bool, li);
 	 }*/
 
-	 public Packet serverInfo() throws IOException{
+	 public static Packet serverInfo() throws IOException{
 		 return serverInfo(false, Rukkit.getModManager().fetchAllEnabledModUnits());
 	 }
 
-	 public Packet serverInfo(Boolean isAdmin) throws IOException {
+	 public static Packet serverInfo(Boolean isAdmin) throws IOException {
 		 return serverInfo(isAdmin, Rukkit.getModManager().fetchAllEnabledModUnits());
 	 }
 	 
 
-	public Packet serverInfo(boolean isAdmin, ArrayList<ModUnit> units) throws IOException {
+	public static Packet serverInfo(boolean isAdmin, ArrayList<ModUnit> units) throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("com.corrodinggames.rts");
 		//协议版本
@@ -225,7 +225,7 @@ public class Packet {
 	/**
 	 * Send a GameSave packet to client.
 	 * Useful for sync system.
-	 * @param save GameSave data.
+	 * GameSave data.
 	 */
 	public static Packet sandSave() throws IOException {
 		GameOutputStream o = new GameOutputStream();

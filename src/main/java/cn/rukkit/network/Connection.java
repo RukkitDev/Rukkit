@@ -49,7 +49,7 @@ public class Connection {
 				o.writeInt(player.playerIndex);
 				// 1.14新增
 				o.writeBoolean(Rukkit.getGameServer().isGaming());
-				o.writeInt(Rukkit.getConfig().maxPlayer); //最大玩家
+				o.writeInt(Rukkit.getConfig().maxPlayer); //maxPlayer
 				//1.14启用Gzip压缩
 				GzipEncoder enc = o.getEncodeStream("teams", true);
 
@@ -72,7 +72,7 @@ public class Connection {
 				o.writeInt(1);
 				//
 				o.writeByte(4);
-				//最大单位
+				//maxUnit
 				o.writeInt(250);
 				o.writeInt(250);
 
@@ -123,7 +123,13 @@ public class Connection {
 		Rukkit.getThreadManager().shutdownTask(teamFuture);
 		teamFuture = null;
 	}
-	
+
+	public void sendChat(String msg) {
+		try {
+			Rukkit.getConnectionManager().broadcast(Packet.chat(player.name, msg, player.playerIndex));
+		} catch (IOException ignored) {}
+	}
+
 	public void sendServerMessage(String msg) {
 		try {
 			handler.ctx.writeAndFlush(Packet.chat("SERVER", msg, -1));

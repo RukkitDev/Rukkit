@@ -56,6 +56,5 @@ public class PacketDecoder extends ByteToMessageDecoder
 
 		p3.add(p);
 	}
-
 }
 

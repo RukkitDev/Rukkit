@@ -83,12 +83,38 @@ public class Rukkit {
 
 	public static final void loadRukkitConfig() throws IOException {
 		if (config != null) return;
-		config = getConfig("rukkit.yml", RukkitConfig.class);
+		Yaml yaml = new Yaml();
+		File confFile = new File(getEnvPath() + "/rukkit.yml");
+		if (confFile.exists() && confFile.isFile()) {
+			log.debug("Found Config file.Reading...");
+		} else {
+			log.debug("Config file.not found.Creating...");
+			confFile.delete();
+			confFile.createNewFile();
+			FileWriter writer = new FileWriter(confFile);
+			writer.write(yaml.dumpAs(new RukkitConfig(), null, DumperOptions.FlowStyle.BLOCK));
+			writer.flush();
+			writer.close();
+		}
+		config = yaml.loadAs((new FileInputStream(confFile)), RukkitConfig.class);
 	}
 
 	public static final void loadRoundConfig() throws IOException {
 		if (round != null) return;
-		round = getConfig("round.yml", RoundConfig.class);
+		Yaml yaml = new Yaml();
+		File confFile = new File(getEnvPath() + "/round.yml");
+		if (confFile.exists() && confFile.isFile()) {
+			log.debug("Found Config file.Reading...");
+		} else {
+			log.debug("Config file.not found.Creating...");
+			confFile.delete();
+			confFile.createNewFile();
+			FileWriter writer = new FileWriter(confFile);
+			writer.write(yaml.dumpAs(new RoundConfig(), null, DumperOptions.FlowStyle.BLOCK));
+			writer.flush();
+			writer.close();
+		}
+		round = yaml.loadAs((new FileInputStream(confFile)), RoundConfig.class);
 	}
 	
 	public static final <T> T getConfig(String path, Class<T> cls) throws FileNotFoundException, IOException {
