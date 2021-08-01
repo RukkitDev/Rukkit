@@ -1,6 +1,7 @@
 package cn.rukkit.network;
 
 import cn.rukkit.*;
+import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.network.packet.*;
 import io.netty.bootstrap.*;
 import io.netty.channel.*;
@@ -10,11 +11,21 @@ import io.netty.channel.socket.nio.*;
 import org.slf4j.*;
 import io.netty.handler.logging.*;
 
+import java.io.IOException;
+
 public class GameServer {
 	Logger log = LoggerFactory.getLogger(GameServer.class);
 
 	private int port;
+	public int TickTime = 0;
 	private boolean isGaming = false;
+	public class GameTask implements Runnable{
+		@Override
+		public void run() {
+
+		}
+	}
+
 	public GameServer(int port) {
 		this.port = port;
 	}
@@ -22,13 +33,37 @@ public class GameServer {
 	public boolean isGaming() {
 		return isGaming;
 	}
-	
+
+	/**
+	 * starts a round game.
+	 */
+	public void startGame() {
+		try {
+			ConnectionManager connectionManager = Rukkit.getConnectionManager();
+			// Set shared control.
+			if (Rukkit.getRoundConfig().sharedControl) {
+				for (NetworkPlayer p:Rukkit.getConnectionManager().getPlayerManager().getPlayerArray()) {
+					try {
+						p.isNull();
+						p.isSharingControl = true;
+					} catch (NullPointerException ignored) {continue;}
+				}
+			}
+			// Reset tick time
+			TickTime = 0;
+			// Broadcast start packet.
+			connectionManager.broadcast(Packet.startGame());
+			//connectionManager.broadcast()
+		} catch (IOException ignored) {}
+	}
+
 	/**
 	* Stops server.
 	*/
 	public void stop() {
 		
 	}
+
 	
 	/**
 	* Start a Server.

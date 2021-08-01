@@ -91,6 +91,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter
 				player.name = playerName;
 				player.uuid = uuid;
 				conn.player = player;
+				//Check admin.
+				if (Rukkit.getConnectionManager().size() < 0) {
+					conn.sendServerMessage("You are the ADMIN of this server!");
+					ctx.writeAndFlush(Packet.serverInfo(true));
+				}
 				//Adding into ConnectionManager.
 				Rukkit.getConnectionManager().add(conn);
 				conn.startPingTask();

@@ -228,7 +228,16 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	class StartCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(Connection con, String[] args) {
-			return false;
+			if (Rukkit.getGameServer().isGaming() && !con.player.isAdmin) {
+				// Do nothing.
+			} else {
+				if (Rukkit.getConnectionManager().size() < Rukkit.getConfig().minStartPlayer) {
+					Rukkit.getConnectionManager().broadcastServerMessage("min start player is" + Rukkit.getConfig().minStartPlayer);
+				} else {
+					Rukkit.getGameServer().startGame();
+				}
+			}
+			return true;
 		}
 	}
 

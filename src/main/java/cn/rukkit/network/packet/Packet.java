@@ -1,6 +1,7 @@
 package cn.rukkit.network.packet;
 
 import cn.rukkit.*;
+import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.mod.Mod.*;
 import cn.rukkit.network.*;
 import cn.rukkit.network.command.*;
@@ -231,6 +232,22 @@ public class Packet {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("");
 		return (o.createPacket(150));
+	}
+	
+	public static Packet startGame() throws IOException {
+		GameOutputStream o = new GameOutputStream();
+		o.writeByte(0);
+		//应该是Type
+		if(Rukkit.getRoundConfig().mapType == 0){
+			o.writeInt(0);
+			o.writeString("maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
+		}else if(Rukkit.getRoundConfig().mapType == 1){
+			o.writeInt(1);
+			o.writeFile(CustomMapLoader.getStreamByName(Rukkit.getRoundConfig().mapName + ".tmx"));
+			o.writeString(Rukkit.getRoundConfig().mapName + ".tmx");
+		}
+		o.writeBoolean(false);
+		return (o.createPacket(120));
 	}
 
 	/*public Packet question(Player p, String question, ServerQuestionCallback callback) throws IOException{
