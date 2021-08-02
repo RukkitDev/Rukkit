@@ -64,4 +64,8 @@ public abstract class RukkitPlugin implements Plugin
 		Yaml yaml = new Yaml();
 		return yaml.loadAs((new FileInputStream(file)), cls);
 	}
+	
+	public PluginManager getPluginManager() {
+		return Rukkit.getPluginManager();
+	}
 }

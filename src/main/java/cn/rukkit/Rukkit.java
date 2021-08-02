@@ -80,6 +80,10 @@ public class Rukkit {
 	public static final GameServer getGameServer() {
 		return server;
 	}
+	
+	public static final PluginManager getPluginManager() {
+		return pluginManager;
+	}
 
 	public static final void loadRukkitConfig() throws IOException {
 		if (config != null) return;
@@ -178,6 +182,7 @@ public class Rukkit {
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new CommandPlugin());
+		pluginManager.loadPlugin(new TestPlugin());
 		pluginManager.loadPluginInDir();
 		
 		log.info("start::game server on port:" + config.serverPort);

@@ -124,37 +124,37 @@ public class Packet {
 		return o.createPacket(10);
 	}
 
-	/*public Packet gameStart() throws IOException{
-	 GameOutputStream o = new GameOutputStream();
-	 o.writeByte(0);
-	 //应该是Type
-	 if(Rukkit.getRoundConfig().mapType == 0){
-	 o.writeInt(0);
-	 o.writeString("maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
-	 }else if(Rukkit.getRoundConfig().mapType == 1){
-	 o.writeInt(1);
-	 o.writeFile(CustomMapLoader.getStreamByName(Rukkit.getRoundConfig().mapName + ".tmx"));
-	 o.writeString(Rukkit.getRoundConfig().mapName + ".tmx");
-	 }
-	 o.writeBoolean(false);
-	 return (o.createPacket(120));
-	 }*/
+	public static Packet gameStart() throws IOException {
+		GameOutputStream o = new GameOutputStream();
+		o.writeByte(0);
+		//应该是Type
+		if (Rukkit.getRoundConfig().mapType == 0) {
+			o.writeInt(0);
+			o.writeString("maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
+		} else if (Rukkit.getRoundConfig().mapType == 1) {
+			o.writeInt(1);
+			o.writeFile(CustomMapLoader.getStreamByName(Rukkit.getRoundConfig().mapName + ".tmx"));
+			o.writeString(Rukkit.getRoundConfig().mapName + ".tmx");
+		}
+		o.writeBoolean(false);
+		return (o.createPacket(120));
+	}
 
-	 /*public Packet serverInfoWithUnit(ArrayList<ModUnit> units, boolean bool) throws IOException{
+	/*public Packet serverInfoWithUnit(ArrayList<ModUnit> units, boolean bool) throws IOException{
 	 ArrayList<ModUnit> li = Rukkit.getInternalModUnitsList();
 	 li.addAll(Rukkit.getModManager().fetchAllEnabledModUnits());
 	 li.addAll(units);
 	 return serverInfo(bool, li);
 	 }*/
 
-	 public static Packet serverInfo() throws IOException{
-		 return serverInfo(false, Rukkit.getModManager().fetchAllEnabledModUnits());
-	 }
+	public static Packet serverInfo() throws IOException {
+		return serverInfo(false, Rukkit.getModManager().fetchAllEnabledModUnits());
+	}
 
-	 public static Packet serverInfo(Boolean isAdmin) throws IOException {
-		 return serverInfo(isAdmin, Rukkit.getModManager().fetchAllEnabledModUnits());
-	 }
-	 
+	public static Packet serverInfo(Boolean isAdmin) throws IOException {
+		return serverInfo(isAdmin, Rukkit.getModManager().fetchAllEnabledModUnits());
+	}
+
 
 	public static Packet serverInfo(boolean isAdmin, ArrayList<ModUnit> units) throws IOException {
 		GameOutputStream o = new GameOutputStream();
@@ -183,24 +183,24 @@ public class Packet {
 		o.writeBoolean(false);
 		o.writeBoolean(true);
 
-	
+
 		/*GzipEncoder out = o.getEncodeStream("customUnits", false);
-		out.stream.writeInt(1);
-		out.stream.writeInt(units.size());
-		for(ModUnit c: units){
-			out.stream.writeUTF(c.getUnitName());
-			out.stream.writeInt(c.getUnitId());
-			out.stream.writeBoolean(true);
-			out.stream.writeBoolean(false);
-			out.stream.writeLong(0);
-			out.stream.writeLong(0);
-		}
-		o.flushEncodeData(out);*/
-		
+		 out.stream.writeInt(1);
+		 out.stream.writeInt(units.size());
+		 for(ModUnit c: units){
+		 out.stream.writeUTF(c.getUnitName());
+		 out.stream.writeInt(c.getUnitId());
+		 out.stream.writeBoolean(true);
+		 out.stream.writeBoolean(false);
+		 out.stream.writeLong(0);
+		 out.stream.writeLong(0);
+		 }
+		 o.flushEncodeData(out);*/
+
 		o.startBlock("customUnits", false);
 		o.writeInt(1);
 		o.writeInt(units.size());
-		for(ModUnit c: units){
+		for (ModUnit c: units) {
 			o.writeString(c.getUnitName());
 			o.writeInt(c.getUnitId());
 			o.writeBoolean(true);
@@ -233,15 +233,15 @@ public class Packet {
 		o.writeString("");
 		return (o.createPacket(150));
 	}
-	
+
 	public static Packet startGame() throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		o.writeByte(0);
 		//应该是Type
-		if(Rukkit.getRoundConfig().mapType == 0){
+		if (Rukkit.getRoundConfig().mapType == 0) {
 			o.writeInt(0);
 			o.writeString("maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
-		}else if(Rukkit.getRoundConfig().mapType == 1){
+		} else if (Rukkit.getRoundConfig().mapType == 1) {
 			o.writeInt(1);
 			o.writeFile(CustomMapLoader.getStreamByName(Rukkit.getRoundConfig().mapName + ".tmx"));
 			o.writeString(Rukkit.getRoundConfig().mapName + ".tmx");

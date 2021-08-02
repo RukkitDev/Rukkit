@@ -12,17 +12,53 @@ import org.slf4j.*;
 import io.netty.handler.logging.*;
 
 import java.io.IOException;
+import cn.rukkit.config.*;
+import cn.rukkit.game.*;
+import java.util.*;
+import cn.rukkit.network.command.*;
+import java.util.concurrent.*;
 
 public class GameServer {
-	Logger log = LoggerFactory.getLogger(GameServer.class);
+	private Logger log = LoggerFactory.getLogger(GameServer.class);
 
 	private int port;
-	public int TickTime = 0;
-	private boolean isGaming = false;
-	public class GameTask implements Runnable{
+	private int tickTime = 0;
+	//private boolean isGaming = false;
+	private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+	private ScheduledFuture gameTaskFuture;
+	public class GameTask implements Runnable {
 		@Override
 		public void run() {
+			RukkitConfig cfg = Rukkit.getConfig();
+			ConnectionManager connMgr = Rukkit.getConnectionManager();
+			// Add ticktime
+			tickTime += 10;
+			if (connMgr.size() <= 0) {
+				stopGame();
+				Rukkit.getThreadManager().shutdownTask(gameTaskFuture);
+				return;
+			}
 
+			if (connMgr.size() <= 1 && !cfg.singlePlayerMode) {
+				connMgr.broadcastServerMessage("1 player left.Auto disconnecting...");
+				stopGame();
+				Rukkit.getThreadManager().shutdownTask(gameTaskFuture);
+				return;
+			}
+
+			synchronized (commandQuere) {
+				log.debug("tick:" + tickTime);
+				try {
+					if (commandQuere.isEmpty()) {
+						connMgr.broadcast(Packet.emptyCommand(tickTime));
+					} else {
+						while(!commandQuere.isEmpty()){
+							GameCommand cmd = commandQuere.removeLast();
+							connMgr.broadcast(new Packet().gameCommand(tickTime, cmd));
+						}
+					}
+				} catch (IOException ignored) {}
+			}
 		}
 	}
 
@@ -31,7 +67,17 @@ public class GameServer {
 	}
 
 	public boolean isGaming() {
-		return isGaming;
+		return tickTime > 0;
+	}
+	
+	public void addCommand(GameCommand cmd) {
+		if (Rukkit.getConfig().useCommandQuere) {
+			commandQuere.addLast(cmd);
+		}
+	}
+	
+	public int getTickTime() {
+		return tickTime;
 	}
 
 	/**
@@ -40,6 +86,7 @@ public class GameServer {
 	public void startGame() {
 		try {
 			ConnectionManager connectionManager = Rukkit.getConnectionManager();
+			connectionManager.broadcast(Packet.gameStart());
 			// Set shared control.
 			if (Rukkit.getRoundConfig().sharedControl) {
 				for (NetworkPlayer p:Rukkit.getConnectionManager().getPlayerManager().getPlayerArray()) {
@@ -50,24 +97,42 @@ public class GameServer {
 				}
 			}
 			// Reset tick time
-			TickTime = 0;
+			tickTime = 0;
 			// Broadcast start packet.
-			connectionManager.broadcast(Packet.startGame());
+			//connectionManager.broadcast(Packet.serverInfo());
+			for(Connection conn : connectionManager.getConnections()) {
+				conn.updateTeamList();
+			}
+			gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), 200, 200);
 			//connectionManager.broadcast()
 		} catch (IOException ignored) {}
 	}
 
 	/**
-	* Stops server.
-	*/
-	public void stop() {
-		
+	 * Stop a round game.
+	 */
+	public void stopGame() {
+		// Reset player slot
+		Rukkit.getConnectionManager().getPlayerManager().reset();
+		// Reset ticktime
+		tickTime = 0;
+		// End all connections
+		Rukkit.getConnectionManager().disconnect();
+		gameTaskFuture.cancel(true);
+		//Rukkit.getThreadManager().shutdown();
 	}
 
-	
 	/**
-	* Start a Server.
-	*/
+	 * Stops server.
+	 */
+	public void stop() {
+
+	}
+
+
+	/**
+	 * Start a Server.
+	 */
 	public void action(final long time) throws InterruptedException {
 		// 用来接收进来的连接
 		EventLoopGroup bossGroup = new NioEventLoopGroup(); 

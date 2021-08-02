@@ -1,0 +1,7 @@
+package cn.rukkit.game;
+
+public enum GameActions
+{
+	MOVE,ATTACK,BUILD,REPAIR,UPLOAD,F,RECLAIM,ATTACK_MOVE,I,PATROL,PROTECT,PRODUCE
+}
+

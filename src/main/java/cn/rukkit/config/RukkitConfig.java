@@ -27,6 +27,9 @@ public class RukkitConfig extends BaseConfig
 	//registerTimeout default = 5 (s)
 	public int registerTimeout = 5;
 	
+	//Using commandQuere to manage game commands
+	public boolean useCommandQuere = false;
+	
 	public RukkitConfig() {
 		this.configName = "rukkit.yml";
 	}

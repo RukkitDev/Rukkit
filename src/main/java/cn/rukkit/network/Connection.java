@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import cn.rukkit.*;
 import cn.rukkit.util.*;
+import cn.rukkit.network.command.*;
 
 public class Connection {
 	public NetworkPlayer player;
@@ -42,51 +43,9 @@ public class Connection {
 		@Override
 		public void run() {
 			// TODO: Implement this method
-			GameOutputStream o = new GameOutputStream();
 			try
 			{
-				//log.d("Sending teamlist...");
-				o.writeInt(player.playerIndex);
-				// 1.14新增
-				o.writeBoolean(Rukkit.getGameServer().isGaming());
-				o.writeInt(Rukkit.getConfig().maxPlayer); //maxPlayer
-				//1.14启用Gzip压缩
-				GzipEncoder enc = o.getEncodeStream("teams", true);
-
-				for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
-				{
-					NetworkPlayer playerp = Rukkit.getConnectionManager().getPlayerManager().get(i);
-					enc.stream.writeBoolean(playerp != null);
-					if (playerp == null) continue;
-					//1.14
-					//enc.stream.writeByte(0);
-					enc.stream.writeInt(255);
-					playerp.writePlayer(enc.stream);
-				}
-				o.flushEncodeData(enc);
-
-				o.writeInt(Rukkit.getRoundConfig().fogType);
-				o.writeInt(GameUtils.getMoneyFormat(Rukkit.getRoundConfig().credits));
-				o.writeBoolean(true);
-				//ai
-				o.writeInt(1);
-				//
-				o.writeByte(4);
-				//maxUnit
-				o.writeInt(250);
-				o.writeInt(250);
-
-				//初始单位
-				o.writeInt(Rukkit.getRoundConfig().startingUnits);
-				o.writeFloat(Rukkit.getRoundConfig().income);
-				o.writeBoolean(Rukkit.getRoundConfig().disableNuke);
-				o.writeBoolean(false);
-				o.writeBoolean(false);
-				o.writeBoolean(Rukkit.getRoundConfig().sharedControl);
-
-				Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
-
-				handler.ctx.writeAndFlush(p);
+				updateTeamList();
 			}
 			catch (IOException e)
 			{
@@ -140,6 +99,62 @@ public class Connection {
 		try {
 			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
 		} catch (IOException e) {}
+	}
+	
+	public void sendGameCommand(GameCommand cmd) {
+		if (Rukkit.getConfig().useCommandQuere) {
+			Rukkit.getGameServer().addCommand(cmd);
+		} else {
+			try {
+				Rukkit.getConnectionManager().broadcast(Packet.gameCommand(Rukkit.getGameServer().getTickTime(), cmd));
+			} catch (IOException ignored) {}
+		}
+	}
+	
+	public void updateTeamList() throws IOException {
+		GameOutputStream o = new GameOutputStream();
+		//log.d("Sending teamlist...");
+		o.writeInt(player.playerIndex);
+		// 1.14新增
+		o.writeBoolean(Rukkit.getGameServer().isGaming());
+		o.writeInt(Rukkit.getConfig().maxPlayer); //maxPlayer
+		//1.14启用Gzip压缩
+		GzipEncoder enc = o.getEncodeStream("teams", true);
+
+		for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
+		{
+			NetworkPlayer playerp = Rukkit.getConnectionManager().getPlayerManager().get(i);
+			enc.stream.writeBoolean(playerp != null);
+			if (playerp == null) continue;
+			//1.14
+			//enc.stream.writeByte(0);
+			enc.stream.writeInt(255);
+			playerp.writePlayer(enc.stream);
+		}
+		o.flushEncodeData(enc);
+
+		o.writeInt(Rukkit.getRoundConfig().fogType);
+		o.writeInt(GameUtils.getMoneyFormat(Rukkit.getRoundConfig().credits));
+		o.writeBoolean(true);
+		//ai
+		o.writeInt(1);
+		//
+		o.writeByte(4);
+		//maxUnit
+		o.writeInt(250);
+		o.writeInt(250);
+
+		//初始单位
+		o.writeInt(Rukkit.getRoundConfig().startingUnits);
+		o.writeFloat(Rukkit.getRoundConfig().income);
+		o.writeBoolean(Rukkit.getRoundConfig().disableNuke);
+		o.writeBoolean(false);
+		o.writeBoolean(false);
+		o.writeBoolean(Rukkit.getRoundConfig().sharedControl);
+
+		Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
+
+		handler.ctx.writeAndFlush(p);
 	}
 	
 	public void kick(String reason) {
