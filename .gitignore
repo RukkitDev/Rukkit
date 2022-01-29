@@ -87,3 +87,7 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+# Rukkit generated dir
+maps/
+mods/
+plugins/

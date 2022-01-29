@@ -64,13 +64,15 @@ public class GameServer {
 			}
 		}
 	}
-    
-    public class SyncTask implements Runnable {
+
+	/**
+	 * Game Sync task.
+	 */
+	public class SyncTask implements Runnable {
         @Override
         public void run() {
             setPaused(true);
 			//自定义地图的同步逻辑
-			
             try {
                 //Rukkit.getSaveManager().sendDefaultSaveToAll();
 				//Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());

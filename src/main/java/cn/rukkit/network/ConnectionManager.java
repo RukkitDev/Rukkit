@@ -143,11 +143,6 @@ public class ConnectionManager
             if (conn.save != null) {
                 log.debug("Get client save, tick={}, server tick={}", conn.save.time, Rukkit.getGameServer().getTickTime());
                 if (Math.abs(conn.save.time - server.getTickTime()) < Integer.MAX_VALUE) {
-					try {
-						conn.save.injectMapToSave();
-					} catch (IOException e) {
-						log.warn("Error:", e);
-					}
                     return conn.save;
                 }
             }

@@ -20,6 +20,9 @@ public class GameOutputStream
 	
 	public Packet createPacket(int type) {
         try {
+			while (blockQuere.size() != 0) {
+				endBlock();
+			}
             this.stream.flush();
             this.buffer.flush();
             Packet packet = new Packet(type);

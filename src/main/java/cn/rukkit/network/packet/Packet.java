@@ -1,6 +1,7 @@
 package cn.rukkit.network.packet;
 
 import cn.rukkit.*;
+import cn.rukkit.game.SaveData;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.mod.Mod.*;
 import cn.rukkit.network.*;
@@ -284,6 +285,21 @@ public class Packet {
         return createPacket;
     }
 
+	@Deprecated
+	public static Packet sendSave(SaveData save, boolean isPullSave) throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeByte(0);
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
+		out.writeFloat((float) 1);
+		out.writeFloat((float) 1);
+		out.writeBoolean(isPullSave);
+		out.writeBoolean(false);
+		save.writeInjectedData(out);
+		Packet createPacket = out.createPacket(PACKET_SYNC);
+		return createPacket;
+	}
+
     public static Packet sendPullSave() throws IOException {
         GameOutputStream out = new GameOutputStream();
         out.writeByte(0);
@@ -293,16 +309,22 @@ public class Packet {
         out.writeFloat((float) 1);
         out.writeBoolean(true);
         out.writeBoolean(false);
-        GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
-        FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/lastSave").toString());
+		out.startBlock("gameSave", false);
+		FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
+		byte[] bArr = new byte[fileInputStream.available()];
+		fileInputStream.read(bArr);
+		out.stream.write(bArr);
+		out.endBlock();
+        /*GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
+        FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
         byte[] bArr = new byte[fileInputStream.available()];
         fileInputStream.read(bArr);
         encodeStream.stream.write(bArr);
-        out.flushEncodeData(encodeStream);
+        out.flushEncodeData(encodeStream);*/
         Packet createPacket = out.createPacket(PACKET_SYNC);
-        fileInputStream.close();
+        /*fileInputStream.close();
         encodeStream.buffer.close();
-        encodeStream.stream.close();
+        encodeStream.stream.close();*/
         return createPacket;
     }
 	
