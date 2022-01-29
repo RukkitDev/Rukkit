@@ -33,6 +33,7 @@ public class Packet {
 	public static final int PACKET_TICK = 10;
 	public static final int PACKET_SYNC_CHECKSUM = 30;
 	public static final int PACKET_SYNC_CHECKSUM_RESPONCE = 31;
+    public static final int PACKET_SYNC = 35;
 
 	public byte[] bytes;
     public int type;
@@ -79,12 +80,12 @@ public class Packet {
 	public static Packet preRegister() throws IOException {
 		//协议版本？
 		GameOutputStream o = new GameOutputStream();
-		o.writeString("io.rukkit");
+		o.writeString("cn.rukkit");
 		o.writeInt(1);
 		o.writeInt(151);
 		o.writeInt(151);
-		o.writeString("io.rukkit");
-		o.writeString("0000-000000000000");
+		o.writeString("cn.rukkit");
+		o.writeString(Rukkit.getConfig().UUID);
 		o.writeInt(114514);
 		return o.createPacket(PACKET_REGISTER_CONNECTION);
 	}
@@ -267,6 +268,55 @@ public class Packet {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString(reason);
 		return (o.createPacket(150));
+	}
+    
+    public static Packet sendSave(byte[] bArr,boolean isPullSave) throws IOException {
+        GameOutputStream out = new GameOutputStream();
+        out.writeByte(0);
+        out.writeInt(Rukkit.getGameServer().getTickTime());
+        out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
+        out.writeFloat((float) 1);
+        out.writeFloat((float) 1);
+        out.writeBoolean(isPullSave);
+        out.writeBoolean(false);
+        out.stream.write(bArr);
+        Packet createPacket = out.createPacket(PACKET_SYNC);
+        return createPacket;
+    }
+
+    public static Packet sendPullSave() throws IOException {
+        GameOutputStream out = new GameOutputStream();
+        out.writeByte(0);
+        out.writeInt(Rukkit.getGameServer().getTickTime());
+        out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
+        out.writeFloat((float) 1);
+        out.writeFloat((float) 1);
+        out.writeBoolean(true);
+        out.writeBoolean(false);
+        GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
+        FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/lastSave").toString());
+        byte[] bArr = new byte[fileInputStream.available()];
+        fileInputStream.read(bArr);
+        encodeStream.stream.write(bArr);
+        out.flushEncodeData(encodeStream);
+        Packet createPacket = out.createPacket(PACKET_SYNC);
+        fileInputStream.close();
+        encodeStream.buffer.close();
+        encodeStream.stream.close();
+        return createPacket;
+    }
+	
+	public static Packet syncCheckSum() throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeLong(0);
+		out.writeInt(14);
+		out.startBlock("checkList", false);
+		for (int i = 0;i< 14;i++) {
+			out.writeLong(0);
+		}
+		out.endBlock();
+		return out.createPacket(PACKET_SYNC_CHECKSUM);
 	}
 
 }

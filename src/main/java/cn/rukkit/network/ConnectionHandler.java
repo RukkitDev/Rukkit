@@ -96,7 +96,9 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					conn.sendServerMessage("You are the ADMIN of this server!");
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(true));
-				}
+				} else {
+                    ctx.writeAndFlush(Packet.serverInfo());
+                }
 				//Adding into ConnectionManager.
 				Rukkit.getConnectionManager().add(conn);
 				conn.startPingTask();
@@ -204,10 +206,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					}
 					switch (action) {
 						case BUILD:
-							act = new BuildEvent(conn.player, x, y, targetUnit);
+							act = new BuildEvent(conn.player, x, y, targetUnitID, targetUnit);
 							break;
 						case MOVE:
-							act = new MoveEvent(conn.player, x, y);
+							act = new MoveEvent(conn.player, x, y, targetUnitID);
 							break;
 					}
 				} else {
@@ -447,6 +449,26 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				 break;
 			case Packet.PACKET_RANDY:
 				conn.sendServerMessage(String.format("Player '%s' is randy.", conn.player.name));
+                break;
+            case Packet.PACKET_SYNC:
+                in.readByte();
+                in.readInt();
+                int time = in.readInt() / 15;
+                log.debug("{}, {}, {}, {}", in.readFloat(), in.readFloat(), in.readBoolean(), in.readBoolean());
+                byte[] save = new byte[in.stream.available()];
+                in.stream.read(save);
+                if (save.length > 20) {
+                    SaveData data = new SaveData();
+                    data.arr = save;
+                    data.time = time;
+                    conn.save = data;
+                }
+				break;
+			case Packet.PACKET_SYNC_CHECKSUM_RESPONCE:
+				in.readByte();
+				int serverTick = in.readInt();
+				int clientTick = in.readInt();
+				conn.lastSyncTick = clientTick;
 		}
 	}
 

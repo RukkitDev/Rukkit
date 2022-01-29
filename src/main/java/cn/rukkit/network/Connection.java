@@ -12,8 +12,10 @@ public class Connection {
 	public NetworkPlayer player;
 	public ConnectionHandler handler;
 	public long pingTime;
+	public int lastSyncTick = -1;
 	private ScheduledFuture pingFuture;
 	private ScheduledFuture teamFuture;
+    public SaveData save;
 	//public ChannelHandlerContext ctx;
 
 	/**
@@ -102,6 +104,10 @@ public class Connection {
 	}
 	
 	public void sendGameCommand(GameCommand cmd) {
+        // If game is paused, throw everything.
+        if (Rukkit.getGameServer().isPaused()) {
+            return;
+        }
 		if (Rukkit.getConfig().useCommandQuere) {
 			Rukkit.getGameServer().addCommand(cmd);
 		} else {

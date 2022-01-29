@@ -126,7 +126,7 @@ public class PluginManager
 				log.warn("Plugin " + plugin.config.name + " had already added.");
 			}
 		}
-		catch (ArrayIndexOutOfBoundsException e)
+		catch (IndexOutOfBoundsException e)
 		{
 			plugin.onLoad();
 			pluginList.add(plugin);

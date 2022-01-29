@@ -22,6 +22,7 @@ public class GameServer {
 	private Logger log = LoggerFactory.getLogger(GameServer.class);
 
 	private int port;
+    private boolean isPaused;
 	private int tickTime = 0;
 	//private boolean isGaming = false;
 	private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
@@ -31,8 +32,10 @@ public class GameServer {
 		public void run() {
 			RukkitConfig cfg = Rukkit.getConfig();
 			ConnectionManager connMgr = Rukkit.getConnectionManager();
-			// Add ticktime
-			tickTime += 10;
+            if (!isPaused) {
+                // Add ticktime
+                tickTime += 10;
+            }
 			if (connMgr.size() <= 0) {
 				stopGame();
 				Rukkit.getThreadManager().shutdownTask(gameTaskFuture);
@@ -47,12 +50,12 @@ public class GameServer {
 			}
 
 			synchronized (commandQuere) {
-				log.debug("tick:" + tickTime);
+				//log.debug("tick:" + tickTime);
 				try {
-					if (commandQuere.isEmpty()) {
+					if (commandQuere.isEmpty() && !isPaused) {
 						connMgr.broadcast(Packet.emptyCommand(tickTime));
 					} else {
-						while(!commandQuere.isEmpty()){
+						while(!commandQuere.isEmpty() && !isPaused){
 							GameCommand cmd = commandQuere.removeLast();
 							connMgr.broadcast(new Packet().gameCommand(tickTime, cmd));
 						}
@@ -61,6 +64,42 @@ public class GameServer {
 			}
 		}
 	}
+    
+    public class SyncTask implements Runnable {
+        @Override
+        public void run() {
+            setPaused(true);
+			//自定义地图的同步逻辑
+			
+            try {
+                //Rukkit.getSaveManager().sendDefaultSaveToAll();
+				//Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
+                Rukkit.getConnectionManager().broadcast(Packet.sendPullSave());
+                SaveData save;
+                long time = System.currentTimeMillis();
+                while (true) {
+                    save = Rukkit.getConnectionManager().getAvailableSave();
+                    if (save != null) {
+                        Rukkit.getSaveManager().setLastSave(save);
+                        Rukkit.getSaveManager().sendLastSaveToAll(false);
+                        Rukkit.getConnectionManager().clearAllSaveData();
+						//save.loadSave();
+                        //tickTime = save.time;
+                        setPaused(false);
+                        break;
+                    } else if (System.currentTimeMillis() - time > 5000) {
+                        log.warn("Sync failed!");
+                        setPaused(false);
+                        break;
+                    }
+                }
+
+            } catch (IOException e) {
+				log.warn("A Exception occured.", e);
+				stopGame();
+            }
+        }
+    }
 
 	public GameServer(int port) {
 		this.port = port;
@@ -99,7 +138,7 @@ public class GameServer {
 			// Reset tick time
 			tickTime = 0;
 			// Broadcast start packet.
-			//connectionManager.broadcast(Packet.serverInfo());
+			connectionManager.broadcast(Packet.serverInfo());
 			for(Connection conn : connectionManager.getConnections()) {
 				conn.updateTeamList();
 			}
@@ -121,7 +160,23 @@ public class GameServer {
 		gameTaskFuture.cancel(true);
 		//Rukkit.getThreadManager().shutdown();
 	}
-
+    
+    /**
+    * Sync a Game.
+    *
+    */
+    public void syncGame() {
+        Rukkit.getThreadManager().submit(new SyncTask());
+    }
+    
+    public void setPaused(boolean paused) {
+        isPaused = paused;
+    }
+    
+    public boolean isPaused() {
+        return isPaused;
+    }
+    
 	/**
 	 * Stops server.
 	 */

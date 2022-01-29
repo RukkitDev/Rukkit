@@ -10,6 +10,8 @@ public class RukkitConfig extends BaseConfig
 	public int gameVersion = 143;
 	public int maxWatcher = 5;
 	public int minStartPlayer = 4;
+    public boolean nonStopMode = false;
+    public boolean syncEnabled = true;
 	public boolean singlePlayerMode = false;
 	public boolean isDebug = true;
 	public boolean onlineMode = false;

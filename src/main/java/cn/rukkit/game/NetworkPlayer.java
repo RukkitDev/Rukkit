@@ -113,7 +113,7 @@ public class NetworkPlayer
 
 	public boolean giveAdmin(int index){
 		NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(index);
-		if(index < 9 && index >= 0 && player != null && this.isAdmin){
+		if(index < Rukkit.getConfig().maxPlayer && index >= 0 && player != null && this.isAdmin){
 			player.isAdmin = true;
 			this.isAdmin = false;
 			return true;

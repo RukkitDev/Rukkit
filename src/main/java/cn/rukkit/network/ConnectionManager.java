@@ -8,6 +8,9 @@ import java.util.*;
 import cn.rukkit.game.*;
 import cn.rukkit.network.packet.*;
 import cn.rukkit.*;
+import cn.rukkit.util.MathUtil;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class ConnectionManager
 {
@@ -17,6 +20,8 @@ public class ConnectionManager
 	private PlayerManager playerManager;
 
 	private GameServer server;
+    
+    private Logger log = LoggerFactory.getLogger(ConnectionManager.class);
 
 	/**
 	* Add a connection to list.
@@ -132,6 +137,29 @@ public class ConnectionManager
 	public void registerPlayer(Connection connection) {
 		
 	}
+    
+    public SaveData getAvailableSave() {
+        for (Connection conn : connections) {
+            if (conn.save != null) {
+                log.debug("Get client save, tick={}, server tick={}", conn.save.time, Rukkit.getGameServer().getTickTime());
+                if (Math.abs(conn.save.time - server.getTickTime()) < Integer.MAX_VALUE) {
+					try {
+						conn.save.injectMapToSave();
+					} catch (IOException e) {
+						log.warn("Error:", e);
+					}
+                    return conn.save;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public void clearAllSaveData() {
+        for (Connection conn : connections) {
+            conn.save = null;
+        }
+    }
 
 	public void broadcastServerMessage(String msg) {
 		try {

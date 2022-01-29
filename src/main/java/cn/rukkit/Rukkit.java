@@ -9,9 +9,11 @@ import cn.rukkit.plugin.*;
 import cn.rukkit.game.mod.*;
 import cn.rukkit.plugin.internal.*;
 import cn.rukkit.service.*;
+import cn.rukkit.game.SaveManager;
+import java.util.UUID;
 
 public class Rukkit {
-	public static final String RUKKIT_VERSION = "0.7.0";
+	public static final String RUKKIT_VERSION = "0.7.2";
 	public static final int SUPPORT_GAME_VERSION = 151;
 	private static Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
@@ -28,6 +30,8 @@ public class Rukkit {
 	private static GameServer server;
 	
 	private static ThreadManager threadManager;
+    
+    private static SaveManager saveManager;
 
 	public final static String PLUGIN_API_VERSION = "0.6.0";
 
@@ -76,6 +80,10 @@ public class Rukkit {
 	public static final ConnectionManager getConnectionManager() {
 		return connectionManager;
 	}
+    
+    public static final SaveManager getSaveManager() {
+        return saveManager;
+    }
 
 	public static final GameServer getGameServer() {
 		return server;
@@ -96,7 +104,9 @@ public class Rukkit {
 			confFile.delete();
 			confFile.createNewFile();
 			FileWriter writer = new FileWriter(confFile);
-			writer.write(yaml.dumpAs(new RukkitConfig(), null, DumperOptions.FlowStyle.BLOCK));
+            RukkitConfig conf = new RukkitConfig();
+            conf.UUID = UUID.randomUUID().toString();
+			writer.write(yaml.dumpAs(conf, null, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 		}
@@ -184,6 +194,8 @@ public class Rukkit {
 		pluginManager.loadPlugin(new CommandPlugin());
 		pluginManager.loadPlugin(new TestPlugin());
 		pluginManager.loadPluginInDir();
+        //init SaveManager.
+        saveManager = new SaveManager();
 		
 		log.info("start::game server on port:" + config.serverPort);
 		server.action(time);

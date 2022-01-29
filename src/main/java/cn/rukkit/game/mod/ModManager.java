@@ -71,6 +71,7 @@ public class ModManager
 		}
 		li = (ArrayList<ModUnit>) JSON.parseArray(sbuf.toString(), ModUnit.class);
 		Mod mod = new Mod(li);
+        //mod.setEnabled(true);
 		loadedMods.put(modname, mod);
 	}
 
@@ -125,9 +126,9 @@ public class ModManager
 				list.addAll(((Mod)entry.getValue()).getUnitList());
 			}
 		}
-		for(ModUnit u: list) {
+		/*for(ModUnit u: list) {
 			log.debug(String.format("Unit '%s' from '%s' (%d)", u.getModName(), u.getUnitName(), u.getUnitId()));
-		}
+		}*/
 		return list;
 	}
 
@@ -148,7 +149,9 @@ public class ModManager
 		/*for(ModUnit u: li) {
 		 log.d(u.getModName());
 		 }*/
-		loadMod("default", new Mod(li));
+        Mod mod = new Mod(li);
+        mod.setEnabled(true);
+		loadMod("default", mod);
 		//return li;
 	}
 }

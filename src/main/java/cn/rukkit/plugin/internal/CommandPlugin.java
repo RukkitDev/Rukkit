@@ -109,6 +109,38 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			return false;
 		}
 	}
+	
+	public class CustomMapsCallback implements ChatCommandListener {
+		private int type;
+		public CustomMapsCallback(int type) {
+			this.type = type;
+		}
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			// TODO: Implement this method
+			// Maps
+			if (type == 0) {
+				StringBuffer buf = new StringBuffer("- Custom Maps -");
+				ArrayList mapList = CustomMapLoader.getMapNameList();
+				for (int i = 0;i < mapList.size();i++) {
+					buf.append(String.format("[%d] %s", i, mapList.get(i).toString() + "\n"));
+				}
+				con.sendServerMessage(buf.toString());
+			} else {
+				if (con.player.isAdmin && args.length > 0) {
+					ArrayList mapList = CustomMapLoader.getMapNameList();
+					int id = Integer.parseInt(args[0]);
+					Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
+					Rukkit.getRoundConfig().mapType = 1;
+					try {
+						Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
+						con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					} catch (IOException e) {}
+				}
+			}
+			return false;
+		}
+	}
 
 	// TODO: -move && -self-move 操作
 	class MoveCallback implements ChatCommandListener {
@@ -393,6 +425,43 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			return false;
 		}
 	}
+    
+    class SyncCallback implements ChatCommandListener {
+        @Override
+        public boolean onSend(Connection con, String[] args) {
+            if (con.player.isAdmin) {
+                Rukkit.getGameServer().syncGame();
+            }
+            return false;
+        }
+    }
+    
+    class DumpSyncCallBack implements ChatCommandListener {
+        @Override
+        public boolean onSend(Connection con, String[] args) {
+            
+            return false;
+        }
+    }
+	
+	class ChksumCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			try {
+				Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
+			} catch (IOException e) {
+				//con.sendChat(
+			}
+			return false;
+		}
+	}
+	
+	/*class InfoCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			return false;
+		}
+	}*/
 
 
 	@Override
@@ -426,6 +495,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
 		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 0, new MapsCallback(0), this));
 		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 0, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
 		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
 		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
 		mgr.registerCommand(new ChatCommand("self_team", "Change yourself ally.", 1, new TeamCallback(1), this));
@@ -439,6 +510,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		mgr.registerCommand(new ChatCommand("share", "Set your share state in game.(on/off)", 1, new ShareCallback(), this));
 		mgr.registerCommand(new ChatCommand("credits", "Set default credits in game.", 1, new CreditsCallback(), this));
 		mgr.registerCommand(new ChatCommand("start", "Start a game.", 1, new StartCallback(), this));
+        mgr.registerCommand(new ChatCommand("sync", "Sync a game(admin only.)", 0, new SyncCallback(), this));
+		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
+		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
 	}
 
 	@Override

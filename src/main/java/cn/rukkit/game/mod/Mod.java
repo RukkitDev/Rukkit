@@ -50,7 +50,7 @@ public class Mod
 		}
 	}
 	
-	private boolean isEnabled;
+	private boolean isEnabled = true;
 
 	private ArrayList<ModUnit> unitList;
 

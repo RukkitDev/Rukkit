@@ -7,7 +7,7 @@ import java.util.zip.*;
 
 public class GameOutputStream
 {
-	ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+	public ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 	public DataOutputStream stream = new DataOutputStream(buffer);
 	public DataOutputStream currentStream = new DataOutputStream(buffer);
 	public LinkedList<GzipEncoder> blockQuere = new LinkedList<GzipEncoder>();
