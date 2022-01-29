@@ -1,6 +1,7 @@
 package cn.rukkit.network.packet;
 
 import cn.rukkit.*;
+import cn.rukkit.game.PingType;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.mod.Mod.*;
@@ -302,6 +303,9 @@ public class Packet {
 
     public static Packet sendPullSave() throws IOException {
         GameOutputStream out = new GameOutputStream();
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(1);
+		out.startBlock("c", false);
         out.writeByte(0);
         out.writeInt(Rukkit.getGameServer().getTickTime());
         out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
@@ -341,4 +345,35 @@ public class Packet {
 		return out.createPacket(PACKET_SYNC_CHECKSUM);
 	}
 
+	public static Packet gamePing(PingType type, float x, float y) {
+		return null;
+	}
+
+	public static Packet gameSummon(String unit, float x, float y) throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeByte(-1); // teamIndex = server
+		out.writeBoolean(false); // not unit actions
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		out.writeInt(0);
+		out.writeInt(0);
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		out.writeInt(0);
+		out.writeBoolean(false);
+		out.writeBoolean(true);
+		out.writeFloat(x);
+		out.writeFloat(y);
+		out.writeLong(0);
+		out.writeString(unit);
+		out.writeBoolean(false);
+		out.stream.writeShort(5);
+		out.writeBoolean(true);
+		out.writeFloat(1.0f);
+		out.writeFloat(0);
+		out.writeInt(5);
+		out.writeInt(0);
+		out.endBlock();
+		return out.createPacket(PACKET_TICK);
+	}
 }

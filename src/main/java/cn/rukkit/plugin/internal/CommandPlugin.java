@@ -455,6 +455,23 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			return false;
 		}
 	}
+
+	class SummonCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			if (args.length > 3) {
+				float x = Float.parseFloat(args[1]);
+				float y = Float.parseFloat(args[2]);
+				String name = args[0];
+				try {
+					Rukkit.getConnectionManager().broadcast(Packet.gameSummon(name, x, y));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return false;
+		}
+	}
 	
 	/*class InfoCallback implements ChatCommandListener {
 		@Override
@@ -513,6 +530,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
         mgr.registerCommand(new ChatCommand("sync", "Sync a game(admin only.)", 0, new SyncCallback(), this));
 		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
 		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
+		mgr.registerCommand(new ChatCommand("summon", "Summon a unit.", 3, new SummonCallback(), this));
 	}
 
 	@Override
