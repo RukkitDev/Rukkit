@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: SaveData.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.game;
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.map.CustomMapLoader;

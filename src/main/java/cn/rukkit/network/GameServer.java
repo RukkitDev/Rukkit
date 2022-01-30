@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: GameServer.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.network;
 
 import cn.rukkit.*;
@@ -24,6 +31,11 @@ public class GameServer {
 	private int port;
     private boolean isPaused;
 	private int tickTime = 0;
+	public SaveData lastNoStopSave;
+
+	// For save server performance.
+	private Object threadLock = new Object();
+
 	//private boolean isGaming = false;
 	private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
 	private ScheduledFuture gameTaskFuture;
@@ -65,6 +77,62 @@ public class GameServer {
 		}
 	}
 
+	public class NonStopGameTask implements Runnable {
+		@Override
+		public void run() {
+			RukkitConfig cfg = Rukkit.getConfig();
+			ConnectionManager connMgr = Rukkit.getConnectionManager();
+			if (!isPaused) {
+				// Add tickTime
+				tickTime += 10;
+			}
+
+			// If playercount == 1 then have a sync and pauseGame;
+			if (connMgr.size() <= 1 && !cfg.singlePlayerMode) {
+				connMgr.broadcastServerMessage("1 player left.We will have a sync and pause game...");
+				syncGame();
+				synchronized (threadLock) {
+					try {
+						threadLock.wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				setPaused(true);
+				return;
+			}
+
+			/* If playerCount == 0 then pauseGame
+			*/
+			if (connMgr.size() <= 0) {
+				synchronized (threadLock) {
+					try {
+						threadLock.wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				setPaused(true);
+				return;
+			}
+
+			// If using query mode:
+			synchronized (commandQuere) {
+				//log.debug("tick:" + tickTime);
+				try {
+					if (commandQuere.isEmpty() && !isPaused) {
+						connMgr.broadcast(Packet.emptyCommand(tickTime));
+					} else {
+						while(!commandQuere.isEmpty() && !isPaused){
+							GameCommand cmd = commandQuere.removeLast();
+							connMgr.broadcast(new Packet().gameCommand(tickTime, cmd));
+						}
+					}
+				} catch (IOException ignored) {}
+			}
+		}
+	}
+
 	/**
 	 * Game Sync task.
 	 */
@@ -83,6 +151,10 @@ public class GameServer {
                 while (true) {
                     save = Rukkit.getConnectionManager().getAvailableSave();
                     if (save != null) {
+						//If no-stop enabled use lastNoStopSave.
+						if (Rukkit.getConfig().nonStopMode) {
+							lastNoStopSave = save;
+						}
                         Rukkit.getSaveManager().setLastSave(save);
                         Rukkit.getSaveManager().sendLastSaveToAll(false);
 						//save.loadSave();
@@ -116,6 +188,11 @@ public class GameServer {
 			commandQuere.addLast(cmd);
 		}
 	}
+
+	public void notifyGameTask() {
+		threadLock.notify();
+		setPaused(false);
+	}
 	
 	public int getTickTime() {
 		return tickTime;
@@ -147,6 +224,16 @@ public class GameServer {
 			gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), 200, 200);
 			//connectionManager.broadcast()
 		} catch (IOException ignored) {}
+	}
+
+	/**
+	 * Start a no-stop game.
+	 * only works if nonStop config == true
+	 */
+	public void startNoStopGame() {
+		if (Rukkit.getConfig().nonStopMode) {
+			gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), 200, 200);
+		}
 	}
 
 	/**
@@ -216,11 +303,12 @@ public class GameServer {
 			new Thread(new Runnable() {
 					@Override
 					public void run() {
-						//Rukkit.getCurrentPluginManager().serverDone(Game.this);
 						log.info("Done! (" + (System.currentTimeMillis() - time) + "ms)");
-						//RukkitConsoleHandler handler = new RukkitConsoleHandler();
-						//handler.start();
-						//Rukkit.setConsole(handler);
+						if (Rukkit.getConfig().nonStopMode) {
+							log.info("Server is running on non-stop mode.Game auto starting...");
+							startNoStopGame();
+							tickTime = 10;
+						}
 						// TODO: Implement this method
 					}
 				}).start();

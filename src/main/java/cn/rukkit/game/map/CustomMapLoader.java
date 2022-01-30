@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: CustomMapLoader.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.game.map;
 
 import cn.rukkit.Rukkit;

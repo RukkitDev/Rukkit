@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: ConnectionHandler.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.network;
 import cn.rukkit.*;
 import cn.rukkit.event.*;
@@ -81,14 +88,6 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				String verifyResult = in.readString();
 				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s",
 									   packageName, gameVersionCode, playerName, uuid, verifyResult));
-				if (Rukkit.getGameServer().isGaming()) {
-					if (Rukkit.getConfig().nonStopMode) {
-						// No stop mode.
-
-					}
-					ctx.writeAndFlush(p.kick("Game is started!"));
-					return;
-				}
 				//Check avaliable
 				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
 					ctx.writeAndFlush(p.kick("Game is full!"));
@@ -108,6 +107,47 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				} else {
                     ctx.writeAndFlush(Packet.serverInfo());
                 }
+
+				// Check gaming && no-stop mode.
+				if (Rukkit.getGameServer().isGaming()) {
+					if (Rukkit.getConfig().nonStopMode) {
+						// No stop mode.
+						// If is the first player
+						if (Rukkit.getConnectionManager().size() <= 0) {
+							// Check lastSaveData
+							if (Rukkit.getGameServer().lastNoStopSave != null) {
+								// Start game.
+								conn.handler.ctx.writeAndFlush(Packet.startGame());
+								// Send save
+								conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastNoStopSave.arr, false));
+							} else {
+								// New Round!Start game.
+								conn.handler.ctx.writeAndFlush(Packet.startGame());
+								// Have a sync.
+								Rukkit.getGameServer().syncGame();
+							}
+						}
+					} else if (Rukkit.getConfig().syncEnabled) {
+						// If sync enabled, get target player
+						NetworkPlayer targetPlayer = Rukkit.getConnectionManager().getPlayerManager().getPlayerByUUID(uuid);
+						// If player is a reconnecting player
+						if (targetPlayer != null) {
+							targetPlayer.name = playerName;
+							targetPlayer.uuid = uuid;
+							// Sync game
+							conn.handler.ctx.writeAndFlush(Packet.startGame());
+							Rukkit.getGameServer().syncGame();
+						} else {
+							// kick
+							ctx.writeAndFlush(p.kick("Game is started!"));
+						}
+					} else {
+						// kick
+						ctx.writeAndFlush(p.kick("Game is started!"));
+						return;
+					}
+				}
+
 				//Adding into ConnectionManager.
 				Rukkit.getConnectionManager().add(conn);
 				conn.startPingTask();

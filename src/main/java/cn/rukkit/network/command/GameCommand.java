@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: GameCommand.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.network.command;
 
 public class GameCommand

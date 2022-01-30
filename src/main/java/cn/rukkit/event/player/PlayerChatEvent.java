@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: PlayerChatEvent.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.event.player;
 import cn.rukkit.event.*;
 import cn.rukkit.game.*;

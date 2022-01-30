@@ -1,5 +1,14 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: PlayerManager.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.game;
 import cn.rukkit.*;
+
+import java.util.Arrays;
 //import sun.nio.ch.Net;
 
 public class PlayerManager
@@ -11,8 +20,8 @@ public class PlayerManager
 	* @params maxPlayer set up maxPlayer
 	*/
 	public PlayerManager(int maxPlayer) {
-		players = new NetworkPlayer[maxPlayer];
-		max = maxPlayer;
+		this.max = Rukkit.getConfig().maxPlayer;
+		reset();
 	}
 	
 	private NetworkPlayer[] players;
@@ -21,16 +30,15 @@ public class PlayerManager
 	/**
 	* Add a player into Array.
 	*/
-	public void add(NetworkPlayer p){
+	public int add(NetworkPlayer p) {
 		for(int i=0;i<players.length;i++){
-			try{
-				players[i].isNull();continue;
-				//if(players[i].isNull)continue;
-			}catch(NullPointerException e){}
-			p.playerIndex = i;
-			players[i] = p;
-			break;
+			if (players[i].isEmpty) {
+				p.playerIndex = i;
+				players[i] = p;
+				return i;
+			}
 		}
+		return p.playerIndex;
 	}
 	
 	/**
@@ -38,59 +46,56 @@ public class PlayerManager
 	* team changed by index.
 	*/
 	public void addWithTeam(NetworkPlayer p){
-		for(int i=0;i<players.length;i++){
-			try{
-				players[i].isNull();continue;
-				//if(players[i].isNull)continue;
-			}catch(NullPointerException e){}
-			p.playerIndex = i;
-			if(i % 2 == 1){
-				p.team = 1;
-			}
-			players[i] = p;
-			break;
+		if (add(p) % 2 == 1) {
+			p.team = 1;
 		}
 	}
+
+	/**
+	 * Add a player with auto-team when no-stop mode.
+	 *
+	 */
+	public void addWithTeamNoStop() {}
 
 	/**
 	* Remove a player.
 	*/
 	public void remove(NetworkPlayer p){
-		if(Rukkit.getGameServer().isGaming()){
-			p.ping = -1;
-			return;
-		}
-		for(int i=0;i<players.length;i++){
-			try{
-				if(players[i] == p){
-					players[i] = null;
-				}
-			}catch(NullPointerException e){
-				continue;
-			}
-		}
+		int index = getIndex(p);
+		remove(index);
 	}
 
 	/**
 	* Remove player by index.
 	*/
 	public void remove(int index){
+		if(Rukkit.getConfig().nonStopMode) {
+			players[index].isEmpty = true;
+			players[index].ping = -1;
+			return;
+		}
 		if(Rukkit.getGameServer().isGaming()){
 			players[index].ping = -1;
 			return;
 		}
-		players[index] = null;
+		players[index].isEmpty = true;
 	}
 	
 	/**
 	* Get player by index.
 	*/
 	public NetworkPlayer get(int index){
-		try{
-			return players[index];
-		}catch(Exception e){
-			return null;
+		if (index > players.length - 1) return null;
+		return players[index];
+	}
+
+	public NetworkPlayer getPlayerByUUID(String uuid) {
+		for (NetworkPlayer p: players) {
+			if (p.uuid.equals(uuid)) {
+				return p;
+			}
 		}
+		return null;
 	}
 	
 	/**
@@ -98,12 +103,8 @@ public class PlayerManager
 	*/
 	public int getIndex(NetworkPlayer p){
 		for(int i=0;i<players.length;i++){
-			try{
-				if(players[i] == p){
-					return i;
-				}
-			}catch(NullPointerException e){
-				continue;
+			if(players[i] == p) {
+				return i;
 			}
 		}
 		return -1;
@@ -113,13 +114,9 @@ public class PlayerManager
 	* get admin player.
 	*/
 	public NetworkPlayer getAdmin(){
-		for(int i=0;i<players.length;i++){
-			try{
-				if(players[i].isAdmin){
-					return players[i];
-				}
-			}catch(NullPointerException e){
-				continue;
+		for (NetworkPlayer p: players) {
+			if (p.isAdmin) {
+				return p;
 			}
 		}
 		return null;
@@ -130,12 +127,9 @@ public class PlayerManager
 	*/
 	public int getPlayerCount(){
 		int size = 0;
-		for(int i=0;i<players.length;i++){
-			try{
-				players[i].isNull();
+		for (NetworkPlayer p: players) {
+			if (!p.isEmpty) {
 				size++;
-			}catch(NullPointerException e){
-				continue;
 			}
 		}
 		return size;
@@ -143,9 +137,10 @@ public class PlayerManager
 
 	// ai方法
 	public void addAI() {
-		NetworkPlayer p = new NetworkPlayer(null);
+		NetworkPlayer p = new NetworkPlayer();
+		p.isEmpty = false;
 		p.isAI = true;
-		p.name = "AI - ?";
+		p.name = "AI - Idiot";
 		p.ping = -1;
 		add(p);
 	}
@@ -174,5 +169,11 @@ public class PlayerManager
 	*/
 	public void reset(){
 		players = new NetworkPlayer[max];
+		for (int i = 0;i < players.length;i++) {
+			NetworkPlayer emptyPlayer = new NetworkPlayer();
+			emptyPlayer.playerIndex = i;
+			if (i % 2 == 1) emptyPlayer.team = 1;
+			players[i] = emptyPlayer;
+		}
 	}
 }

@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: RukkitConfig.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.config;
 
 public class RukkitConfig extends BaseConfig
@@ -19,6 +26,8 @@ public class RukkitConfig extends BaseConfig
 	public String logPath = "/sdcard/rukkit-error.log";
 	public int maxPacketFrame = 8192;
 	public String UUID = "00000000-0000-0000-0000-000000000000";
+	public String nonStopDefaultMap = "";
+	public int nonStopDefaultMapType = 0;
 	//private String configName = "rukkit.yml";
 	//max threads in manager.Default = 8;
 	public int threadPoolCount = 8;

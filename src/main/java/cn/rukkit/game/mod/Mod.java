@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: Mod.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.game.mod;
 
 import java.util.*;

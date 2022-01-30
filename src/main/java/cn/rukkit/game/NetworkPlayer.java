@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: NetworkPlayer.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.*;
@@ -5,29 +12,36 @@ import java.io.*;
 
 public class NetworkPlayer
 {
-	public String name = "Unnamed";
-	public String uuid;
+	public String name = "Player - Empty";
+	public String uuid = "null";
 	public int verifyCode = 114514;
 	public int credits = 4000;
 	public int team = 0;
 	public int playerIndex;
+	public boolean isEmpty = true;
 	//public index;
 	// Preparing for 1.15
 	public int startingUnit;
 
-	private Connection connection;
+	private Connection connection = null;
 
-	public int ping;
+	public int ping = -1;
 	public boolean isAdmin = false;
 
-	public boolean isAI;
+	public boolean isAI = false;
 
-	public boolean isSharingControl;
+	public boolean isSharingControl = false;
 
-	public boolean isSurrounded;
+	public boolean isSurrounded = false;
 	
 	public NetworkPlayer(Connection connection) {
 		this.connection = connection;
+		this.isEmpty = false;
+	}
+
+	public NetworkPlayer() {
+		this.connection = null;
+		this.isEmpty = true;
 	}
 	
 	public Connection getConnection() {
@@ -87,6 +101,7 @@ public class NetworkPlayer
 	}
 
 	public boolean movePlayer(int index){
+		//If index larger then maxPlayer
 		if (index > Rukkit.getConfig().maxPlayer) return false;
 		PlayerManager playerGroup = Rukkit.getConnectionManager().getPlayerManager();
 		for(NetworkPlayer p : playerGroup.getPlayerArray()){

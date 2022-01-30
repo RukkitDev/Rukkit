@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: Rukkit.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit;
 import cn.rukkit.command.*;
 import cn.rukkit.config.*;

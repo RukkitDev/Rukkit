@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: ConnectionManager.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.network;
 import io.netty.channel.*;
 import io.netty.channel.group.*;

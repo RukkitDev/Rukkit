@@ -1,3 +1,10 @@
+/*
+ *  All Rights Reserved.
+ *  FileName: Connection.java
+ *  @author: wtbdev
+ *  @date: 2022/1/30 下午4:37
+ */
+
 package cn.rukkit.network;
 import cn.rukkit.game.*;
 import cn.rukkit.network.packet.*;
@@ -130,8 +137,22 @@ public class Connection {
 		for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
 		{
 			NetworkPlayer playerp = Rukkit.getConnectionManager().getPlayerManager().get(i);
-			enc.stream.writeBoolean(playerp != null);
-			if (playerp == null) continue;
+
+			// No-stop mode changes:Add fake players
+			if (Rukkit.getConfig().nonStopMode) {
+				// Always true
+				enc.stream.writeBoolean(true);
+			} else {
+				enc.stream.writeBoolean(!playerp.isEmpty);
+			}
+
+			// Ignore empty player
+			if (playerp.isEmpty) {
+				if (!Rukkit.getConfig().nonStopMode){
+					continue;
+				}
+			}
+
 			//1.14
 			//enc.stream.writeByte(0);
 			enc.stream.writeInt(255);
