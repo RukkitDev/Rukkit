@@ -293,9 +293,6 @@ public class Packet {
 
     public static Packet sendPullSave() throws IOException {
         GameOutputStream out = new GameOutputStream();
-		out.writeInt(Rukkit.getGameServer().getTickTime());
-		out.writeInt(1);
-		out.startBlock("c", false);
         out.writeByte(0);
         out.writeInt(Rukkit.getGameServer().getTickTime());
         out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
