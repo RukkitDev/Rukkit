@@ -71,6 +71,7 @@ public class GameServer {
 	public class SyncTask implements Runnable {
         @Override
         public void run() {
+			Rukkit.getConnectionManager().clearAllSaveData();
             setPaused(true);
 			//自定义地图的同步逻辑
             try {
@@ -84,7 +85,6 @@ public class GameServer {
                     if (save != null) {
                         Rukkit.getSaveManager().setLastSave(save);
                         Rukkit.getSaveManager().sendLastSaveToAll(false);
-                        Rukkit.getConnectionManager().clearAllSaveData();
 						//save.loadSave();
                         //tickTime = save.time;
                         setPaused(false);

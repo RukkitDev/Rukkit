@@ -10,6 +10,10 @@ import cn.rukkit.network.command.*;
 import cn.rukkit.util.*;
 import java.io.*;
 import java.util.*;
+import cn.rukkit.game.unit.InternalUnit;
+import cn.rukkit.game.GameActions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Packet {
 	//Server Commands
@@ -36,7 +40,8 @@ public class Packet {
 	public static final int PACKET_SYNC_CHECKSUM = 30;
 	public static final int PACKET_SYNC_CHECKSUM_RESPONCE = 31;
     public static final int PACKET_SYNC = 35;
-
+	
+	private static final Logger log = LoggerFactory.getLogger(Packet.class);
 	public byte[] bytes;
     public int type;
 
@@ -286,21 +291,6 @@ public class Packet {
         return createPacket;
     }
 
-	@Deprecated
-	public static Packet sendSave(SaveData save, boolean isPullSave) throws IOException {
-		GameOutputStream out = new GameOutputStream();
-		out.writeByte(0);
-		out.writeInt(Rukkit.getGameServer().getTickTime());
-		out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
-		out.writeFloat((float) 1);
-		out.writeFloat((float) 1);
-		out.writeBoolean(isPullSave);
-		out.writeBoolean(false);
-		save.writeInjectedData(out);
-		Packet createPacket = out.createPacket(PACKET_SYNC);
-		return createPacket;
-	}
-
     public static Packet sendPullSave() throws IOException {
         GameOutputStream out = new GameOutputStream();
 		out.writeInt(Rukkit.getGameServer().getTickTime());
@@ -314,10 +304,11 @@ public class Packet {
         out.writeBoolean(true);
         out.writeBoolean(false);
 		out.startBlock("gameSave", false);
-		FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
+		FileInputStream fileInputStream = new FileInputStream(Rukkit.getEnvPath() + "/defaultSave");
 		byte[] bArr = new byte[fileInputStream.available()];
 		fileInputStream.read(bArr);
-		out.stream.write(bArr);
+		log.debug("Save Size={}", bArr.length);
+		out.write(bArr);
 		out.endBlock();
         /*GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
         FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
@@ -326,7 +317,7 @@ public class Packet {
         encodeStream.stream.write(bArr);
         out.flushEncodeData(encodeStream);*/
         Packet createPacket = out.createPacket(PACKET_SYNC);
-        /*fileInputStream.close();
+       	/*fileInputStream.close();
         encodeStream.buffer.close();
         encodeStream.stream.close();*/
         return createPacket;
@@ -345,34 +336,119 @@ public class Packet {
 		return out.createPacket(PACKET_SYNC_CHECKSUM);
 	}
 
-	public static Packet gamePing(PingType type, float x, float y) {
-		return null;
+	public static Packet gamePing(int index, PingType type, float x, float y) throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(1);
+		out.startBlock("c", false);
+		out.writeByte(index); // Team
+		
+		out.writeBoolean(false); //Command
+		
+		// 2 unknown booleans
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		
+		// 2 unknown ints
+		out.writeInt(-1);
+		out.writeInt(-1);
+		
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		
+		// Unit count
+		out.writeInt(0);
+		
+		// a true block
+		out.writeBoolean(true);
+		out.writeByte(0);
+		
+		//a true block
+		out.writeBoolean(true);
+		out.writeFloat(x);
+		out.writeFloat(y);
+		
+		out.writeLong(-1);
+		out.writeString("c_6_" + type.toString());
+		
+		out.writeBoolean(false);
+		//通用结尾
+		out.stream.writeShort(0);
+		out.writeBoolean(false);
+		out.writeInt(0);
+		out.writeBoolean(false);
+		out.endBlock();
+		return out.createPacket(PACKET_TICK);
 	}
 
 	public static Packet gameSummon(String unit, float x, float y) throws IOException {
 		GameOutputStream out = new GameOutputStream();
-		out.writeByte(-1); // teamIndex = server
-		out.writeBoolean(false); // not unit actions
-		out.writeBoolean(false);
-		out.writeBoolean(false);
-		out.writeInt(0);
-		out.writeInt(0);
-		out.writeBoolean(false);
-		out.writeBoolean(false);
-		out.writeInt(0);
-		out.writeBoolean(false);
-		out.writeBoolean(true);
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(1);
+		out.startBlock("c", false);
+		out.writeByte(-1); // Team
+
+		// COMMAND BLOCK
+		out.writeBoolean(true); //Command
+		out.writeEnum(GameActions.BUILD);
+		int utype = -2;
+		for (int i = 0;i < InternalUnit.units.length;i++) {
+			if (InternalUnit.units[i].equals(unit)) {
+				utype = i;
+				break;
+			}
+		}
+		out.writeInt(utype);
+		if (utype == -2) {
+			out.writeString(unit);
+		}
 		out.writeFloat(x);
 		out.writeFloat(y);
-		out.writeLong(0);
-		out.writeString(unit);
-		out.writeBoolean(false);
-		out.stream.writeShort(5);
-		out.writeBoolean(true);
+		out.writeLong(-1L); //target uid
+		out.writeByte(42);
 		out.writeFloat(1.0f);
-		out.writeFloat(0);
-		out.writeInt(5);
+		out.writeFloat(1.0f);
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+		//1.14 action
+		out.writeBoolean(false);
+
+		// 2 unknown booleans
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+
+		// 2 unknown ints
+		out.writeInt(-1);
+		out.writeInt(-1);
+
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+
+		// Unit count
 		out.writeInt(0);
+
+		// a block
+		out.writeBoolean(false);
+
+		//a block
+		out.writeBoolean(false);
+
+		out.writeLong(-1);
+		out.writeString(unit);
+
+		out.writeBoolean(false);
+		//通用结尾
+		out.stream.writeShort(0);
+		// System action
+		out.writeBoolean(true);
+		out.writeByte(0);
+		out.writeFloat(0);
+		out.writeFloat(0);
+		out.writeInt(5); //action type
+		
+		out.writeInt(0);
+		out.writeBoolean(false);
 		out.endBlock();
 		return out.createPacket(PACKET_TICK);
 	}

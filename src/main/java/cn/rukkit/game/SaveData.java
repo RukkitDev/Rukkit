@@ -1,11 +1,13 @@
 package cn.rukkit.game;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cn.rukkit.network.GameInputStream;
-import java.io.IOException;
-import cn.rukkit.network.GameOutputStream;
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.map.CustomMapLoader;
+import cn.rukkit.network.GameInputStream;
+import cn.rukkit.network.GameOutputStream;
+import java.io.File;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.io.FileOutputStream;
 
 public class SaveData {
     
@@ -97,6 +99,13 @@ public class SaveData {
 			}*/
 		}
     }
+	
+	public void dumpToFile(File f) throws IOException {
+		if (!f.exists()) f.createNewFile();
+		FileOutputStream out = new FileOutputStream(f);
+		out.write(arr);
+		out.flush();
+	}
 
 	@Deprecated
 	public void writeInjectedData(GameOutputStream out) throws IOException {

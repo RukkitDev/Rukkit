@@ -10,6 +10,7 @@ import cn.rukkit.network.packet.*;
 import io.netty.channel.*;
 import java.util.concurrent.*;
 import org.slf4j.*;
+import io.netty.util.ReferenceCountUtil;
 
 public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	Logger log = LoggerFactory.getLogger(ConnectionHandler.class);
@@ -57,7 +58,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		// TODO: Implement this method
-		super.channelRead(ctx, msg);
+		//super.channelRead(ctx, msg);
 		Packet p = (Packet) msg;
 		GameInputStream in = new GameInputStream(p);
 		switch (p.type) {
@@ -115,7 +116,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				if (chatmsg.startsWith(".") || chatmsg.startsWith("-") || chatmsg.startsWith("_")) {
 					Rukkit.getCommandManager().execute(conn , chatmsg.substring(1));
 				} else {
-					if(PlayerChatEvent.getListenerList().callListeners(new PlayerChatEvent(conn.player, chatmsg))) {
+					if (PlayerChatEvent.getListenerList().callListeners(new PlayerChatEvent(conn.player, chatmsg))) {
 						Rukkit.getConnectionManager().broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));
 					}
 				}
@@ -278,7 +279,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				} else {
 					out.writeBoolean(false);
 				}
-				
+
 				float pingX = 0;
 				float pingY = 0;
 				if (str.readBoolean()) {
@@ -291,7 +292,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					log.debug("PingX=" + pingY);
 					out.writeFloat(pingX);
 					out.writeFloat(pingY);
-					
+
 				} else {
 					out.writeBoolean(false);
 				}
@@ -356,97 +357,89 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				}
 				// This code cause bugs, ignored.
 				/*StringBuffer buf = new StringBuffer("Move units count: ");
-				 int n2 = str.readInt();
-				 buf.append(n2 + " Unitids: ");
-				 out.writeInt(n2);
-				 for (int i = 0;i < n2;i++)
-				 {
-				 float sx, sy, ex, ey;
-				 long unitid = str.readLong();
-				 sx = str.readFloat();
-				 sy = str.readFloat();
-				 ex = str.readFloat();
-				 ey = str.readFloat();
-				 out.writeLong(unitid);
-				 out.writeFloat(sx);
-				 out.writeFloat(sy);
-				 out.writeFloat(ex);
-				 out.writeFloat(ey);
-				 log.debug("unitid:" + unitid);
-				 buf.append(unitid + " ");
-				 log.debug("startx:" + sx);
-				 log.debug("starty:" + sy);
-				 log.debug("endx" + ex);
-				 log.debug("endy" + ey);
-				 //当前时间刻
-				 int timestamp = str.readInt();
-				 log.debug("" + timestamp);
-				 out.writeInt(timestamp);
-				 //单位类型（1陆，潜艇，跨悬崖，跨悬崖跨水，悬浮5)
-				 UnitType u = (UnitType) str.readEnum(UnitType.class);
-				 buf.append("(" + u + ") ");
-				 log.debug(u.toString());
-				 out.writeEnum(u);
-				 //ppp
-				 if (str.readBoolean())
-				 {
-				 if (str.readBoolean())
-				 {
-				 byte[] bytes = str.getDecodeBytes();
-				 GzipDecoder dec = new GzipDecoder(bytes);
-				 DataInputStream ins = dec.stream;
-				 //跨过的图块大小
-				 int n3 = ins.readInt();
-				 log.debug(n3);
-				 if (n3 > 0)
-				 {
-				 short unitx = ins.readShort();
-				 short unity = ins.readShort();
-				 log.debug("Start x:" + unitx + ", Start y:" + unity);
-				 for (int i2 = 1;i2 < n3;i2++)
-				 {
-				 int len = ins.readByte();
-				 //log.debug(len);
-				 //int i5 = 12;
-				 if (len < 128)
-				 {
-				 int i6 = (len & 3) - 1;
-				 int i7 = ((len & 12) >> 2) - 1;
-				 boolean bool = MathUtil.abs(i6) > 1 || MathUtil.abs(i7) > 1;
-				 if (bool)
-				 {
-				 log.warn("Bad unit path.");
-				 }
-				 //log.debug(i6);
-				 //log.debug(i7);
-				 unitx = (short)(unitx + i6);
-				 unity = (short)(unity + i7);
-				 continue;
-				 }
-				 log.debug("{}, {}", ins.readShort(),ins.readShort());
-				 //log.debug(ins.readShort());
-				 }
-				 log.debug("End x:" + unitx + ", End y:" + unity);
-				 }
-				 GzipEncoder o = out.getEncodeStream("p", false);
-				 o.stream.write(bytes);
-				 out.flushEncodeData(o);
-				 } else {
-				 out.writeBoolean(false);
-				 }
-				 } else {
-				 out.writeBoolean(false);
-				 }
+				int n2 = str.readInt();
+				buf.append(n2 + " Unitids: ");
+				out.writeInt(n2);
+				for (int i = 0;i < n2;i++) {
+					float sx, sy, ex, ey;
+					long unitid = str.readLong();
+					sx = str.readFloat();
+					sy = str.readFloat();
+					ex = str.readFloat();
+					ey = str.readFloat();
+					out.writeLong(unitid);
+					out.writeFloat(sx);
+					out.writeFloat(sy);
+					out.writeFloat(ex);
+					out.writeFloat(ey);
+					log.debug("unitid:" + unitid);
+					buf.append(unitid + " ");
+					log.debug("startx:" + sx);
+					log.debug("starty:" + sy);
+					log.debug("endx" + ex);
+					log.debug("endy" + ey);
+					//当前时间刻
+					int timestamp = str.readInt();
+					log.debug("" + timestamp);
+					out.writeInt(timestamp);
+					//单位类型（1陆，潜艇，跨悬崖，跨悬崖跨水，悬浮5)
+					UnitType u = (UnitType) str.readEnum(UnitType.class);
+					buf.append("(" + u + ") ");
+					log.debug(u.toString());
+					out.writeEnum(u);
+					//ppp
+					if (str.readBoolean()) {
+						if (str.readBoolean()) {
+							byte[] bytes = str.getDecodeBytes();
+							GzipDecoder dec = new GzipDecoder(bytes);
+							DataInputStream ins = dec.stream;
+							//跨过的图块大小
+							int n3 = ins.readInt();
+							log.debug(n3);
+							if (n3 > 0) {
+								short unitx = ins.readShort();
+								short unity = ins.readShort();
+								log.debug("Start x:" + unitx + ", Start y:" + unity);
+								for (int i2 = 1;i2 < n3;i2++) {
+									int len = ins.readByte();
+									//log.debug(len);
+									//int i5 = 12;
+									if (len < 128) {
+										int i6 = (len & 3) - 1;
+										int i7 = ((len & 12) >> 2) - 1;
+										boolean bool = MathUtil.abs(i6) > 1 || MathUtil.abs(i7) > 1;
+										if (bool) {
+											log.warn("Bad unit path.");
+										}
+										//log.debug(i6);
+										//log.debug(i7);
+										unitx = (short)(unitx + i6);
+										unity = (short)(unity + i7);
+										continue;
+									}
+									log.debug("{}, {}", ins.readShort(), ins.readShort());
+									//log.debug(ins.readShort());
+								}
+								log.debug("End x:" + unitx + ", End y:" + unity);
+							}
+							GzipEncoder o = out.getEncodeStream("p", false);
+							o.stream.write(bytes);
+							out.flushEncodeData(o);
+						} else {
+							out.writeBoolean(false);
+						}
+					} else {
+						out.writeBoolean(false);
+					}
 
-				 }
-				 boolean bool8 = str.readBoolean();
-				 out.writeBoolean(bool8);
-				 log.debug("" + bool8);
-				 if (n2 != 0)
-				 {
-				 //sendPacket(ctx, new Packet().chat("Debug", buf.toString(), -1));
-				 }*/
-				 break;
+				}
+				boolean bool8 = str.readBoolean();
+				out.writeBoolean(bool8);
+				log.debug("" + bool8);
+				if (n2 != 0) {
+					//sendPacket(ctx, new Packet().chat("Debug", buf.toString(), -1));
+				}*/
+				break;
 			case Packet.PACKET_RANDY:
 				conn.sendServerMessage(String.format("Player '%s' is randy.", conn.player.name));
                 break;
@@ -470,6 +463,13 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				int clientTick = in.readInt();
 				conn.lastSyncTick = clientTick;
 		}
+		ReferenceCountUtil.release(msg);
+	}
+
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+		//super.exceptionCaught(ctx, cause)
+		log.warn("Exception happened", cause);
 	}
 
 	public void startTimeout() {

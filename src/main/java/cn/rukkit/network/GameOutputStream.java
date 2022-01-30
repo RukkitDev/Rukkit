@@ -56,6 +56,11 @@ public class GameOutputStream
     public void writeString(String val) throws IOException {
         this.stream.writeUTF(val);
     }
+	
+	public void write(byte[] val) throws IOException {
+		this.stream.write(val);
+		this.stream.flush();
+	}
 
 	public GzipEncoder getEncodeStream(String key, boolean isGzip) throws IOException{
 		GzipEncoder enc = new GzipEncoder(isGzip);
@@ -123,6 +128,7 @@ public class GameOutputStream
 			currentStream.writeUTF(enc.str);
 			currentStream.writeInt(stream.size());
 			buff.writeTo((OutputStream)this.currentStream);
+			buff.flush();
 			//detect next block
 			if (blockQuere.size() == 0) {
 				stream = currentStream;
