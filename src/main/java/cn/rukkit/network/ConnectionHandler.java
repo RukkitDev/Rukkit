@@ -81,6 +81,14 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				String verifyResult = in.readString();
 				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s",
 									   packageName, gameVersionCode, playerName, uuid, verifyResult));
+				if (Rukkit.getGameServer().isGaming()) {
+					if (Rukkit.getConfig().nonStopMode) {
+						// No stop mode.
+
+					}
+					ctx.writeAndFlush(p.kick("Game is started!"));
+					return;
+				}
 				//Check avaliable
 				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
 					ctx.writeAndFlush(p.kick("Game is full!"));

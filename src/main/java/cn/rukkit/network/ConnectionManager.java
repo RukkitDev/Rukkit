@@ -30,7 +30,7 @@ public class ConnectionManager
 	public void add(Connection connection)
 	{
 		connections.add(connection);
-		playerManager.add(connection.player);
+		playerManager.addWithTeam(connection.player);
 		CHANNEL_GROUP.add(connection.handler.ctx.channel());
 	}
 	
