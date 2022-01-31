@@ -30,8 +30,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public boolean onSend(Connection con, String[] args) {
 		// TODO: Implement this method
 		StringBuilder build = new StringBuilder();
-		build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
-		build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
+		build.append("Rukkit 服务器 v" + Rukkit.RUKKIT_VERSION + "\n");
+		build.append("插件 API v" + Rukkit.PLUGIN_API_VERSION);
 		con.sendServerMessage(build.toString());
 		return false;
 	}
@@ -56,9 +56,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(id);
 				try {
 					player.isNull();
-					player.getConnection().kick("Kicked by admin.");
+					player.getConnection().kick("被踢出.");
 				} catch (ArrayIndexOutOfBoundsException e) {
-					con.sendServerMessage("Player isn't exist!");
+					con.sendServerMessage("玩家不存在!");
 				}
 			}
 			return true;
@@ -73,7 +73,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				if (args.length < 1) return false;
 				if (conn.player.team == con.player.team && conn != null) {
 					conn.sendMessage(con.player.name,
-									 "[TEAM]" + args[0],
+									 "[队伍消息]" + args[0],
 									 con.player.playerIndex);
 				}
 			}
@@ -93,14 +93,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			if (type == 0) {
 				StringBuilder build = new StringBuilder();
 				if (args.length > 0) {
-					build.append("- Maps -  Page ").append(args[0]).append(" \n");
+					build.append("- 地图 - 第 ").append(args[0]).append(" 页 \n");
 					int page = Integer.parseInt(args[0]) - 1;
 					for (int i = page * 10;i < OfficialMap.maps.length;i++) {
 						if (i > page * 10 + 10) break;
 						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
 					}
 				} else {
-					build.append("- Help -  Page 1 \n");
+					build.append("- 地图 - 第 1 页 \n");
 					for (int i = 0;i < 10;i++) {
 						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
 					}
@@ -146,7 +146,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				StringBuilder build = new StringBuilder();
 				List<String> li = CustomMapLoader.getMapNameList();
 					if (args.length > 0) {
-						build.append("- CustomMaps -  Page ").append(args[0]).append(" \n");
+						build.append("- 自定义地图 - 第 ").append(args[0]).append(" 页 \n");
 						int page = Integer.parseInt(args[0]) - 1;
 						for (int i = page * 10;i < li.size();i++) {
 							if (i > page * 10 + 10) break;
@@ -216,9 +216,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					} else {
 						try {
 							if (con.player.movePlayer(Integer.parseInt(cmd[0]) - 1)) {
-								con.sendServerMessage("Move complete!");
+								con.sendServerMessage("移动成功!");
 							} else {
-								con.sendServerMessage("Fail: already have a player in that slot");
+								con.sendServerMessage("Fail: 已经有一个玩家在这个位置");
 							}
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -257,7 +257,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 							Rukkit.getConnectionManager().getPlayerManager()
 								.get(Integer.parseInt(args[0]) - 1).team = (Integer.parseInt(args[1]) - 1);
 						} catch (NullPointerException e) {
-							con.sendServerMessage("Player isn't exists!");
+							con.sendServerMessage("玩家不存在!");
 						}
 					}
 					break;
@@ -278,7 +278,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// TODO: Implement this method
 			StringBuilder build = new StringBuilder();
 			if (args.length > 0) {
-				build.append("- Help -  Page " + args[0] + " \n");
+				build.append("- 帮助 -  第 " + args[0] + " 页 \n");
 				int page = Integer.valueOf(args[0]) - 1;
 				for (int i = page * 10;i < Rukkit.getCommandManager().getLoadedCommand().entrySet().size();i++) {
 					if (i > page * 10 + 10) break;
@@ -286,7 +286,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					build.append(String.format("%s : %s", cmd.cmd, cmd.helpMessage) + "\n");
 				}
 			} else {
-				build.append("- Help -  Page 1 \n");
+				build.append("- 帮助 - 第 1 页 \n");
 				for (int i = 0;i < Rukkit.getCommandManager().getLoadedCommand().entrySet().size();i++) {
 					if (i > 10) break;
 					ChatCommand cmd = (ChatCommand) ((Map.Entry) Rukkit.getCommandManager().getLoadedCommand().entrySet().toArray()[i]).getValue();
@@ -313,7 +313,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				// Do nothing.
 			} else {
 				if (Rukkit.getConnectionManager().size() < Rukkit.getConfig().minStartPlayer) {
-					Rukkit.getConnectionManager().broadcastServerMessage("min start player is" + Rukkit.getConfig().minStartPlayer);
+					Rukkit.getConnectionManager().broadcastServerMessage("至少要 " + Rukkit.getConfig().minStartPlayer + " 人才可以启动游戏！");
 				} else {
 					Rukkit.getGameServer().startGame();
 				}
@@ -377,15 +377,15 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				switch (args[0]) {
 					case "on":
 						con.player.isSharingControl = true;
-						ChannelGroups.broadcastServerMessage(con.player.name + "stopped Shared control!");
+						ChannelGroups.broadcastServerMessage(con.player.name + "开启了共享控制！");
 						break;
 					case "off":
 						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control.");
+						ChannelGroups.broadcastServerMessage(con.player.name + "开启了共享控制！");
 						break;
 					default:
 						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control!");
+						ChannelGroups.broadcastServerMessage(con.player.name + "关闭了共享控制！");
 				}
 			}
 			return false;
@@ -512,9 +512,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// TODO: Implement this method
 			StringBuilder build = new StringBuilder();
 			build.append("- State - \n");
-			build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
-			build.append("Connections: " + Rukkit.getConnectionManager().size());
-			build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
+			build.append("内存占用: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
+			build.append("连接数: " + Rukkit.getConnectionManager().size());
+			build.append("线程池线程数: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
 			try {
 				con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
 						build.toString(), -1));
@@ -526,9 +526,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	class PlayerListCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(Connection con, String[] args) {
-			StringBuffer buffer = new StringBuffer("- Players -\n");
+			StringBuffer buffer = new StringBuffer("- 玩家列表 -\n");
 			for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
-				buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - con.pingTime)));
+				buffer.append(String.format("%s (队伍 %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - con.pingTime)));
 			}
 			con.sendServerMessage(buffer.toString());
 			return false;
@@ -541,7 +541,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			if (!con.player.isSurrounded) {
 				try {
 					Rukkit.getConnectionManager().broadcast(Packet.gameSurrounder(con.player.playerIndex));
-					Rukkit.getConnectionManager().broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
+					Rukkit.getConnectionManager().broadcastServerMessage(String.format("玩家 %s 投降了!", con.player.name));
 					con.player.isSurrounded = true;
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -564,34 +564,34 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		// TODO: Implement this method
 		getLogger().info("CommandPlugin::onLoad()");
 		CommandManager mgr = Rukkit.getCommandManager();
-		mgr.registerCommand(new ChatCommand("help", "Show help.", 1, new HelpCallback(), this));
-		mgr.registerCommand(new ChatCommand("state", "Show Server State.", 0, new StateCallback(), this));
-		mgr.registerCommand(new ChatCommand("version", "Show Rukkit Version.", 0, this, this));
+		mgr.registerCommand(new ChatCommand("help", "显示帮助.", 1, new HelpCallback(), this));
+		mgr.registerCommand(new ChatCommand("state", "查看服务器状态.", 0, new StateCallback(), this));
+		mgr.registerCommand(new ChatCommand("version", "查看 Rukkit 服务器版本.", 0, this, this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 1, new MapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 1, new CustomMapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
-		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_team", "Change yourself ally.", 1, new TeamCallback(1), this));
-		mgr.registerCommand(new ChatCommand("move", "Move a player.", 2, new MoveCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_move", "Move yourself.", 2, new MoveCallback(1), this));
-		mgr.registerCommand(new ChatCommand("qc", "Execute a command silently.", 1, new QcCallback(), this));
-		mgr.registerCommand(new ChatCommand("fog", "Set fog type in game.", 1, new SetFogCallback(), this));
-		mgr.registerCommand(new ChatCommand("nukes", "Set nukes enabled in game.", 1, new NukeCallback(), this));
-		mgr.registerCommand(new ChatCommand("startingunits", "Set starting units in game.", 1, new StartingUnitCallback(), this));
-		mgr.registerCommand(new ChatCommand("income", "Set income in game(1x-100x).", 1, new IncomeCallback(), this));
-		mgr.registerCommand(new ChatCommand("share", "Set your share state in game.(on/off)", 1, new ShareCallback(), this));
-		mgr.registerCommand(new ChatCommand("credits", "Set default credits in game.", 1, new CreditsCallback(), this));
-		mgr.registerCommand(new ChatCommand("start", "Start a game.", 1, new StartCallback(), this));
-        mgr.registerCommand(new ChatCommand("sync", "Sync a game(admin only.)", 0, new SyncCallback(), this));
-		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
-		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
-		mgr.registerCommand(new ChatCommand("maping", "Ping map.", 2, new PingCallBack(), this));
-		mgr.registerCommand(new ChatCommand("list", "Show player list.", 0, new PlayerListCallback(), this));
-		mgr.registerCommand(new ChatCommand("surrender", "surrender.", 0, new SurrenderCallback(), this));
+		mgr.registerCommand(new ChatCommand("t", "发送队伍消息.", 1, new TeamChatCallback(), this));
+		mgr.registerCommand(new ChatCommand("maps", "获取官方地图列表（.maps 页数 可以换页）.", 1, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("map", "换图。后面跟地图序号（在maps前面的）.", 1, new MapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("cmaps", "获取自定义地图列表.", 1, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmap", "更换自定义地图.后面跟地图序号", 1, new CustomMapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("kick", "踢出一名玩家.", 1, new KickCallBack(), this));
+		mgr.registerCommand(new ChatCommand("team", "更换玩家队伍.", 2, new TeamCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_team", "更换你自己的队伍.", 1, new TeamCallback(1), this));
+		mgr.registerCommand(new ChatCommand("move", "给一位玩家移动位置.", 2, new MoveCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_move", "移动你自己的位置（只能移到空位上）.", 2, new MoveCallback(1), this));
+		mgr.registerCommand(new ChatCommand("qc", "静默执行指令.", 1, new QcCallback(), this));
+		mgr.registerCommand(new ChatCommand("fog", "设置迷雾类型.", 1, new SetFogCallback(), this));
+		mgr.registerCommand(new ChatCommand("nukes", "设置是否禁核（true/false).", 1, new NukeCallback(), this));
+		mgr.registerCommand(new ChatCommand("startingunits", "设置初始单位.后面跟数字", 1, new StartingUnitCallback(), this));
+		mgr.registerCommand(new ChatCommand("income", "设置资金倍数(1x-100x).", 1, new IncomeCallback(), this));
+		mgr.registerCommand(new ChatCommand("share", "设置你自己是否共享操作.(on/off)", 1, new ShareCallback(), this));
+		mgr.registerCommand(new ChatCommand("credits", "设置基础资金.", 1, new CreditsCallback(), this));
+		mgr.registerCommand(new ChatCommand("start", "启动一个游戏.", 1, new StartCallback(), this));
+        mgr.registerCommand(new ChatCommand("sync", "同步游戏(admin only.)", 0, new SyncCallback(), this));
+		mgr.registerCommand(new ChatCommand("i", "提交不同步消息到服务器.", 1, new InfoCallback(), this));
+		mgr.registerCommand(new ChatCommand("chksum", "发送checksum.", 0, new ChksumCallback(), this));
+		mgr.registerCommand(new ChatCommand("maping", "Ping 地图.", 2, new PingCallBack(), this));
+		mgr.registerCommand(new ChatCommand("list", "查看玩家列表.", 0, new PlayerListCallback(), this));
+		mgr.registerCommand(new ChatCommand("surrender", "投降.", 0, new SurrenderCallback(), this));
 	}
 
 	@Override

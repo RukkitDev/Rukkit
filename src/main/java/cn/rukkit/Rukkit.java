@@ -20,7 +20,7 @@ import cn.rukkit.game.SaveManager;
 import java.util.UUID;
 
 public class Rukkit {
-	public static final String RUKKIT_VERSION = "0.7.2";
+	public static final String RUKKIT_VERSION = "0.8.0";
 	public static final int SUPPORT_GAME_VERSION = 151;
 	private static Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;

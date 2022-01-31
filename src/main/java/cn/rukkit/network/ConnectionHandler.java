@@ -72,7 +72,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 			case Packet.PACKET_PREREGISTER_CONNECTION:
 				log.info(String.format("New connection established:%s", ctx.channel().remoteAddress()));
 				ctx.write(p.preRegister());
-				ctx.writeAndFlush(p.chat("SERVER", "You are logging to Rukkit.", -1));
+				ctx.writeAndFlush(p.chat("SERVER", "您正在登陆 Rukkit 服务器.", -1));
 				break;
 			case Packet.PACKET_PLAYER_INFO:
 				ctx.writeAndFlush(p.serverInfo());
@@ -101,7 +101,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				conn.player = player;
 				//Check admin.
 				if (Rukkit.getConnectionManager().size() <= 0 && !Rukkit.getConfig().nonStopMode) {
-					conn.sendServerMessage("You are the ADMIN of this server!");
+					conn.sendServerMessage("您现在是服务器房主!");
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(true));
 				} else {
@@ -127,6 +127,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 								conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastNoStopSave.arr, false));
 								conn.startTeamTask();
 								Rukkit.getGameServer().notifyGameTask();
+								conn.sendServerMessage("服务器正在运行不停止模式。您可以使用.help 查看所有指令。");
+								conn.sendServerMessage(".maps 页数 查看当前所有官方地图， .cmaps 页数 查看当前所有自定义地图。");
+								conn.sendServerMessage(".map/.cmap 地图序号 可以投票更换地图，输入.y/.n来同意/拒绝当前投票。");
+								conn.sendServerMessage("服务器基于 Rukkit 开源服务端。您可以在https://github.com/RukkitDev/Rukkit/查看源代码，如果您发现bug，可以提出issue，感谢您对本项目的支持。");
 								return;
 							} else {
 								Rukkit.getConnectionManager().add(conn);
@@ -140,6 +144,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 								Rukkit.getGameServer().syncGame();
 								conn.startTeamTask();
 								Rukkit.getGameServer().notifyGameTask();
+								conn.sendServerMessage("服务器正在运行不停止模式。您可以使用.help 查看所有指令。");
+								conn.sendServerMessage(".maps 页数 查看当前所有官方地图， .cmaps 页数 查看当前所有自定义地图。");
+								conn.sendServerMessage(".map/.cmap 地图序号 可以投票更换地图，输入.y/.n来同意/拒绝当前投票。");
+								conn.sendServerMessage("服务器基于 Rukkit 开源服务端。您可以在https://github.com/RukkitDev/Rukkit/查看源代码，如果您发现bug，可以提出issue，感谢您对本项目的支持。");
 								return;
 							}
 						} else {
@@ -154,6 +162,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							Rukkit.getGameServer().syncGame();
 							conn.startTeamTask();
 							Rukkit.getGameServer().notifyGameTask();
+							conn.sendServerMessage("服务器正在运行不停止模式。您可以使用.help 查看所有指令。");
+							conn.sendServerMessage(".maps 页数 查看当前所有官方地图， .cmaps 页数 查看当前所有自定义地图。");
+							conn.sendServerMessage(".map/.cmap 地图序号 可以投票更换地图，输入.y/.n来同意/拒绝当前投票。");
+							conn.sendServerMessage("服务器基于 Rukkit 开源服务端。您可以在https://github.com/RukkitDev/Rukkit/查看源代码，如果您发现bug，可以提出issue，感谢您对本项目的支持。");
 							return;
 						}
 					} else if (Rukkit.getConfig().syncEnabled) {
