@@ -59,32 +59,32 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 
 	@EventHandler
 	public void onChat(PlayerChatEvent event) {
-		event.getPlayer().getConnection().sendChat("[测试TAG] " + event.getMessage());
-		event.setCancel(true);
+		//event.getPlayer().getConnection().sendChat("[测试TAG] " + event.getMessage());
+		//event.setCancel(true);
 	}
 
 	@EventHandler
 	public void onBuild(BuildEvent e) {
-		e.getPlayer().getConnection()
-			.sendServerMessage(String.format("%s, 你在(%f,%f) 造了单位 %s, ID为%d", e.getPlayer().name, e.getTargetX(), e.getTargetY(), e.getTargetUnitName(), e.getFromUnitId()));
+		//e.getPlayer().getConnection()
+		//	.sendServerMessage(String.format("%s, 你在(%f,%f) 造了单位 %s, ID为%d", e.getPlayer().name, e.getTargetX(), e.getTargetY(), e.getTargetUnitName(), e.getFromUnitId()));
 	}
 
 	@EventHandler
 	public void onTask(TaskEvent e) {
-		e.getPlayer().getConnection()
-			.sendServerMessage(String.format("%s, 你在ID为%d的单位上执行了%s,是否为取消=%b", e.getPlayer().name, e.getActionUnitId(), e.getTaskString(), e.isCancel()));
+		//e.getPlayer().getConnection()
+		//	.sendServerMessage(String.format("%s, 你在ID为%d的单位上执行了%s,是否为取消=%b", e.getPlayer().name, e.getActionUnitId(), e.getTaskString(), e.isCancel()));
 	}
 
 	@EventHandler
 	public void onMove(MoveEvent e) {
-		e.getPlayer().getConnection()
-			.sendServerMessage(String.format("%s, 你移动了ID为%d的单位,目的地为(%f,%f)", e.getPlayer().name, e.getActionUnitId(), e.getTargetX(), e.getTargetY()));
+		//e.getPlayer().getConnection()
+		//	.sendServerMessage(String.format("%s, 你移动了ID为%d的单位,目的地为(%f,%f)", e.getPlayer().name, e.getActionUnitId(), e.getTargetX(), e.getTargetY()));
 	}
 
 	@EventHandler
 	public void onPing(PingEvent e) {
-		e.getPlayer().getConnection()
-			.sendServerMessage(String.format("%s, 你发出了PING:%s,PING目标为(%f,%f)", e.getPlayer().name, e.getPingType(), e.getTargetX(), e.getTargetY()));
+		//e.getPlayer().getConnection()
+		//	.sendServerMessage(String.format("%s, 你发出了PING:%s,PING目标为(%f,%f)", e.getPlayer().name, e.getPingType(), e.getTargetX(), e.getTargetY()));
 		if (!team[e.getPlayer().playerIndex].equals("nop")) {
 			try {
 				Rukkit.getConnectionManager().broadcast(Packet.gameSummon(team[e.getPlayer().playerIndex], e.getTargetX(), e.getTargetY()));

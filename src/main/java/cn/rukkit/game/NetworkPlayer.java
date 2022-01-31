@@ -104,12 +104,8 @@ public class NetworkPlayer
 		//If index larger then maxPlayer
 		if (index > Rukkit.getConfig().maxPlayer) return false;
 		PlayerManager playerGroup = Rukkit.getConnectionManager().getPlayerManager();
-		for(NetworkPlayer p : playerGroup.getPlayerArray()){
-			try{
-				if(p.playerIndex == index){
-					return false;
-				}
-			}catch(NullPointerException e){continue;}
+		if (!playerGroup.get(index).isEmpty) {
+			return false;
 		}
 		this.playerIndex = index;
 		playerGroup.remove(this);
@@ -118,7 +114,7 @@ public class NetworkPlayer
 	}
 
 	public boolean moveTeam(int team){
-		if(team > 9 && team < 0){
+		if(team > 9 || team < 0){
 			return false;
 		} else {
 			this.team = team;
@@ -128,7 +124,7 @@ public class NetworkPlayer
 
 	public boolean giveAdmin(int index){
 		NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(index);
-		if(index < Rukkit.getConfig().maxPlayer && index >= 0 && player != null && this.isAdmin){
+		if(index < Rukkit.getConfig().maxPlayer && index >= 0 && !player.isEmpty && this.isAdmin){
 			player.isAdmin = true;
 			this.isAdmin = false;
 			return true;

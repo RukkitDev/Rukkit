@@ -198,6 +198,7 @@ public class Rukkit {
 		connectionManager = new ConnectionManager(server);
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
+		pluginManager.loadPlugin(new BasePlugin());
 		if (config.nonStopMode) {
 			pluginManager.loadPlugin(new NoStopCommandPlugin());
 		} else {

@@ -40,6 +40,12 @@ public class ConnectionManager
 		playerManager.addWithTeam(connection.player);
 		CHANNEL_GROUP.add(connection.handler.ctx.channel());
 	}
+
+	public void set(Connection connection, int index) {
+		connections.add(connection);
+		playerManager.set(index, connection.player);
+		CHANNEL_GROUP.add(connection.handler.ctx.channel());
+	}
 	
 	/**
 	* Broadcast a message to all connections.

@@ -16,9 +16,15 @@ import cn.rukkit.network.packet.*;
 import cn.rukkit.plugin.*;
 import java.io.*;
 import cn.rukkit.game.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 
 public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandListener {
+
+	//int info = 0;
+	Logger log = LoggerFactory.getLogger(CommandPlugin.class);
 
 	@Override
 	public boolean onSend(Connection con, String[] args) {
@@ -65,9 +71,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// TODO: Implement this method
 			for (Connection conn : Rukkit.getConnectionManager().getConnections()) {
 				if (args.length < 1) return false;
-				if (conn.player.team == con.player.team) {
+				if (conn.player.team == con.player.team && conn != null) {
 					conn.sendMessage(con.player.name,
-									 args[0],
+									 "[TEAM]" + args[0],
 									 con.player.playerIndex);
 				}
 			}
@@ -85,11 +91,21 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
-				StringBuffer buf = new StringBuffer("- Maps -");
-				for (int i=OfficialMap.maps.length - 1;i >= 0;i--) {
-					buf.append(String.format("[%d] %s", i, OfficialMap.maps[i]) + "\n");
+				StringBuilder build = new StringBuilder();
+				if (args.length > 0) {
+					build.append("- Maps -  Page ").append(args[0]).append(" \n");
+					int page = Integer.parseInt(args[0]) - 1;
+					for (int i = page * 10;i < OfficialMap.maps.length;i++) {
+						if (i > page * 10 + 10) break;
+						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
+					}
+				} else {
+					build.append("- Help -  Page 1 \n");
+					for (int i = 0;i < 10;i++) {
+						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
+					}
 				}
-				con.sendServerMessage(buf.toString());
+				con.sendServerMessage(build.toString());
 			} else {
 				if (con.player.isAdmin && args.length > 0) {
 					if (args[0].startsWith("'")) {
@@ -127,22 +143,32 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
-				StringBuffer buf = new StringBuffer("- Custom Maps -");
-				ArrayList mapList = CustomMapLoader.getMapNameList();
-				for (int i = 0;i < mapList.size();i++) {
-					buf.append(String.format("[%d] %s", i, mapList.get(i).toString() + "\n"));
-				}
-				con.sendServerMessage(buf.toString());
+				StringBuilder build = new StringBuilder();
+				List<String> li = CustomMapLoader.getMapNameList();
+					if (args.length > 0) {
+						build.append("- CustomMaps -  Page ").append(args[0]).append(" \n");
+						int page = Integer.parseInt(args[0]) - 1;
+						for (int i = page * 10;i < li.size();i++) {
+							if (i > page * 10 + 10) break;
+							build.append(String.format("[%d] %s", i, li.get(i))).append("\n");
+						}
+					} else {
+						build.append("- Help -  Page 1 \n");
+						for (int i = 0; i < (Math.min(li.size(), 10)); i++) {
+							build.append(String.format("[%d] %s", i, li.get(i))).append("\n");
+						}
+					}
+					con.sendServerMessage(build.toString());
 			} else {
 				if (con.player.isAdmin && args.length > 0) {
-					ArrayList mapList = CustomMapLoader.getMapNameList();
+					ArrayList<String> mapList = CustomMapLoader.getMapNameList();
 					int id = Integer.parseInt(args[0]);
 					Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
 					Rukkit.getRoundConfig().mapType = 1;
 					try {
 						Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
 						con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
-					} catch (IOException e) {}
+					} catch (IOException ignored) {}
 				}
 			}
 			return false;
@@ -275,7 +301,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	class InfoCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(Connection con, String[] args) {
-			con.sendChat("[info]" + args[0]);
+			log.warn("{} send a info: {}", con.player.name, args[0]);
 			return false;
 		}
 	}
@@ -480,6 +506,51 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
+	class StateCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			// TODO: Implement this method
+			StringBuilder build = new StringBuilder();
+			build.append("- State - \n");
+			build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
+			build.append("Connections: " + Rukkit.getConnectionManager().size());
+			build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
+			try {
+				con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
+						build.toString(), -1));
+			} catch (IOException e) {}
+			return false;
+		}
+	}
+
+	class PlayerListCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			StringBuffer buffer = new StringBuffer("- Players -\n");
+			for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
+				buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - con.pingTime)));
+			}
+			con.sendServerMessage(buffer.toString());
+			return false;
+		}
+	}
+
+	class SurrenderCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			if (!con.player.isSurrounded) {
+				try {
+					Rukkit.getConnectionManager().broadcast(Packet.gameSurrounder(con.player.playerIndex));
+					Rukkit.getConnectionManager().broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
+					con.player.isSurrounded = true;
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			return false;
+		}
+	}
+
 	/*class InfoCallback implements ChatCommandListener {
 	 @Override
 	 public boolean onSend(Connection con, String[] args) {
@@ -492,34 +563,15 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public void onLoad() {
 		// TODO: Implement this method
 		getLogger().info("CommandPlugin::onLoad()");
-		ChatCommand cmd = new ChatCommand("help", "Show help.", 1, new HelpCallback(), this);
-		ChatCommand state = new ChatCommand("state", "Show Server State.", 0,
-			new ChatCommandListener() {
-
-				@Override
-				public boolean onSend(Connection con, String[] args) {
-					// TODO: Implement this method
-					StringBuilder build = new StringBuilder();
-					build.append("- State - \n");
-					build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
-					build.append("Connections: " + Rukkit.getConnectionManager().size());
-					build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
-					try {
-						con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
-																  build.toString(), -1));
-					} catch (IOException e) {}
-					return false;
-				}
-			}, this);
 		CommandManager mgr = Rukkit.getCommandManager();
-		mgr.registerCommand(cmd);
-		mgr.registerCommand(state);
+		mgr.registerCommand(new ChatCommand("help", "Show help.", 1, new HelpCallback(), this));
+		mgr.registerCommand(new ChatCommand("state", "Show Server State.", 0, new StateCallback(), this));
 		mgr.registerCommand(new ChatCommand("version", "Show Rukkit Version.", 0, this, this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
 		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 0, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 1, new MapsCallback(0), this));
 		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 0, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 1, new CustomMapsCallback(0), this));
 		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
 		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
 		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
@@ -538,6 +590,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
 		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
 		mgr.registerCommand(new ChatCommand("maping", "Ping map.", 2, new PingCallBack(), this));
+		mgr.registerCommand(new ChatCommand("list", "Show player list.", 0, new PlayerListCallback(), this));
+		mgr.registerCommand(new ChatCommand("surrender", "surrender.", 0, new SurrenderCallback(), this));
 	}
 
 	@Override

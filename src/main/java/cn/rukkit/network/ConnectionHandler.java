@@ -100,7 +100,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				player.uuid = uuid;
 				conn.player = player;
 				//Check admin.
-				if (Rukkit.getConnectionManager().size() <= 0) {
+				if (Rukkit.getConnectionManager().size() <= 0 && !Rukkit.getConfig().nonStopMode) {
 					conn.sendServerMessage("You are the ADMIN of this server!");
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(true));
@@ -154,23 +154,29 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							Rukkit.getGameServer().syncGame();
 							conn.startTeamTask();
 							Rukkit.getGameServer().notifyGameTask();
+							return;
 						}
 					} else if (Rukkit.getConfig().syncEnabled) {
 						// If sync enabled, get target player
 						NetworkPlayer targetPlayer = Rukkit.getConnectionManager().getPlayerManager().getPlayerByUUID(uuid);
 						// If player is a reconnecting player
 						if (targetPlayer != null) {
-							targetPlayer.name = playerName;
-							targetPlayer.uuid = uuid;
+							stopTimeout();
+							Rukkit.getGameServer().syncGame();
+							conn.player.playerIndex = targetPlayer.playerIndex;
+							Rukkit.getConnectionManager().set(conn, targetPlayer.playerIndex);
+							conn.updateTeamList(false);
+							conn.startPingTask();
 							// Sync game
 							conn.handler.ctx.writeAndFlush(Packet.startGame());
+							//conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastSave.arr, false));
 							Rukkit.getGameServer().syncGame();
-							return;
+							conn.startTeamTask();
 						} else {
 							// kick
 							ctx.writeAndFlush(p.kick("Game is started!"));
-							return;
 						}
+						return;
 					} else {
 						// kick
 						ctx.writeAndFlush(p.kick("Game is started!"));

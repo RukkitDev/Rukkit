@@ -70,15 +70,14 @@ public class PlayerManager
 	*/
 	public void remove(int index){
 		if(Rukkit.getConfig().nonStopMode) {
-			players[index].isEmpty = true;
-			players[index].ping = -1;
+			players[index] = new NetworkPlayer();
 			return;
 		}
 		if(Rukkit.getGameServer().isGaming()){
 			players[index].ping = -1;
 			return;
 		}
-		players[index].isEmpty = true;
+		players[index] = new NetworkPlayer();
 	}
 	
 	/**

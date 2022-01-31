@@ -346,35 +346,35 @@ public class Packet {
 		out.writeInt(1);
 		out.startBlock("c", false);
 		out.writeByte(index); // Team
-		
+
 		out.writeBoolean(false); //Command
-		
+
 		// 2 unknown booleans
 		out.writeBoolean(false);
 		out.writeBoolean(false);
-		
+
 		// 2 unknown ints
 		out.writeInt(-1);
 		out.writeInt(-1);
-		
+
 		out.writeBoolean(false);
 		out.writeBoolean(false);
-		
+
 		// Unit count
 		out.writeInt(0);
-		
+
 		// a true block
 		out.writeBoolean(true);
 		out.writeByte(0);
-		
+
 		//a true block
 		out.writeBoolean(true);
 		out.writeFloat(x);
 		out.writeFloat(y);
-		
+
 		out.writeLong(-1);
 		out.writeString("c_6_" + type.toString());
-		
+
 		out.writeBoolean(false);
 		//通用结尾
 		out.stream.writeShort(0);
@@ -450,7 +450,56 @@ public class Packet {
 		out.writeFloat(0);
 		out.writeFloat(0);
 		out.writeInt(5); //action type
-		
+
+		out.writeInt(0);
+		out.writeBoolean(false);
+		out.endBlock();
+		return out.createPacket(PACKET_TICK);
+	}
+
+	public static Packet gameSurrounder(int index) throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(1);
+		out.startBlock("c", false);
+		out.writeByte(index); // Team
+
+		// COMMAND BLOCK
+		out.writeBoolean(false); //Command
+
+		// 2 unknown booleans
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+
+		// 2 unknown ints
+		out.writeInt(-1);
+		out.writeInt(-1);
+
+		out.writeBoolean(false);
+		out.writeBoolean(false);
+
+		// Unit count
+		out.writeInt(0);
+
+		// a block
+		out.writeBoolean(false);
+
+		//a block
+		out.writeBoolean(false);
+
+		out.writeLong(-1);
+		out.writeString("-1");
+
+		out.writeBoolean(false);
+		//通用结尾
+		out.stream.writeShort(0);
+		// System action
+		out.writeBoolean(true);
+		out.writeByte(0);
+		out.writeFloat(0);
+		out.writeFloat(0);
+		out.writeInt(100); //action type
+
 		out.writeInt(0);
 		out.writeBoolean(false);
 		out.endBlock();

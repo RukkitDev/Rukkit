@@ -24,15 +24,26 @@ import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.ScheduledFuture;
 import java.util.Arrays;
 
-public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventListener {
+public class NoStopCommandPlugin extends CommandPlugin implements EventListener {
 
     Logger log = LoggerFactory.getLogger(NoStopCommandPlugin.class);
+
+	public void updateDetailedTeamList() {
+		for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
+			try {
+				conn.updateTeamList(false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	
 	public class Vote {
 		public abstract class VoteRunnable implements Runnable{
@@ -63,6 +74,10 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 					new Runnable() {
 						@Override
 						public void run() {
+							// No player exists.Stop vote.
+							if (Rukkit.getConnectionManager().size() <= 0) {
+								stopVote();
+							}
 							if (timeRemain == 0) {
 								if (agree >= disagree) {
 									con.broadcastServerMessage(
@@ -158,42 +173,8 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 		}
 	}
 
-	public class KickCallBack implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			// TODO: Implement this method
-			if (con.player.isAdmin && args.length > 1 || !Rukkit.getGameServer().isGaming()) {
-				int id = Integer.parseInt(args[1]);
-				NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(id);
-				try {
-					player.isNull();
-					player.getConnection().kick("Kicked by admin.");
-				} catch (ArrayIndexOutOfBoundsException e) {
-					con.sendServerMessage("Player isn't exist!");
-				}
-			}
-			return true;
-		}
-	}
-
-	public class TeamChatCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			// TODO: Implement this method
-			for (Connection conn : Rukkit.getConnectionManager().getConnections()) {
-				if (args.length < 1) return false;
-				if (conn.player.team == con.player.team) {
-					conn.sendMessage(con.player.name,
-									 args[0],
-									 con.player.playerIndex);
-				}
-			}
-			return false;
-		}
-	}
-
 	public class MapsCallback implements ChatCommandListener {
-		private int type;
+		private final int type;
 		String mapname = "";
 		public MapsCallback(int type) {
 			this.type = type;
@@ -203,11 +184,21 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
-				StringBuffer buf = new StringBuffer("- Maps -");
-				for (int i=OfficialMap.maps.length - 1;i >= 0;i--) {
-					buf.append(String.format("[%d] %s", i, OfficialMap.maps[i]) + "\n");
+				StringBuilder build = new StringBuilder();
+				if (args.length > 0) {
+					build.append("- Maps -  Page ").append(args[0]).append(" \n");
+					int page = Integer.parseInt(args[0]) - 1;
+					for (int i = page * 10;i < OfficialMap.maps.length;i++) {
+						if (i > page * 10 + 10) break;
+						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
+					}
+				} else {
+					build.append("- Help -  Page 1 \n");
+					for (int i = 0;i < 10;i++) {
+						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
+					}
 				}
-				con.sendServerMessage(buf.toString());
+				con.sendServerMessage(build.toString());
 			} else {
 				if (args.length > 0) {
 					if (args[0].startsWith("'")) {
@@ -238,7 +229,7 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 	}
 
 	public class CustomMapsCallback implements ChatCommandListener {
-		private int type;
+		private final int type;
 		public CustomMapsCallback(int type) {
 			this.type = type;
 		}
@@ -247,12 +238,22 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
-				StringBuffer buf = new StringBuffer("- Custom Maps -");
-				ArrayList mapList = CustomMapLoader.getMapNameList();
-				for (int i = 0;i < mapList.size();i++) {
-					buf.append(String.format("[%d] %s", i, mapList.get(i).toString() + "\n"));
+				StringBuilder build = new StringBuilder();
+				List<String> li = CustomMapLoader.getMapNameList();
+				if (args.length > 0) {
+					build.append("- CustomMaps -  Page ").append(args[0]).append(" \n");
+					int page = Integer.parseInt(args[0]) - 1;
+					for (int i = page * 10;i < li.size();i++) {
+						if (i > page * 10 + 10) break;
+						build.append(String.format("[%d] %s", i, li.get(i))).append("\n");
+					}
+				} else {
+					build.append("- Help -  Page 1 \n");
+					for (int i = 0; i < (Math.min(li.size(), 10)); i++) {
+						build.append(String.format("[%d] %s", i, li.get(i))).append("\n");
+					}
 				}
-				con.sendServerMessage(buf.toString());
+				con.sendServerMessage(build.toString());
 			} else {
 				if (args.length > 0) {
 					ArrayList mapList = CustomMapLoader.getMapNameList();
@@ -309,12 +310,14 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 					break;
 					// Self-move
 				case 1:
-					if (Rukkit.getGameServer().isGaming() || cmd.length < 1) {
+					if (cmd.length < 1) {
 						// Do nothing.
 					} else {
 						try {
 							if (con.player.movePlayer(Integer.parseInt(cmd[0]) - 1)) {
 								con.sendServerMessage("Move complete!");
+								Rukkit.getConnectionManager().broadcastServerMessage(String.format("提示：玩家 %s 从 %d 移动到 %d 上！", con.player.name, con.player.playerIndex, Integer.parseInt(cmd[0])));
+								updateDetailedTeamList();
 							} else {
 								con.sendServerMessage("Fail: already have a player in that slot");
 							}
@@ -323,17 +326,6 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 						}
 					}
 			}
-			return false;
-		}
-	}
-
-	// TODO: -qc 操作
-	class QcCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (args.length <= 0) return false;
-			getLogger().debug(args[0]);
-			Rukkit.getCommandManager().execute(con, args[0].substring(1));
 			return false;
 		}
 	}
@@ -364,42 +356,8 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 					if (args.length < 1) return false;
 					// Never got exceptions...
 					con.player.team = Integer.parseInt(args[0]) - 1;
-
+					updateDetailedTeamList();
 			}
-			return false;
-		}
-	}
-
-	class HelpCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			// TODO: Implement this method
-			StringBuilder build = new StringBuilder();
-			if (args.length > 0) {
-				build.append("- Help -  Page " + args[0] + " \n");
-				int page = Integer.valueOf(args[0]) - 1;
-				for (int i = page * 10;i < Rukkit.getCommandManager().getLoadedCommand().entrySet().size();i++) {
-					if (i > page * 10 + 10) break;
-					ChatCommand cmd = (ChatCommand) ((Map.Entry) Rukkit.getCommandManager().getLoadedCommand().entrySet().toArray()[i]).getValue();
-					build.append(String.format("%s : %s", cmd.cmd, cmd.helpMessage) + "\n");
-				}
-			} else {
-				build.append("- Help -  Page 1 \n");
-				for (int i = 0;i < Rukkit.getCommandManager().getLoadedCommand().entrySet().size();i++) {
-					if (i > 10) break;
-					ChatCommand cmd = (ChatCommand) ((Map.Entry) Rukkit.getCommandManager().getLoadedCommand().entrySet().toArray()[i]).getValue();
-					build.append(String.format("%s : %s", cmd.cmd, cmd.helpMessage) + "\n");
-				}
-			}
-			con.sendServerMessage(build.toString());
-			return false;
-		}
-	}
-
-	class InfoCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			con.sendChat("[info]" + args[0]);
 			return false;
 		}
 	}
@@ -407,94 +365,9 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 	class StartCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(Connection con, String[] args) {
-			
+			con.sendServerMessage("no-stop mode, server is always in game!\n" +
+					"不停止模式，服务器始终在游戏中！");
 			return true;
-		}
-	}
-
-	class SetFogCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
-				// Do nothing.
-			} else {
-				RoundConfig cfg = Rukkit.getRoundConfig();
-				switch (args[0]) {
-					case "off":
-						cfg.fogType = 0;
-						break;
-					case "basic":
-						cfg.fogType = 1;
-						break;
-					case "los":
-						cfg.fogType = 2;
-						break;
-					default:
-						cfg.fogType = 2;
-				}
-				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
-				} catch (IOException ignored) {}
-			}
-			return false;
-		}
-	}
-
-	class StartingUnitCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
-				// Do nothing.
-			} else {
-				Rukkit.getRoundConfig().startingUnits = Integer.parseInt(args[0]);
-				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
-				} catch (IOException ignored) {}
-			}
-			return false;
-		}
-	}
-
-	class ShareCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || args.length < 1) {
-				// Do nothing.
-			} else {
-				ConnectionManager ChannelGroups = Rukkit.getConnectionManager();
-				switch (args[0]) {
-					case "on":
-						con.player.isSharingControl = true;
-						ChannelGroups.broadcastServerMessage(con.player.name + "stopped Shared control!");
-						break;
-					case "off":
-						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control.");
-						break;
-					default:
-						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control!");
-				}
-			}
-			return false;
-		}
-	}
-
-	class SharedControlCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
-				// Do nothing.
-			} else {
-				Rukkit.getRoundConfig().sharedControl = Boolean.parseBoolean(args[0]);
-				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
-				} catch (IOException ignored) {}
-			}
-			return false;
 		}
 	}
 
@@ -526,7 +399,7 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 		float income = 0;
 		@Override
 		public boolean onSend(Connection con, String[] args) {
-			if (args.length < 1) {
+			if (args.length == 0) {
 				// Do nothing.
 			} else {
 				income = Float.parseFloat(args[0]);
@@ -543,25 +416,9 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 							} catch (IOException e) {}
 						}
 					},
-					String.format("玩家 %s 投票修改资金倍率为:%dx,输入(-y/-n)(同意/拒绝)来投票", con.player.name, income),
+					String.format("玩家 %s 投票修改资金倍率为:%fx,输入(-y/-n)(同意/拒绝)来投票", con.player.name, income),
 					30);
 				if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
-			}
-			return false;
-		}
-	}
-
-	class CreditsCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
-				// Do nothing.
-			} else {
-				Rukkit.getRoundConfig().credits = Integer.parseInt(args[0]);
-				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
-				} catch (IOException ignored) {}
 			}
 			return false;
 		}
@@ -583,83 +440,22 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
         }
     }
 
-    class DumpSyncCallBack implements ChatCommandListener {
-        @Override
-        public boolean onSend(Connection con, String[] args) {
 
-            return false;
-        }
-    }
-
-	class ChksumCallback implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			try {
-				Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
-			} catch (IOException e) {
-				//con.sendChat(
-			}
-			return false;
-		}
-	}
-
-	class PingCallBack implements ChatCommandListener {
-		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (args.length >= 2) {
-				float x = Float.parseFloat(args[0]);
-				float y = Float.parseFloat(args[1]);
-				//String name = args[0];
-				try {
-					Rukkit.getConnectionManager().broadcast(Packet.gamePing(con.player.playerIndex, PingType.happy, x, y));
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			return false;
-		}
-	}
-
-	/*class InfoCallback implements ChatCommandListener {
-	 @Override
-	 public boolean onSend(Connection con, String[] args) {
-	 return false;
-	 }
-	 }*/
 
 
 	@Override
 	public void onLoad() {
 		// TODO: Implement this method
 		getLogger().info("CommandPlugin::onLoad()");
-		ChatCommand cmd = new ChatCommand("help", "Show help.", 1, new HelpCallback(), this);
-		ChatCommand state = new ChatCommand("state", "Show Server State.", 0,
-			new ChatCommandListener() {
-
-				@Override
-				public boolean onSend(Connection con, String[] args) {
-					// TODO: Implement this method
-					StringBuilder build = new StringBuilder();
-					build.append("- State - \n");
-					build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
-					build.append("Connections: " + Rukkit.getConnectionManager().size() + "\n");
-					build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
-					try {
-						con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
-																  build.toString(), -1));
-					} catch (IOException e) {}
-					return false;
-				}
-			}, this);
 		CommandManager mgr = Rukkit.getCommandManager();
-		mgr.registerCommand(cmd);
-		mgr.registerCommand(state);
+		mgr.registerCommand(new ChatCommand("help", "Show help.", 1, new HelpCallback(), this));
+		mgr.registerCommand(new ChatCommand("state", "Show Server State.", 0, new StateCallback(), this));
 		mgr.registerCommand(new ChatCommand("version", "Show Rukkit Version.", 0, new VersionCallBack(), this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
 		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 0, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 1, new MapsCallback(0), this));
 		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 0, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 1, new CustomMapsCallback(0), this));
 		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
 		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
 		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
@@ -680,6 +476,8 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin implements EventLi
 		mgr.registerCommand(new ChatCommand("maping", "Ping map.", 2, new PingCallBack(), this));
 		mgr.registerCommand(new ChatCommand("y", "Agree voting.", 0, new AgreeCallback(), this));
 		mgr.registerCommand(new ChatCommand("n", "Disagree voting.", 0, new DisagreeCallback(), this));
+		mgr.registerCommand(new ChatCommand("list", "Show player list.", 0, new PlayerListCallback(), this));
+		mgr.registerCommand(new ChatCommand("surrender", "Surrender.", 0, new SurrenderCallback(), this));
 	}
 
 	@Override
