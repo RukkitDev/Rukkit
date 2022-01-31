@@ -403,7 +403,7 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 				// Do nothing.
 			} else {
 				income = Float.parseFloat(args[0]);
-				if (income > 100 && income < 0) {
+				if (income > 100 || income < 0) {
 					income = 1;
 				}
 				boolean result = vote.submitVotiog(new Runnable() {
@@ -453,24 +453,24 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 		mgr.registerCommand(new ChatCommand("version", "查看 Rukkit 服务器版本.", 0, this, this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
 		mgr.registerCommand(new ChatCommand("t", "发送队伍消息.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "获取官方地图列表（.maps 页数 可以换页）.", 1, new CommandPlugin.MapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("map", "换图。后面跟地图序号（在maps前面的）.", 1, new CommandPlugin.MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "获取自定义地图列表.", 1, new CommandPlugin.CustomMapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("cmap", "更换自定义地图.后面跟地图序号", 1, new CommandPlugin.CustomMapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("maps", "获取官方地图列表（.maps 页数 可以换页）.", 1, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("map", "换图。后面跟地图序号（在maps前面的）.", 1, new MapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("cmaps", "获取自定义地图列表.", 1, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmap", "更换自定义地图.后面跟地图序号", 1, new CustomMapsCallback(1), this));
 		mgr.registerCommand(new ChatCommand("kick", "踢出一名玩家.", 1, new KickCallBack(), this));
-		mgr.registerCommand(new ChatCommand("team", "更换玩家队伍.", 2, new CommandPlugin.TeamCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_team", "更换你自己的队伍.", 1, new CommandPlugin.TeamCallback(1), this));
-		mgr.registerCommand(new ChatCommand("move", "给一位玩家移动位置.", 2, new CommandPlugin.MoveCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_move", "移动你自己的位置（只能移到空位上）.", 2, new CommandPlugin.MoveCallback(1), this));
+		mgr.registerCommand(new ChatCommand("team", "更换玩家队伍.", 2, new TeamCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_team", "更换你自己的队伍.", 1, new TeamCallback(1), this));
+		mgr.registerCommand(new ChatCommand("move", "给一位玩家移动位置.", 2, new MoveCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_move", "移动你自己的位置（只能移到空位上）.", 2, new MoveCallback(1), this));
 		mgr.registerCommand(new ChatCommand("qc", "静默执行指令.", 1, new QcCallback(), this));
 		mgr.registerCommand(new ChatCommand("fog", "设置迷雾类型.", 1, new SetFogCallback(), this));
-		mgr.registerCommand(new ChatCommand("nukes", "设置是否禁核（true/false).", 1, new CommandPlugin.NukeCallback(), this));
+		mgr.registerCommand(new ChatCommand("nukes", "设置是否禁核（true/false).", 1, new NukeCallback(), this));
 		mgr.registerCommand(new ChatCommand("startingunits", "设置初始单位.后面跟数字", 1, new StartingUnitCallback(), this));
-		mgr.registerCommand(new ChatCommand("income", "设置资金倍数(1x-100x).", 1, new CommandPlugin.IncomeCallback(), this));
+		mgr.registerCommand(new ChatCommand("income", "设置资金倍数(1x-100x).", 1, new IncomeCallback(), this));
 		mgr.registerCommand(new ChatCommand("share", "设置你自己是否共享操作.(on/off)", 1, new ShareCallback(), this));
 		mgr.registerCommand(new ChatCommand("credits", "设置基础资金.", 1, new CreditsCallback(), this));
-		mgr.registerCommand(new ChatCommand("start", "启动一个游戏.", 1, new CommandPlugin.StartCallback(), this));
-		mgr.registerCommand(new ChatCommand("sync", "同步游戏(admin only.)", 0, new CommandPlugin.SyncCallback(), this));
+		mgr.registerCommand(new ChatCommand("start", "启动一个游戏.", 1, new StartCallback(), this));
+		mgr.registerCommand(new ChatCommand("sync", "同步游戏(admin only.)", 0, new SyncCallback(), this));
 		mgr.registerCommand(new ChatCommand("i", "提交不同步消息到服务器.", 1, new InfoCallback(), this));
 		mgr.registerCommand(new ChatCommand("chksum", "发送checksum.", 0, new ChksumCallback(), this));
 		mgr.registerCommand(new ChatCommand("maping", "Ping 地图.", 2, new PingCallBack(), this));
