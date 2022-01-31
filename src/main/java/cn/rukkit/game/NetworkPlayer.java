@@ -48,8 +48,8 @@ public class NetworkPlayer
 		return this.connection;
 	}
 	
-	public void writePlayer(DataOutputStream stream) throws IOException {
-		if (Rukkit.getGameServer().isGaming()) {
+	public void writePlayer(DataOutputStream stream, boolean simpleMode) throws IOException {
+		if (simpleMode) {
 			stream.writeByte(0);
 			stream.writeInt(ping);
 			stream.writeBoolean(true);
@@ -99,7 +99,7 @@ public class NetworkPlayer
 			stream.writeInt(0);
 		}
 	}
-
+	
 	public boolean movePlayer(int index){
 		//If index larger then maxPlayer
 		if (index > Rukkit.getConfig().maxPlayer) return false;

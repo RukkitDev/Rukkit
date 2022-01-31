@@ -116,16 +116,44 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 						if (Rukkit.getConnectionManager().size() <= 0) {
 							// Check lastSaveData
 							if (Rukkit.getGameServer().lastNoStopSave != null) {
+								Rukkit.getConnectionManager().add(conn);
+								stopTimeout();
+								conn.startPingTask();
+								conn.updateTeamList(false);
+								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								// Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Send save
 								conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastNoStopSave.arr, false));
+								conn.startTeamTask();
+								Rukkit.getGameServer().notifyGameTask();
+								return;
 							} else {
+								Rukkit.getConnectionManager().add(conn);
+								stopTimeout();
+								conn.startPingTask();
+								conn.updateTeamList(false);
+								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								// New Round!Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Have a sync.
 								Rukkit.getGameServer().syncGame();
+								conn.startTeamTask();
+								Rukkit.getGameServer().notifyGameTask();
+								return;
 							}
+						} else {
+							Rukkit.getConnectionManager().add(conn);
+							stopTimeout();
+							conn.startPingTask();
+							conn.updateTeamList(false);
+							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+							// New Round!Start game.
+							conn.handler.ctx.writeAndFlush(Packet.startGame());
+							// Have a sync.
+							Rukkit.getGameServer().syncGame();
+							conn.startTeamTask();
+							Rukkit.getGameServer().notifyGameTask();
 						}
 					} else if (Rukkit.getConfig().syncEnabled) {
 						// If sync enabled, get target player
@@ -137,9 +165,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							// Sync game
 							conn.handler.ctx.writeAndFlush(Packet.startGame());
 							Rukkit.getGameServer().syncGame();
+							return;
 						} else {
 							// kick
 							ctx.writeAndFlush(p.kick("Game is started!"));
+							return;
 						}
 					} else {
 						// kick
@@ -152,7 +182,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				Rukkit.getConnectionManager().add(conn);
 				conn.startPingTask();
 				conn.startTeamTask();
-				conn.updateTeamList();
+				conn.updateTeamList(false);
 				stopTimeout();
 				PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 				break;

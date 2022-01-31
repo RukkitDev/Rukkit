@@ -20,7 +20,7 @@ public class PlayerManager
 	* @params maxPlayer set up maxPlayer
 	*/
 	public PlayerManager(int maxPlayer) {
-		this.max = Rukkit.getConfig().maxPlayer;
+		this.max = maxPlayer;
 		reset();
 	}
 	
@@ -115,7 +115,7 @@ public class PlayerManager
 	*/
 	public NetworkPlayer getAdmin(){
 		for (NetworkPlayer p: players) {
-			if (p.isAdmin) {
+			if (p.isAdmin && !p.isEmpty) {
 				return p;
 			}
 		}

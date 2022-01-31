@@ -88,16 +88,16 @@ public class GameServer {
 			}
 
 			// If playercount == 1 then have a sync and pauseGame;
-			if (connMgr.size() <= 1 && !cfg.singlePlayerMode) {
+			if (connMgr.size() == 1 && !cfg.singlePlayerMode) {
 				connMgr.broadcastServerMessage("1 player left.We will have a sync and pause game...");
 				syncGame();
-				synchronized (threadLock) {
+				/*synchronized (threadLock) {
 					try {
 						threadLock.wait();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-				}
+				}*/
 				setPaused(true);
 				return;
 			}
@@ -105,13 +105,13 @@ public class GameServer {
 			/* If playerCount == 0 then pauseGame
 			*/
 			if (connMgr.size() <= 0) {
-				synchronized (threadLock) {
+				/*synchronized (threadLock) {
 					try {
 						threadLock.wait();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-				}
+				}*/
 				setPaused(true);
 				return;
 			}
@@ -190,7 +190,7 @@ public class GameServer {
 	}
 
 	public void notifyGameTask() {
-		threadLock.notify();
+		//hreadLock.notify();
 		setPaused(false);
 	}
 	
@@ -234,6 +234,31 @@ public class GameServer {
 		if (Rukkit.getConfig().nonStopMode) {
 			gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), 200, 200);
 		}
+	}
+	
+	public void changeMapWhileRunning(String mapName, int type) {
+		Rukkit.getRoundConfig().mapName = mapName;
+		Rukkit.getRoundConfig().mapType = type;
+		try {
+			ConnectionManager connectionManager = Rukkit.getConnectionManager();
+			connectionManager.broadcast(Packet.gameStart());
+			// Set shared control.
+			if (Rukkit.getRoundConfig().sharedControl) {
+				for (NetworkPlayer p:Rukkit.getConnectionManager().getPlayerManager().getPlayerArray()) {
+					try {
+						p.isNull();
+						p.isSharingControl = true;
+					} catch (NullPointerException ignored) {continue;}
+				}
+			}
+			// Reset tick time
+			tickTime = 0;
+			// Broadcast start packet.
+			connectionManager.broadcast(Packet.serverInfo());
+			for(Connection conn : connectionManager.getConnections()) {
+				conn.updateTeamList(false);
+			}
+		} catch (IOException ignored) {}
 	}
 
 	/**

@@ -125,11 +125,15 @@ public class Connection {
 	}
 	
 	public void updateTeamList() throws IOException {
+		updateTeamList(Rukkit.getGameServer().isGaming());
+	}
+	
+	public void updateTeamList(boolean simpleMode) throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		//log.d("Sending teamlist...");
 		o.writeInt(player.playerIndex);
 		// 1.14新增
-		o.writeBoolean(Rukkit.getGameServer().isGaming());
+		o.writeBoolean(simpleMode);
 		o.writeInt(Rukkit.getConfig().maxPlayer); //maxPlayer
 		//1.14启用Gzip压缩
 		GzipEncoder enc = o.getEncodeStream("teams", true);
@@ -156,7 +160,7 @@ public class Connection {
 			//1.14
 			//enc.stream.writeByte(0);
 			enc.stream.writeInt(255);
-			playerp.writePlayer(enc.stream);
+			playerp.writePlayer(enc.stream, simpleMode);
 		}
 		o.flushEncodeData(enc);
 
