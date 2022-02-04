@@ -8,6 +8,10 @@
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
+apply plugin: 'application'
+[compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
+final def RUKKIT_VERSION = "0.8.0"
+mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -29,5 +33,42 @@ dependencies {
     //testCompile 'junit:junit:4.12'
 }
 
+tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+}
 
+task buildRukkit(dependsOn: jar) {
+    doLast {
+        println("Okay.Doing last step...")
+        mkdir("./build/outputs")
+        copy() {
+            CopySpec copySpec ->
+                from file("${rootDir}/libs")
+                into "${rootDir}/build/outputs/libs"
+        }
+        copy() {
+            CopySpec copySpec ->
+                from file("${rootDir}/build/libs/Rukkit.jar")
+                into "${rootDir}/build/outputs/"
+                rename ('Rukkit.jar', "Rukkit-${RUKKIT_VERSION}.jar")
+        }
+        copy() {
+            CopySpec copySpec ->
+                from file("${rootDir}/start.sh")
+                into "${rootDir}/build/outputs/";
+        }
+        copy() {
+            CopySpec copySpec ->
+                from file("${rootDir}/start.bat")
+                into "${rootDir}/build/outputs/";
+        }
+        println("""
+          -- Well done! --
+targetRukkitVersion: ${RUKKIT_VERSION}
+Check the build/outputs to get the result.
+""")
+    }
+}
+
+run {}
 

@@ -16,3 +16,7 @@ include 'services:webservice'
 */
 
 rootProject.name = 'Rukkit'
+ext {
+    rukkitVersion = '0.8.0'
+    supportGameVersion = '151'
+}
