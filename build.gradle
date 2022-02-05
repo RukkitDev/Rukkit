@@ -10,7 +10,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.8.0"
+final def RUKKIT_VERSION = "0.8.2-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
