@@ -90,7 +90,7 @@ public class GameServer {
 			}
 
 			// If playercount == 1 then have a sync and pauseGame;
-			if (connMgr.size() == 1 && !cfg.singlePlayerMode) {
+			if (connMgr.size() == 1 && !cfg.singlePlayerMode && !isPaused) {
 				connMgr.broadcastServerMessage("1 player left.We will have a sync and pause game...");
 				syncGame();
 				/*synchronized (threadLock) {

@@ -13,6 +13,7 @@ import cn.rukkit.event.*;
 import java.util.*;
 import cn.rukkit.util.*;
 import org.slf4j.*;
+import cn.rukkit.plugin.RukkitPlugin;
 
 public class ListenerList
 {
@@ -38,6 +39,14 @@ public class ListenerList
 			}
 		}
 		return true;
+	}
+	
+	public void removePluginListener(EventListener listener) {
+		for (EventListenerContainer c: listenerList) {
+			if (c.listener.getClass() == listener.getClass()) {
+				listenerList.remove(c);
+			}
+		}
 	}
 
 	public void clear() {

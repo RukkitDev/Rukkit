@@ -9,19 +9,27 @@
 
 package cn.rukkit.plugin.internal;
 //import cn.rukkit.plugin.InternalRukkitPlugin;
-import cn.rukkit.*;
-import cn.rukkit.command.*;
+import cn.rukkit.Rukkit;
+import cn.rukkit.command.ChatCommand;
+import cn.rukkit.command.ChatCommandListener;
+import cn.rukkit.command.CommandManager;
 import cn.rukkit.config.RoundConfig;
-import cn.rukkit.game.map.*;
-import cn.rukkit.network.*;
-import cn.rukkit.network.packet.*;
-import cn.rukkit.plugin.*;
-import java.io.*;
-import cn.rukkit.game.*;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.PingType;
+import cn.rukkit.game.PlayerManager;
+import cn.rukkit.game.map.CustomMapLoader;
+import cn.rukkit.game.map.OfficialMap;
+import cn.rukkit.network.Connection;
+import cn.rukkit.network.ConnectionManager;
+import cn.rukkit.network.packet.Packet;
+import cn.rukkit.plugin.PluginConfig;
+import cn.rukkit.util.LangUtil;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandListener {
 
@@ -58,9 +66,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(id);
 				try {
 					player.isNull();
-					player.getConnection().kick("Kicked by admin.");
+					player.getConnection().kick(LangUtil.getString("chat.kick"));
 				} catch (ArrayIndexOutOfBoundsException e) {
-					con.sendServerMessage("Player isn't exist!");
+					con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
 				}
 			}
 			return true;
@@ -75,7 +83,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				if (args.length < 1) return false;
 				if (conn.player.team == con.player.team && conn != null) {
 					conn.sendMessage(con.player.name,
-									 "[TEAM]" + args[0],
+									 LangUtil.getString("chat.teamMsg") + args[0],
 									 con.player.playerIndex);
 				}
 			}
@@ -196,7 +204,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						NetworkPlayer targetPlayer = playerGroup.get(Integer.parseInt(cmd[1]) - 1);
 						try {
 							if (fromPlayer.movePlayer(Integer.parseInt(cmd[1]) - 1)) {
-								con.sendServerMessage("移动成功！");
+								con.sendServerMessage(LangUtil.getString("chat.moveComplte"));
 							} else {
 								int fromslot, toslot;
 								fromslot = fromPlayer.playerIndex;
@@ -259,7 +267,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 							Rukkit.getConnectionManager().getPlayerManager()
 								.get(Integer.parseInt(args[0]) - 1).team = (Integer.parseInt(args[1]) - 1);
 						} catch (NullPointerException e) {
-							con.sendServerMessage("Player isn't exists!");
+							con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
 						}
 					}
 					break;
