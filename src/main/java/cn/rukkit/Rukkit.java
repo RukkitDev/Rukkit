@@ -12,6 +12,8 @@ import cn.rukkit.command.*;
 import cn.rukkit.config.*;
 import cn.rukkit.network.*;
 import java.io.*;
+
+import cn.rukkit.util.LangUtil;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
 import cn.rukkit.plugin.*;
@@ -19,6 +21,8 @@ import cn.rukkit.game.mod.*;
 import cn.rukkit.plugin.internal.*;
 import cn.rukkit.service.*;
 import cn.rukkit.game.SaveManager;
+
+import java.util.Locale;
 import java.util.UUID;
 
 public class Rukkit {
@@ -186,6 +190,9 @@ public class Rukkit {
 		loadRukkitConfig();
 		log.info("Loading default round config...");
 		loadRoundConfig();
+		log.info("setting up language...");
+		LangUtil.lc = new Locale(getConfig().lang);
+		log.info("Current Language: {}", LangUtil.lc);
 		log.info("init::ThreadManager");
 		threadManager = new ThreadManager(config.threadPoolCount);
 		log.info("init::ModManager");

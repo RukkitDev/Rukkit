@@ -14,7 +14,9 @@ import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
 import cn.rukkit.config.RoundConfig;
+import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
+import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PingType;
 import cn.rukkit.game.PlayerManager;
@@ -25,9 +27,12 @@ import cn.rukkit.network.ConnectionManager;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.ScheduledFuture;
@@ -36,6 +41,13 @@ import java.util.Arrays;
 public class NoStopCommandPlugin extends CommandPlugin implements EventListener {
 
     Logger log = LoggerFactory.getLogger(NoStopCommandPlugin.class);
+
+	@EventHandler
+	public void playerJoin(PlayerJoinEvent event) {
+		if (vote.isVoting) {
+			event.getPlayer().getConnection().sendServerMessage(MessageFormat.format(LangUtil.getString("nostop.vote.joinMessage"), vote.voteDesc));
+		}
+	}
 
 	public void updateDetailedTeamList() {
 		for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
@@ -48,16 +60,12 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 	}
 	
 	public class Vote {
-		public abstract class VoteRunnable implements Runnable{
-			public void stopVote() {
-				Vote.this.stopVote();
-			}
-		}
 		private boolean isVoting = false;
 		private int agree = 0;
 		private int disagree = 0;
 		private int timeRemain = 15;
 		private ScheduledFuture voteFuture;
+		private String voteDesc = "<blank>";
 		private ConnectionManager con = Rukkit.getConnectionManager();
 		boolean[] voteState;
 		
@@ -72,6 +80,7 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 			} else {
 				con.broadcastServerMessage(reason);
 				timeRemain = timeRem;
+				voteDesc = reason;
 				voteFuture = Rukkit.getThreadManager().schedule(
 					new Runnable() {
 						@Override
@@ -83,16 +92,16 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 							if (timeRemain == 0) {
 								if (agree >= disagree) {
 									con.broadcastServerMessage(
-										String.format("同意: %d人, 反对: %d人，投票成功！", agree, disagree));
+										MessageFormat.format(LangUtil.getString("nostop.vote.success"), agree, disagree));
 									runnable.run();
 								} else {
 									con.broadcastServerMessage(
-										String.format("同意: %d人, 反对: %d人，投票失败！", agree, disagree));
+											MessageFormat.format(LangUtil.getString("nostop.vote.failure"), agree, disagree));
 								}
 								stopVote();
 							}
 							if (timeRemain % 10 == 0) {
-								con.broadcastServerMessage("还有" + timeRemain + "s结束投票!");
+								con.broadcastServerMessage(MessageFormat.format(LangUtil.getString("nostop.vote.timeRemain"), timeRemain));
 							}
 							timeRemain --;
 						}		
@@ -135,12 +144,12 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 		public boolean onSend(Connection con, String[] args) {
 			if (vote.isVoting) {
 				if (vote.agree(con.player.playerIndex)) {
-					con.sendServerMessage("投票成功!");
+					con.sendServerMessage(LangUtil.getString("nostop.vote.submit"));
 				} else {
-					con.sendServerMessage("你已经投过了!");
+					con.sendServerMessage(LangUtil.getString("nostop.vote.alreadySubmit"));
 				}
 			} else {
-				con.sendServerMessage("当前没有正在进行的投票!");
+				con.sendServerMessage(LangUtil.getString("nostop.vote.noCurrentVote"));
 			}
 			return false;
 		}
@@ -151,12 +160,12 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 		public boolean onSend(Connection con, String[] args) {
 			if (vote.isVoting) {
 				if (vote.disagree(con.player.playerIndex)) {
-					con.sendServerMessage("投票成功!");
+					con.sendServerMessage(LangUtil.getString("nostop.vote.submit"));
 				} else {
-					con.sendServerMessage("你已经投过了!");
+					con.sendServerMessage(LangUtil.getString("nostop.vote.alreadySubmit"));
 				}
 			} else {
-				con.sendServerMessage("当前没有正在进行的投票!");
+				con.sendServerMessage(LangUtil.getString("nostop.vote.noCurrentVote"));
 			}
 			return false;
 		}
@@ -221,9 +230,9 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 								Rukkit.getGameServer().changeMapWhileRunning(mapname, 0);
 							}
 					},
-					String.format("玩家 %s 投票更换地图: %s,输入(-y/-n)来投票", con.player.name, mapname),
+					MessageFormat.format(LangUtil.getString("nostop.vote.map"), con.player.name, mapname),
 					30);
-					if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
+					if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
 				}
 			}
 			return false;
@@ -267,9 +276,9 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 								Rukkit.getGameServer().changeMapWhileRunning(mapname, 1);
 							}
 					},
-					String.format("玩家 %s 投票更换自定义地图: %s,输入(-y/-n)(同意/拒绝)来投票", con.player.name, mapname),
-					30);
-					if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
+							MessageFormat.format(LangUtil.getString("nostop.vote.cmap"), con.player.name, mapname),
+							30);
+					if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
 				}
 			}
 			return false;
@@ -295,7 +304,7 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 						NetworkPlayer targetPlayer = playerGroup.get(Integer.parseInt(cmd[1]) - 1);
 						try {
 							if (fromPlayer.movePlayer(Integer.parseInt(cmd[1]) - 1)) {
-								con.sendServerMessage("移动成功！");
+								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
 							} else {
 								int fromslot, toslot;
 								fromslot = fromPlayer.playerIndex;
@@ -317,11 +326,11 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 					} else {
 						try {
 							if (con.player.movePlayer(Integer.parseInt(cmd[0]) - 1)) {
-								con.sendServerMessage("Move complete!");
-								Rukkit.getConnectionManager().broadcastServerMessage(String.format("提示：玩家 %s 从 %d 移动到 %d 上！", con.player.name, con.player.playerIndex, Integer.parseInt(cmd[0])));
+								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
+								Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("nostop.move"), con.player.name, con.player.playerIndex, Integer.parseInt(cmd[0])));
 								updateDetailedTeamList();
 							} else {
-								con.sendServerMessage("Fail: already have a player in that slot");
+								con.sendServerMessage(LangUtil.getString("chat.playerExist"));
 							}
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -349,7 +358,7 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 							Rukkit.getConnectionManager().getPlayerManager()
 								.get(Integer.parseInt(args[0]) - 1).team = (Integer.parseInt(args[1]) - 1);
 						} catch (NullPointerException e) {
-							con.sendServerMessage("Player isn't exists!");
+							con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
 						}
 					}
 					break;
@@ -388,9 +397,9 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 							} catch (IOException ignored) {}
 						}
 					},
-					String.format("玩家 %s 投票修改禁核为%s，输入(-y/-n)(同意/拒绝)来投票", con.player.name, (Boolean.parseBoolean(args[0]) ? "启用":"禁用")),
+					MessageFormat.format(LangUtil.getString("nostop.vote.nukes"), con.player.name, (Boolean.parseBoolean(args[0]) ? "启用":"禁用")),
 					30);
-				if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
+				if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
 				
 			}
 			return false;
@@ -418,9 +427,9 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 							} catch (IOException e) {}
 						}
 					},
-					String.format("玩家 %s 投票修改资金倍率为:%fx,输入(-y/-n)(同意/拒绝)来投票", con.player.name, income),
-					30);
-				if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
+						MessageFormat.format(LangUtil.getString("nostop.vote.income"), con.player.name, income),
+						30);
+				if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
 			}
 			return false;
 		}
@@ -435,9 +444,9 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 						Rukkit.getGameServer().syncGame();
 					}
 				},
-				String.format("玩家 %s 投票进行游戏同步,输入(-y/-n)(同意/拒绝)来投票", con.player.name),
-				30);
-			if (!result) con.sendServerMessage("已经有一个正在进行的投票了!");
+					MessageFormat.format(LangUtil.getString("nostop.vote.sync"), con.player.name),
+					30);
+			if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
             return false;
         }
     }
@@ -450,36 +459,37 @@ public class NoStopCommandPlugin extends CommandPlugin implements EventListener 
 		// TODO: Implement this method
 		getLogger().info("CommandPlugin::onLoad()");
 		CommandManager mgr = Rukkit.getCommandManager();
-		mgr.registerCommand(new ChatCommand("help", "Show help.", 1, new HelpCallback(), this));
-		mgr.registerCommand(new ChatCommand("state", "Show Server State.", 0, new StateCallback(), this));
-		mgr.registerCommand(new ChatCommand("version", "Show Rukkit Version.", 0, new VersionCallBack(), this));
+		mgr.registerCommand(new ChatCommand("help", LangUtil.getString("chat.help"), 1, new HelpCallback(), this));
+		mgr.registerCommand(new ChatCommand("state", LangUtil.getString("chat.state"), 0, new StateCallback(), this));
+		mgr.registerCommand(new ChatCommand("version", LangUtil.getString("chat.version"), 0, this, this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 1, new MapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 1, new CustomMapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
-		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_team", "Change yourself ally.", 1, new TeamCallback(1), this));
-		mgr.registerCommand(new ChatCommand("move", "Move a player.", 2, new MoveCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_move", "Move yourself.", 2, new MoveCallback(1), this));
-		mgr.registerCommand(new ChatCommand("qc", "Execute a command silently.", 1, new QcCallback(), this));
-		mgr.registerCommand(new ChatCommand("fog", "Set fog type in game.", 1, new SetFogCallback(), this));
-		mgr.registerCommand(new ChatCommand("nukes", "Set nukes enabled in game.", 1, new NukeCallback(), this));
-		mgr.registerCommand(new ChatCommand("startingunits", "Set starting units in game.", 1, new StartingUnitCallback(), this));
-		mgr.registerCommand(new ChatCommand("income", "Set income in game(1x-100x).", 1, new IncomeCallback(), this));
-		mgr.registerCommand(new ChatCommand("share", "Set your share state in game.(on/off)", 1, new ShareCallback(), this));
-		mgr.registerCommand(new ChatCommand("credits", "Set default credits in game.", 1, new CreditsCallback(), this));
-		mgr.registerCommand(new ChatCommand("start", "Start a game.", 1, new StartCallback(), this));
-        mgr.registerCommand(new ChatCommand("sync", "Sync a game(admin only.)", 0, new SyncCallback(), this));
-		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
-		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
-		mgr.registerCommand(new ChatCommand("maping", "Ping map.", 2, new PingCallBack(), this));
-		mgr.registerCommand(new ChatCommand("y", "Agree voting.", 0, new AgreeCallback(), this));
-		mgr.registerCommand(new ChatCommand("n", "Disagree voting.", 0, new DisagreeCallback(), this));
-		mgr.registerCommand(new ChatCommand("list", "Show player list.", 0, new PlayerListCallback(), this));
-		mgr.registerCommand(new ChatCommand("surrender", "Surrender.", 0, new SurrenderCallback(), this));
+		mgr.registerCommand(new ChatCommand("t", LangUtil.getString("chat.t"), 1, new TeamChatCallback(), this));
+		mgr.registerCommand(new ChatCommand("maps", LangUtil.getString("chat.maps"), 1, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("map", LangUtil.getString("chat.map"), 1, new MapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("cmaps", LangUtil.getString("chat.cmaps"), 1, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmap", LangUtil.getString("chat.cmap"), 1, new CustomMapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("kick", LangUtil.getString("chat.kick"), 1, new KickCallBack(), this));
+		mgr.registerCommand(new ChatCommand("team", LangUtil.getString("chat.team"), 2, new TeamCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_team", LangUtil.getString("chat.self_team"), 1, new TeamCallback(1), this));
+		mgr.registerCommand(new ChatCommand("move", LangUtil.getString("chat.move"), 2, new MoveCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_move", LangUtil.getString("chat.self_move"), 2, new MoveCallback(1), this));
+		mgr.registerCommand(new ChatCommand("qc", LangUtil.getString("chat.qc"), 1, new QcCallback(), this));
+		mgr.registerCommand(new ChatCommand("fog", LangUtil.getString("chat.fog"), 1, new SetFogCallback(), this));
+		mgr.registerCommand(new ChatCommand("nukes", LangUtil.getString("chat.nukes"), 1, new NukeCallback(), this));
+		mgr.registerCommand(new ChatCommand("startingunits", LangUtil.getString("chat.startingunits"), 1, new StartingUnitCallback(), this));
+		mgr.registerCommand(new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
+		mgr.registerCommand(new ChatCommand("share", LangUtil.getString("chat.share"), 1, new ShareCallback(), this));
+		mgr.registerCommand(new ChatCommand("credits", LangUtil.getString("chat.credits"), 1, new CreditsCallback(), this));
+		mgr.registerCommand(new ChatCommand("start", LangUtil.getString("chat.start"), 1, new StartCallback(), this));
+        mgr.registerCommand(new ChatCommand("sync", LangUtil.getString("chat.sync"), 0, new SyncCallback(), this));
+		mgr.registerCommand(new ChatCommand("i", LangUtil.getString("chat.i"), 1, new InfoCallback(), this));
+		mgr.registerCommand(new ChatCommand("chksum", LangUtil.getString("chat.chksum"), 0, new ChksumCallback(), this));
+		mgr.registerCommand(new ChatCommand("maping", LangUtil.getString("chat.maping"), 2, new PingCallBack(), this));
+		mgr.registerCommand(new ChatCommand("list", LangUtil.getString("chat.list"), 0, new PlayerListCallback(), this));
+		mgr.registerCommand(new ChatCommand("surrender", LangUtil.getString("chat.surrender"), 0, new SurrenderCallback(), this));
+		mgr.registerCommand(new ChatCommand("y", LangUtil.getString("nostop.y"), 0, new AgreeCallback(), this));
+		mgr.registerCommand(new ChatCommand("n", LangUtil.getString("nostop.n"), 0, new DisagreeCallback(), this));
+		getPluginManager().registerEventListener(this, this);
 	}
 
 	@Override

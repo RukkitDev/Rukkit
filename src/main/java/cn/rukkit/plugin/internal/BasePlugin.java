@@ -19,17 +19,20 @@ import cn.rukkit.event.EventListener;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
 import cn.rukkit.plugin.PluginConfig;
+import cn.rukkit.util.LangUtil;
+
+import java.text.MessageFormat;
 
 public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
-        Rukkit.getConnectionManager().broadcastServerMessage(event.getPlayer().name + " joined the server!");
+        Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
     }
 
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
-        Rukkit.getConnectionManager().broadcastServerMessage(event.getPlayer().name + " left the server!");
+        Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
     }
 
     @Override

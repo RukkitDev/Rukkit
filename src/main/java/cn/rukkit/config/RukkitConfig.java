@@ -9,6 +9,8 @@
 
 package cn.rukkit.config;
 
+import java.util.Locale;
+
 public class RukkitConfig extends BaseConfig
 {
 	public String serverUser = "RUKKIT";
@@ -30,6 +32,7 @@ public class RukkitConfig extends BaseConfig
 	public String UUID = "00000000-0000-0000-0000-000000000000";
 	public String nonStopDefaultMap = "";
 	public int nonStopDefaultMapType = 0;
+	public String lang = Locale.getDefault().toString();
 	//private String configName = "rukkit.yml";
 	//max threads in manager.Default = 8;
 	public int threadPoolCount = 8;

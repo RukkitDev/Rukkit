@@ -25,6 +25,7 @@ import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(id);
 				try {
 					player.isNull();
-					player.getConnection().kick(LangUtil.getString("chat.kick"));
+					player.getConnection().kick(LangUtil.getString("chat.kicked"));
 				} catch (ArrayIndexOutOfBoundsException e) {
 					con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
 				}
@@ -126,7 +127,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 								Rukkit.getRoundConfig().mapType = 0;
 								try {
 									Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-									con.handler.ctx.writeAndFlush(new Packet().serverInfo(true));
+									con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
 								} catch (IOException ignored) {}
 								break;
 							}
@@ -143,8 +144,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
-	public class CustomMapsCallback implements ChatCommandListener {
-		private int type;
+	public static class CustomMapsCallback implements ChatCommandListener {
+		private final int type;
 		public CustomMapsCallback(int type) {
 			this.type = type;
 		}
@@ -204,7 +205,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						NetworkPlayer targetPlayer = playerGroup.get(Integer.parseInt(cmd[1]) - 1);
 						try {
 							if (fromPlayer.movePlayer(Integer.parseInt(cmd[1]) - 1)) {
-								con.sendServerMessage(LangUtil.getString("chat.moveComplte"));
+								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
 							} else {
 								int fromslot, toslot;
 								fromslot = fromPlayer.playerIndex;
@@ -226,9 +227,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					} else {
 						try {
 							if (con.player.movePlayer(Integer.parseInt(cmd[0]) - 1)) {
-								con.sendServerMessage("Move complete!");
+								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
 							} else {
-								con.sendServerMessage("Fail: already have a player in that slot");
+								con.sendServerMessage(LangUtil.getString("chat.playerExist"));
 							}
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -323,7 +324,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				// Do nothing.
 			} else {
 				if (Rukkit.getConnectionManager().size() < Rukkit.getConfig().minStartPlayer) {
-					Rukkit.getConnectionManager().broadcastServerMessage("min start player is" + Rukkit.getConfig().minStartPlayer);
+					Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("chat.minStartPlayer"), Rukkit.getConfig().minStartPlayer));
 				} else {
 					Rukkit.getGameServer().startGame();
 				}
@@ -574,34 +575,34 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		// TODO: Implement this method
 		getLogger().info("CommandPlugin::onLoad()");
 		CommandManager mgr = Rukkit.getCommandManager();
-		mgr.registerCommand(new ChatCommand("help", "Show help.", 1, new HelpCallback(), this));
-		mgr.registerCommand(new ChatCommand("state", "Show Server State.", 0, new StateCallback(), this));
-		mgr.registerCommand(new ChatCommand("version", "Show Rukkit Version.", 0, this, this));
+		mgr.registerCommand(new ChatCommand("help", LangUtil.getString("chat.help"), 1, new HelpCallback(), this));
+		mgr.registerCommand(new ChatCommand("state", LangUtil.getString("chat.state"), 0, new StateCallback(), this));
+		mgr.registerCommand(new ChatCommand("version", LangUtil.getString("chat.version"), 0, this, this));
 		//mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("t", "Send a team message.", 1, new TeamChatCallback(), this));
-		mgr.registerCommand(new ChatCommand("maps", "Get official maps list.", 1, new MapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("map", "Change map to map with id in map list.", 1, new MapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("cmaps", "Get custom maps list.", 1, new CustomMapsCallback(0), this));
-		mgr.registerCommand(new ChatCommand("cmap", "Change custom map to map with id in map list.", 1, new CustomMapsCallback(1), this));
-		mgr.registerCommand(new ChatCommand("kick", "Kick a player.", 1, new KickCallBack(), this));
-		mgr.registerCommand(new ChatCommand("team", "Change a player's ally.", 2, new TeamCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_team", "Change yourself ally.", 1, new TeamCallback(1), this));
-		mgr.registerCommand(new ChatCommand("move", "Move a player.", 2, new MoveCallback(0), this));
-		mgr.registerCommand(new ChatCommand("self_move", "Move yourself.", 2, new MoveCallback(1), this));
-		mgr.registerCommand(new ChatCommand("qc", "Execute a command silently.", 1, new QcCallback(), this));
-		mgr.registerCommand(new ChatCommand("fog", "Set fog type in game.", 1, new SetFogCallback(), this));
-		mgr.registerCommand(new ChatCommand("nukes", "Set nukes enabled in game.", 1, new NukeCallback(), this));
-		mgr.registerCommand(new ChatCommand("startingunits", "Set starting units in game.", 1, new StartingUnitCallback(), this));
-		mgr.registerCommand(new ChatCommand("income", "Set income in game(1x-100x).", 1, new IncomeCallback(), this));
-		mgr.registerCommand(new ChatCommand("share", "Set your share state in game.(on/off)", 1, new ShareCallback(), this));
-		mgr.registerCommand(new ChatCommand("credits", "Set default credits in game.", 1, new CreditsCallback(), this));
-		mgr.registerCommand(new ChatCommand("start", "Start a game.", 1, new StartCallback(), this));
-        mgr.registerCommand(new ChatCommand("sync", "Sync a game(admin only.)", 0, new SyncCallback(), this));
-		mgr.registerCommand(new ChatCommand("i", "Submit a info message to server.", 1, new InfoCallback(), this));
-		mgr.registerCommand(new ChatCommand("chksum", "Send a Chksum to client.", 0, new ChksumCallback(), this));
-		mgr.registerCommand(new ChatCommand("maping", "Ping map.", 2, new PingCallBack(), this));
-		mgr.registerCommand(new ChatCommand("list", "Show player list.", 0, new PlayerListCallback(), this));
-		mgr.registerCommand(new ChatCommand("surrender", "surrender.", 0, new SurrenderCallback(), this));
+		mgr.registerCommand(new ChatCommand("t", LangUtil.getString("chat.t"), 1, new TeamChatCallback(), this));
+		mgr.registerCommand(new ChatCommand("maps", LangUtil.getString("chat.maps"), 1, new MapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("map", LangUtil.getString("chat.map"), 1, new MapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("cmaps", LangUtil.getString("chat.cmaps"), 1, new CustomMapsCallback(0), this));
+		mgr.registerCommand(new ChatCommand("cmap", LangUtil.getString("chat.cmap"), 1, new CustomMapsCallback(1), this));
+		mgr.registerCommand(new ChatCommand("kick", LangUtil.getString("chat.kick"), 1, new KickCallBack(), this));
+		mgr.registerCommand(new ChatCommand("team", LangUtil.getString("chat.team"), 2, new TeamCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_team", LangUtil.getString("chat.self_team"), 1, new TeamCallback(1), this));
+		mgr.registerCommand(new ChatCommand("move", LangUtil.getString("chat.move"), 2, new MoveCallback(0), this));
+		mgr.registerCommand(new ChatCommand("self_move", LangUtil.getString("chat.self_move"), 2, new MoveCallback(1), this));
+		mgr.registerCommand(new ChatCommand("qc", LangUtil.getString("chat.qc"), 1, new QcCallback(), this));
+		mgr.registerCommand(new ChatCommand("fog", LangUtil.getString("chat.fog"), 1, new SetFogCallback(), this));
+		mgr.registerCommand(new ChatCommand("nukes", LangUtil.getString("chat.nukes"), 1, new NukeCallback(), this));
+		mgr.registerCommand(new ChatCommand("startingunits", LangUtil.getString("chat.startingunits"), 1, new StartingUnitCallback(), this));
+		mgr.registerCommand(new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
+		mgr.registerCommand(new ChatCommand("share", LangUtil.getString("chat.share"), 1, new ShareCallback(), this));
+		mgr.registerCommand(new ChatCommand("credits", LangUtil.getString("chat.credits"), 1, new CreditsCallback(), this));
+		mgr.registerCommand(new ChatCommand("start", LangUtil.getString("chat.start"), 1, new StartCallback(), this));
+        mgr.registerCommand(new ChatCommand("sync", LangUtil.getString("chat.sync"), 0, new SyncCallback(), this));
+		mgr.registerCommand(new ChatCommand("i", LangUtil.getString("chat.i"), 1, new InfoCallback(), this));
+		mgr.registerCommand(new ChatCommand("chksum", LangUtil.getString("chat.chksum"), 0, new ChksumCallback(), this));
+		mgr.registerCommand(new ChatCommand("maping", LangUtil.getString("chat.maping"), 2, new PingCallBack(), this));
+		mgr.registerCommand(new ChatCommand("list", LangUtil.getString("chat.list"), 0, new PlayerListCallback(), this));
+		mgr.registerCommand(new ChatCommand("surrender", LangUtil.getString("chat.surrender"), 0, new SurrenderCallback(), this));
 	}
 
 	@Override

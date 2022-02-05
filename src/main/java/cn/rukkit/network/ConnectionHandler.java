@@ -16,6 +16,7 @@ import cn.rukkit.game.*;
 import cn.rukkit.game.unit.*;
 import cn.rukkit.network.command.*;
 import cn.rukkit.network.packet.*;
+import cn.rukkit.util.LangUtil;
 import io.netty.channel.*;
 import java.util.concurrent.*;
 import org.slf4j.*;
@@ -74,7 +75,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 			case Packet.PACKET_PREREGISTER_CONNECTION:
 				log.info(String.format("New connection established:%s", ctx.channel().remoteAddress()));
 				ctx.write(p.preRegister());
-				ctx.writeAndFlush(p.chat("SERVER", "You are logging to Rukkit.", -1));
+				ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
 				break;
 			case Packet.PACKET_PLAYER_INFO:
 				ctx.writeAndFlush(p.serverInfo());
@@ -92,7 +93,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 									   packageName, gameVersionCode, playerName, uuid, verifyResult));
 				//Check avaliable
 				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
-					ctx.writeAndFlush(p.kick("Game is full!"));
+					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
 					return;
 				}
 				//Init connection.
@@ -103,7 +104,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				conn.player = player;
 				//Check admin.
 				if (Rukkit.getConnectionManager().size() <= 0 && !Rukkit.getConfig().nonStopMode) {
-					conn.sendServerMessage("You are the ADMIN of this server!");
+					conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(true));
 				} else {
@@ -122,26 +123,26 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 								stopTimeout();
 								conn.startPingTask();
 								conn.updateTeamList(false);
-								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								// Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Send save
 								conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastNoStopSave.arr, false));
 								conn.startTeamTask();
 								Rukkit.getGameServer().notifyGameTask();
+								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								return;
 							} else {
 								Rukkit.getConnectionManager().add(conn);
 								stopTimeout();
 								conn.startPingTask();
 								conn.updateTeamList(false);
-								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								// New Round!Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Have a sync.
 								Rukkit.getGameServer().syncGame();
 								conn.startTeamTask();
 								Rukkit.getGameServer().notifyGameTask();
+								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								return;
 							}
 						} else {
@@ -149,13 +150,13 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							stopTimeout();
 							conn.startPingTask();
 							conn.updateTeamList(false);
-							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 							// New Round!Start game.
 							conn.handler.ctx.writeAndFlush(Packet.startGame());
 							// Have a sync.
 							Rukkit.getGameServer().syncGame();
 							conn.startTeamTask();
 							Rukkit.getGameServer().notifyGameTask();
+							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 							return;
 						}
 					} else if (Rukkit.getConfig().syncEnabled) {
@@ -174,14 +175,16 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							//conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastSave.arr, false));
 							Rukkit.getGameServer().syncGame();
 							conn.startTeamTask();
+							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+							PlayerReconnectEvent.getListenerList().callListeners(new PlayerReconnectEvent(conn.player));
 						} else {
 							// kick
-							ctx.writeAndFlush(p.kick("Game is started!"));
+							ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameStarted")));
 						}
 						return;
 					} else {
 						// kick
-						ctx.writeAndFlush(p.kick("Game is started!"));
+						ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameStarted")));
 						return;
 					}
 				}

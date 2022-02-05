@@ -91,3 +91,8 @@ lint/tmp/
 maps/
 mods/
 plugins/
+
+rukkit.yml
+round.yml
+server.properties
+.idea

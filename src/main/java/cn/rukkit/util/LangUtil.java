@@ -1,4 +1,5 @@
 package cn.rukkit.util;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -15,6 +16,6 @@ public class LangUtil {
 			ResourceBundle bd = ResourceBundle.getBundle("i18n/messages", lc);
 			bundle = bd;
 		}
-		return bundle.getString(text);
+		return new String(bundle.getString(text).getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
 	}
 }
