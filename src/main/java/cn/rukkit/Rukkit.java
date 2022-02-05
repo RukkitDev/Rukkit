@@ -191,7 +191,7 @@ public class Rukkit {
 		log.info("Loading default round config...");
 		loadRoundConfig();
 		log.info("setting up language...");
-		LangUtil.lc = new Locale(getConfig().lang);
+		LangUtil.lc = new Locale(getConfig().lang.split("_")[0], getConfig().lang.split("_")[1]);
 		log.info("Current Language: {}", LangUtil.lc);
 		log.info("init::ThreadManager");
 		threadManager = new ThreadManager(config.threadPoolCount);
