@@ -85,6 +85,15 @@ public class ConnectionManager
 		connection.handler.ctx.disconnect();
 		connections.remove(connection);
 		playerManager.remove(connection.player);
+		// Check privs.
+		if (connection.player.isAdmin && Rukkit.getConnectionManager().getPlayerManager().getPlayerCount() > 0) {
+			for (NetworkPlayer p : playerManager.getPlayerArray()) {
+				if (!p.isEmpty) {
+					p.isAdmin = true;
+					break;
+				}
+			}
+		}
 		return CHANNEL_GROUP.remove(connection.handler.ctx.channel());
 	}
 
@@ -150,7 +159,7 @@ public class ConnectionManager
 	}
 	
 	public void registerPlayer(Connection connection) {
-		
+
 	}
     
     public SaveData getAvailableSave() {
@@ -174,6 +183,15 @@ public class ConnectionManager
 	public void broadcastServerMessage(String msg) {
 		try {
 			broadcast(Packet.chat("SERVER", msg, -1));
+		} catch (IOException ignored) {}
+	}
+
+	/**
+	 * Broadcast server info.(No admin trigger.)
+	 */
+	public void broadcastServerInfo() {
+		try {
+			broadcast(Packet.serverInfo(false));
 		} catch (IOException ignored) {}
 	}
 

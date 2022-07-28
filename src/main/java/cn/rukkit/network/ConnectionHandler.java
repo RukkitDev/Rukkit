@@ -203,7 +203,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 			case Packet.PACKET_ADD_CHAT:
 				String chatmsg = in.readString();
 				if (chatmsg.startsWith(".") || chatmsg.startsWith("-") || chatmsg.startsWith("_")) {
-					Rukkit.getCommandManager().execute(conn , chatmsg.substring(1));
+					Rukkit.getCommandManager().executeChatCommand(conn , chatmsg.substring(1));
 				} else {
 					if (PlayerChatEvent.getListenerList().callListeners(new PlayerChatEvent(conn.player, chatmsg))) {
 						Rukkit.getConnectionManager().broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));

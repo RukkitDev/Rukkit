@@ -33,6 +33,7 @@ public class GameServer {
 	private int port;
     private boolean isPaused;
 	private int tickTime = 0;
+	private ChannelFuture serverFuture;
 	public SaveData lastNoStopSave;
 
 	// For save server performance.
@@ -41,6 +42,8 @@ public class GameServer {
 	//private boolean isGaming = false;
 	private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
 	private ScheduledFuture gameTaskFuture;
+	private NioEventLoopGroup bossGroup, workerGroup;
+
 	public class GameTask implements Runnable {
 		@Override
 		public void run() {
@@ -276,6 +279,11 @@ public class GameServer {
 		gameTaskFuture.cancel(true);
 		//Rukkit.getThreadManager().shutdown();
 	}
+
+	public void stopServer() {
+		bossGroup.shutdownGracefully();
+		workerGroup.shutdownGracefully();
+	}
     
     /**
     * Sync a Game.
@@ -306,9 +314,9 @@ public class GameServer {
 	 */
 	public void action(final long time) throws InterruptedException {
 		// 用来接收进来的连接
-		EventLoopGroup bossGroup = new NioEventLoopGroup(); 
+		bossGroup = new NioEventLoopGroup();
 		// 用来处理已经被接收的连接，一旦bossGroup接收到连接，就会把连接信息注册到workerGroup上
-		EventLoopGroup workerGroup = new NioEventLoopGroup();
+		workerGroup = new NioEventLoopGroup();
 		try {
 			ServerBootstrap sbs = new ServerBootstrap();
 			sbs.group(bossGroup, workerGroup)
@@ -331,6 +339,7 @@ public class GameServer {
 					@Override
 					public void run() {
 						log.info("Done! (" + (System.currentTimeMillis() - time) + "ms)");
+						Rukkit.setStarted(true);
 						if (Rukkit.getConfig().nonStopMode) {
 							log.info("Server is running on non-stop mode.Game auto starting...");
 							startNoStopGame();
@@ -339,8 +348,8 @@ public class GameServer {
 						// TODO: Implement this method
 					}
 				}).start();
-			ChannelFuture cf = sbs.bind(port).sync();
-			cf.channel().closeFuture().sync();
+			serverFuture = sbs.bind(port).sync();
+			serverFuture.channel().closeFuture().sync();
 		} catch (Exception e) {
 			log.error("A error occoured: ", e);
 			Rukkit.shutdown(e.getMessage());

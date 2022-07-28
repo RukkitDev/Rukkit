@@ -246,7 +246,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		public boolean onSend(Connection con, String[] args) {
 			if (args.length <= 0) return false;
 			getLogger().debug(args[0]);
-			Rukkit.getCommandManager().execute(con, args[0].substring(1));
+			Rukkit.getCommandManager().executeChatCommand(con, args[0].substring(1));
 			return false;
 		}
 	}
@@ -539,7 +539,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		public boolean onSend(Connection con, String[] args) {
 			StringBuffer buffer = new StringBuffer("- Players -\n");
 			for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
-				buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - con.pingTime)));
+				buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - conn.pingTime)));
 			}
 			con.sendServerMessage(buffer.toString());
 			return false;

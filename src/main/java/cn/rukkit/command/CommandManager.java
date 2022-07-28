@@ -9,7 +9,6 @@
 
 package cn.rukkit.command;
 
-import cn.rukkit.game.mod.*;
 import java.util.*;
 import org.slf4j.*;
 import cn.rukkit.network.*;
@@ -21,6 +20,7 @@ public class CommandManager
 {
 	private Logger log = LoggerFactory.getLogger(CommandManager.class);
 	private HashMap<String, ChatCommand> loadedCommand = new HashMap<String, ChatCommand>();
+	private HashMap<String, ServerCommand> loadedServerCommand = new HashMap<String, ServerCommand>();
 	
 	public void registerCommand(ChatCommand cmd) {
 		log.debug(String.format("Registering Command '%s' from plugin '%s'...",cmd.cmd,cmd.getFromPlugin().config.name));
@@ -30,8 +30,17 @@ public class CommandManager
 			loadedCommand.put(cmd.cmd, cmd);
 		}
 	}
+
+	public void registerServerCommand(ServerCommand cmd) {
+		log.debug(String.format("Registering ServerCommand '%s' from plugin '%s'...",cmd.cmd,cmd.getFromPlugin().config.name));
+		if (fetchServerCommand(cmd.cmd) != null) {
+			log.warn(String.format("ServerCommand '%s' had already registered.",cmd.cmd));
+		} else {
+			loadedServerCommand.put(cmd.cmd, cmd);
+		}
+	}
 	
-	public void execute(Connection connection, String cmd) {
+	public void executeChatCommand(Connection connection, String cmd) {
 		String[] cmds = cmd.split("\\s+", 2);
 		ChatCommand cmdObj = fetchCommand(cmds[0]);
 		if (cmdObj == null) {
@@ -55,12 +64,37 @@ public class CommandManager
 			} catch (IOException e) {}
 		}
 	}
+
+	public void executeServerCommand(String cmd) {
+		String[] cmds = cmd.split("\\s+", 2);
+		ServerCommand cmdObj = fetchServerCommand(cmds[0]);
+		if (cmdObj == null) {
+			System.out.println("Command not exist.Try 'help' to list all commands.");
+			return;
+		}
+		log.debug("cmd is:" + cmds[0]);
+		if (cmds.length > 1 && cmdObj.args > 0) {
+			String[] args = cmds[1].split(" ", cmdObj.args);
+			cmdObj.getListener().onSend(args);
+		} else {
+			cmdObj.getListener().onSend(new String[0]);
+		}
+	}
+
 	
 	public ChatCommand fetchCommand(String cmd){
 		return loadedCommand.getOrDefault(cmd, null);
 	}
+
+	public ServerCommand fetchServerCommand(String cmd) {
+		return loadedServerCommand.getOrDefault(cmd, null);
+	}
 	
 	public HashMap<String, ChatCommand> getLoadedCommand() {
 		return loadedCommand;
+	}
+
+	public HashMap<String, ServerCommand> getLoadedServerCommand() {
+		return loadedServerCommand;
 	}
 }

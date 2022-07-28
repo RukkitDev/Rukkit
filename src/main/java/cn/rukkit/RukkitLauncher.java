@@ -9,14 +9,48 @@
 
 package cn.rukkit;
 import java.io.*;
+import java.util.Scanner;
+
 import org.slf4j.*;
 import io.netty.util.internal.logging.*;
+import org.jline.terminal.*;
+import org.jline.reader.*;
 
 public class RukkitLauncher
 {
+	static Terminal terminal;
+	static LineReader lineReader;
+	public static final String PATTERN = "console >";
+	static Thread terminalThread;
+	static boolean isTerminalRunning = true;
+
 	public static void main(String args[]){
 		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
 		try {
+			terminal = TerminalBuilder.builder().system(true).build();
+			lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+			terminalThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					while (isTerminalRunning) {
+						if (Rukkit.getCommandManager() == null) continue;
+						try {
+							String str = lineReader.readLine();
+							Rukkit.getCommandManager().executeServerCommand(str);
+						}
+						catch (EndOfFileException e) {
+							System.out.println("<Terminal stopped.>");
+							break;
+						}
+						catch (Exception e) {
+							System.out.println("Oops.A exception occurred.");
+							e.printStackTrace();
+						}
+					}
+					System.out.println("<Terminal stopped.>");
+				}
+			});
+			terminalThread.start();
 			Rukkit.startServer();
 		} catch (IOException e) {
 			//e.printStackTrace();

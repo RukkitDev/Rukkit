@@ -152,7 +152,7 @@ public class PlayerManager
 	
 	/**
 	* returns a player array INCLUDING null.
-	* @return NetworkPlayer[] array
+	* @return @nullable NetworkPlayer[] array
 	*/
 	public NetworkPlayer[] getPlayerArray(){
 		return players;

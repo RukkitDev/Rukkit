@@ -13,6 +13,7 @@ import cn.rukkit.config.*;
 import cn.rukkit.network.*;
 import java.io.*;
 
+import cn.rukkit.network.packet.Packet;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
@@ -26,9 +27,10 @@ import java.util.Locale;
 import java.util.UUID;
 
 public class Rukkit {
+	private static boolean isStarted = false;
 	public static final String RUKKIT_VERSION = "0.8.2-dev";
 	public static final int SUPPORT_GAME_VERSION = 151;
-	private static Logger log = LoggerFactory.getLogger(Rukkit.class);
+	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
 	private static RukkitConfig config;
 
@@ -50,27 +52,61 @@ public class Rukkit {
 
 	public static void shutdown(String message) {
 		// TODO: Implement this method
+		log.info("Server will shutdown...");
+		log.info("Disconnect current players...");
+		if (getGameServer().isGaming()) {
+			getConnectionManager().broadcastServerMessage("Server closed!");
+			getConnectionManager().clearAllSaveData();
+			getConnectionManager().disconnect();
+		} else {
+			try {
+				getConnectionManager().broadcast(Packet.kick("Server closed."));
+				getConnectionManager().disconnect();
+			} catch (IOException e) {}
+		}
+		log.info("Stop ThreadManager...");
+		getThreadManager().shutdown();
+		log.info("Shutdown server...");
+		getGameServer().stopServer();
+		log.info("Stop terminal...");
+		RukkitLauncher.isTerminalRunning = false;
 	}
 
 	/**
 	 *  load Plugin.
 	 */
-	public static final void loadPlugin() {
+	public static void loadPlugin() {
 		
 	}
 
 	/**
 	 * Returns current gameInstance.
 	 */
-	public static final void getGameInstance() {
+	public static void getGameInstance() {
 
+	}
+
+	/**
+	 * Set game server start state.
+	 * Internal use, DO NOT Change it.
+	 */
+	public static void setStarted(Boolean isStart) {
+		isStarted = isStart;
+	}
+
+	/**
+	 * Get game server start state.
+	 * Useful for plugin preparations.
+	 */
+	public static boolean isStarted() {
+		return isStarted;
 	}
 
 	/**
 	 * Get a rukkit config.
 	 * {@link RukkitConfig}
 	 */
-	public static final RukkitConfig getConfig() {
+	public static RukkitConfig getConfig() {
 		return config;
 	}
 
@@ -78,35 +114,35 @@ public class Rukkit {
 	 * Get a ingame config.
 	 * Including map, credits, etc. {@link RoundConfig}
 	 */
-	public static final RoundConfig getRoundConfig() {
+	public static RoundConfig getRoundConfig() {
 		return round;
 	}
 
-	public static final ThreadManager getThreadManager() {
+	public static ThreadManager getThreadManager() {
 		return threadManager;
 	}
-	
-	public static final CommandManager getCommandManager() {
+
+	public static CommandManager getCommandManager() {
 		return commandManager;
 	}
 
-	public static final ConnectionManager getConnectionManager() {
+	public static ConnectionManager getConnectionManager() {
 		return connectionManager;
 	}
-    
-    public static final SaveManager getSaveManager() {
+
+    public static SaveManager getSaveManager() {
         return saveManager;
     }
 
-	public static final GameServer getGameServer() {
+	public static GameServer getGameServer() {
 		return server;
 	}
-	
-	public static final PluginManager getPluginManager() {
+
+	public static PluginManager getPluginManager() {
 		return pluginManager;
 	}
 
-	public static final void loadRukkitConfig() throws IOException {
+	public static void loadRukkitConfig() throws IOException {
 		if (config != null) return;
 		Yaml yaml = new Yaml();
 		File confFile = new File(getEnvPath() + "/rukkit.yml");
@@ -186,6 +222,7 @@ public class Rukkit {
 	 */
 	public static final void startServer() throws IOException, InterruptedException {
 		long time = System.currentTimeMillis();
+
 		log.info("Loading server config...");
 		loadRukkitConfig();
 		log.info("Loading default round config...");
@@ -214,6 +251,7 @@ public class Rukkit {
 			pluginManager.loadPlugin(new CommandPlugin());
 		}
 		pluginManager.loadPlugin(new TestPlugin());
+		pluginManager.loadPlugin(new ServerCommandPlugin());
 		pluginManager.loadPluginInDir();
         //init SaveManager.
         saveManager = new SaveManager();
