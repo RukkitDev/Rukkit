@@ -11,4 +11,4 @@
 # Copyright 2020-2022 RukkitDev Team and contributors.
 #
 
-java -Djava.net.preferIPv4Stack=true -Xmx1000M -Dfile.encoding=UTF-8 -Djava.library.path=. -cp "Rukkit-0.8.0.jar;libs/*" cn.rukkit.RukkitLauncher
+java -Djava.net.preferIPv4Stack=true -Xmx1000M -Dfile.encoding=UTF-8 -Djava.library.path=. -cp Rukkit-0.8.2-dev.jar:libs/* cn.rukkit.RukkitLauncher
