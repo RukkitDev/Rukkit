@@ -9,9 +9,20 @@
 
 package cn.rukkit.service;
 
-public class ConsoleService {
+public class TerminalService extends Service{
 
-    public static void start() {
+    @Override
+    public void onEnable() {
+
+    }
+
+    @Override
+    public void onDisable() {
+
+    }
+
+    @Override
+    public void onRegister() {
 
     }
 }

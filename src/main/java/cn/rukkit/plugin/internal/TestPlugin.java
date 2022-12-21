@@ -20,6 +20,7 @@ import cn.rukkit.event.action.MoveEvent;
 import cn.rukkit.event.action.PingEvent;
 import cn.rukkit.event.action.TaskEvent;
 import cn.rukkit.event.player.PlayerChatEvent;
+import cn.rukkit.event.server.ServerQuestionRespondEvent;
 import cn.rukkit.network.Connection;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
@@ -56,6 +57,25 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 				con.sendServerMessage("Save is not availavle!");
 			}
 			return false;
+		}
+	}
+
+	class DZCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(Connection con, String[] args) {
+			try {
+				con.handler.ctx.writeAndFlush(Packet.packetQuestion(1376, "你是哪个省的"));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+			return false;
+		}
+	}
+
+	@EventHandler
+	public void onQuestionResponse(ServerQuestionRespondEvent event) {
+		if (event.getQid() == 1376) {
+			event.getPlayer().getConnection().sendChat("我是妈妈生的");
 		}
 	}
 
@@ -110,6 +130,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 		Arrays.fill(team, "nop");
 		mgr.registerCommand(new ChatCommand("summon", "Summon a unit.", 1, new SummonCallback(), this));
 		mgr.registerCommand(new ChatCommand("dumpsave", "Dump a save to server", 0, new DumpSaveCallback(), this));
+		mgr.registerCommand(new ChatCommand("mother", "大脑升级", 0, new DZCallback(), this));
 	}
 
 	@Override

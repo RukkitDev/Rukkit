@@ -12,6 +12,7 @@ import cn.rukkit.*;
 import cn.rukkit.event.*;
 import cn.rukkit.event.action.*;
 import cn.rukkit.event.player.*;
+import cn.rukkit.event.server.ServerQuestionRespondEvent;
 import cn.rukkit.game.*;
 import cn.rukkit.game.unit.*;
 import cn.rukkit.network.command.*;
@@ -78,6 +79,8 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
 				break;
 			case Packet.PACKET_PLAYER_INFO:
+				// Rececives a player info.
+				// 接收玩家信息
 				ctx.writeAndFlush(p.serverInfo());
 				String packageName = in.readString();
 				log.debug("Ints:" + in.readInt());
@@ -86,6 +89,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				String playerName = in.readString();
 				in.readByte();
 				in.readString();
+				// 玩家固有的uuid，前提是verifyCode不改变
 				String uuid = in.readString();
 				in.readInt();
 				String verifyResult = in.readString();
@@ -191,6 +195,8 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 
 				//Adding into ConnectionManager.
 				Rukkit.getConnectionManager().add(conn);
+				//load player Data.
+				player.loadPlayerData();
 				conn.startPingTask();
 				conn.startTeamTask();
 				conn.updateTeamList(false);
@@ -551,6 +557,15 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				int serverTick = in.readInt();
 				int clientTick = in.readInt();
 				conn.lastSyncTick = clientTick;
+			case Packet.PACKET_DISCONNECT:
+				// Disconnects gracefully.
+				ctx.disconnect();
+				break;
+			case Packet.PACKET_QUESTION_RESPONCE:
+				in.readByte(); //Always 1;
+				int qid = in.readInt();
+				String response = in.readString();
+				ServerQuestionRespondEvent.getListenerList().callListeners(new ServerQuestionRespondEvent(conn.player, qid, response));
 		}
 		ReferenceCountUtil.release(msg);
 	}

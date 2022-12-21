@@ -9,6 +9,25 @@
 
 package cn.rukkit.service;
 
+import cn.rukkit.plugin.Plugin;
+
+import java.util.HashMap;
+import java.util.List;
+
 public class ServiceManager
 {
+    public HashMap<String, Service> services;
+    public ServiceManager() {
+
+    }
+
+    public void registerService (Plugin fromPlugin, Service service) {
+        // now have a register!
+    }
+
+    public void enableService(Service service) {
+
+    }
+
+    public void enableService(String serviceName) {}
 }

@@ -70,6 +70,7 @@ public class Rukkit {
 		getGameServer().stopServer();
 		log.info("Stop terminal...");
 		RukkitLauncher.isTerminalRunning = false;
+		RukkitLauncher.terminalThread.interrupt();
 	}
 
 	/**

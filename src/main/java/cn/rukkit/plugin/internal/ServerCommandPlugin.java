@@ -11,6 +11,9 @@ package cn.rukkit.plugin.internal;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.command.*;
+import cn.rukkit.event.EventHandler;
+import cn.rukkit.event.EventListener;
+import cn.rukkit.event.server.ServerQuestionRespondEvent;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
@@ -18,13 +21,22 @@ import cn.rukkit.network.Connection;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ServerCommandPlugin extends InternalRukkitPlugin{
+public class ServerCommandPlugin extends InternalRukkitPlugin implements EventListener {
+
+    @EventHandler
+    public void onResponse(ServerQuestionRespondEvent event) {
+        Logger log = getLogger();
+        if (event.getQid() == 99999) {
+            log.info("question from player {}: {}", event.getPlayer().name, event.getRespondMessage());
+        }
+    }
 
     class SurrenderCallback implements ServerCommandListener {
         @Override
@@ -234,10 +246,22 @@ public class ServerCommandPlugin extends InternalRukkitPlugin{
         }
     }
 
+    public class QuestionCallback implements ServerCommandListener {
+        @Override
+        public void onSend(String[] args) {
+            try {
+                Rukkit.getConnectionManager().getPlayerManager().get(Integer.parseInt(args[0])).getConnection().handler.ctx.writeAndFlush(Packet.packetQuestion(99999, args[1]));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     @Override
     public void onLoad() {
         getLogger().info("ServerCommandPlugin::onLoad...");
         CommandManager mgr = Rukkit.getCommandManager();
+        Rukkit.getPluginManager().registerEventListener(this, this);
         mgr.registerServerCommand(new ServerCommand("help", LangUtil.getString("chat.help"), 1, new HelpCallback(), this));
         mgr.registerServerCommand(new ServerCommand("kick", LangUtil.getString("chat.kick"), 1, new KickCallBack(), this));
         mgr.registerServerCommand(new ServerCommand("surrender", LangUtil.getString("chat.surrender"), 1, new SurrenderCallback(),this));
@@ -250,6 +274,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin{
         mgr.registerServerCommand(new ServerCommand("map", LangUtil.getString("chat.map"), 1, new MapsCallback(1), this));
         mgr.registerServerCommand(new ServerCommand("cmaps", LangUtil.getString("chat.cmaps"), 1, new CustomMapsCallback(0), this));
         mgr.registerServerCommand(new ServerCommand("cmap", LangUtil.getString("chat.cmap"), 1, new CustomMapsCallback(1), this));
+        mgr.registerServerCommand(new ServerCommand("question", "Question a player.", 2, new QuestionCallback(), this));
 
     }
 

@@ -15,9 +15,11 @@ public class ChatCommand
 	public String cmd;
 	public String helpMessage;
 	public int args = 1;
+	public boolean adminRequired = false;
 	private boolean isEnabled = false;
 	private ChatCommandListener chatListener;
 	private RukkitPlugin fromPlugin;
+
 
 	public ChatCommand(String msg, String helpMessage,int args, ChatCommandListener chatListener, RukkitPlugin fromPlugin) {
 		this.cmd = msg;
@@ -25,6 +27,15 @@ public class ChatCommand
 		this.helpMessage = helpMessage;
 		this.chatListener = chatListener;
 		this.fromPlugin = fromPlugin;
+	}
+
+	public ChatCommand(String msg, String helpMessage,int args, ChatCommandListener chatListener, RukkitPlugin fromPlugin, boolean adminRequired) {
+		this.cmd = msg;
+		this.args = args;
+		this.helpMessage = helpMessage;
+		this.chatListener = chatListener;
+		this.fromPlugin = fromPlugin;
+		this.adminRequired = adminRequired;
 	}
 
 	public RukkitPlugin getFromPlugin() {

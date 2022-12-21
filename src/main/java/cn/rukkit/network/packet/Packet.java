@@ -508,4 +508,12 @@ public class Packet {
 		out.endBlock();
 		return out.createPacket(PACKET_TICK);
 	}
+
+	public static Packet packetQuestion(int qid, String question) throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeByte(1);
+		out.writeInt(qid);
+		out.writeString(question);
+		return out.createPacket(PACKET_QUESTION);
+	}
 }

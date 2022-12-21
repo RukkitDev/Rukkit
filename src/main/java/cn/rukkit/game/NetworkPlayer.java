@@ -10,10 +10,20 @@
 package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+
 import java.io.*;
+import java.util.Date;
+import java.util.HashMap;
 
 public class NetworkPlayer
 {
+	NetworkPlayerData data;
+
 	public String name = "Player - Empty";
 	public String uuid = "null";
 	public int verifyCode = 114514;
@@ -35,7 +45,8 @@ public class NetworkPlayer
 	public boolean isSharingControl = false;
 
 	public boolean isSurrounded = false;
-	
+	private NetworkRoom room;
+
 	public NetworkPlayer(Connection connection) {
 		this.connection = connection;
 		this.isEmpty = false;
@@ -48,6 +59,52 @@ public class NetworkPlayer
 	
 	public Connection getConnection() {
 		return this.connection;
+	}
+	
+	public NetworkRoom getRoom() {
+		return this.room;
+	}
+
+	/**
+	 * get a extraData as a object, etc..
+	 * @param key
+	 * @param defaultValue
+	 * @param tClass
+	 * @return
+	 * @param <T>
+	 */
+	public <T> T getExtraDataAs(String key, T defaultValue, Class<T> tClass) {
+		return (T) data.extraData.getOrDefault(key, defaultValue);
+	}
+
+	public Object getExtraData(String key, Object defaultValue) {
+		return data.extraData.getOrDefault(key, defaultValue);
+	}
+
+	/**
+	 * Put a data to player's ExtraData.
+	 * @param key
+	 * @param value
+	 */
+	public void putExtraData(String key, Object value) {
+		data.extraData.put(key, value);
+	}
+
+	/**
+	 * Save player data.
+	 */
+	public void savePlayerData() {
+		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class));
+		try {
+			FileWriter writer = new FileWriter(Rukkit.getEnvPath() + "/data/player/" + uuid + ".yaml");
+			writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+			writer.flush();
+			writer.close();
+		} catch (FileNotFoundException e) {
+			//This should NEVER HAPPEN!
+		} catch (IOException e) {
+
+		}
 	}
 	
 	public void writePlayer(DataOutputStream stream, boolean simpleMode) throws IOException {
@@ -150,5 +207,41 @@ public class NetworkPlayer
 
 	public boolean isNull() {
 		return false;
+	}
+
+	public void loadPlayerData() {
+		Logger log = LoggerFactory.getLogger("PlayerData");
+		log.info("Load player infomation.");
+		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class));
+		File dataFile = new File(Rukkit.getEnvPath() + "/data/player/" + uuid + ".yaml");
+		try {
+			if (dataFile.exists()) {
+				log.info("Player exists.Loading...");
+				data = yaml.load(new FileInputStream(dataFile));
+				data.lastUsedName = name;
+				data.lastConnectedTime = new Date().toString();
+				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
+				FileWriter writer = new FileWriter(dataFile);
+				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+				writer.flush();
+				writer.close();
+			} else {
+				log.info("New player.Creating file...");
+				dataFile.createNewFile();
+				data = new NetworkPlayerData();
+				data.uuid = uuid;
+				data.lastUsedName = name;
+				data.lastConnectedTime = new Date().toString();
+				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
+				FileWriter writer = new FileWriter(dataFile);
+				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+				writer.flush();
+				writer.close();
+			}
+		} catch (FileNotFoundException ignored) {
+			// Never happen!
+		} catch (IOException e) {
+
+		}
 	}
 }

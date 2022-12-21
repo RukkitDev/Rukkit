@@ -24,22 +24,25 @@ public class RukkitLauncher
 	static Thread terminalThread;
 	static boolean isTerminalRunning = true;
 
+	private static Logger log = LoggerFactory.getLogger("Launcher");
 	public static void main(String args[]){
 		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
 		try {
-			terminal = TerminalBuilder.builder().system(true).build();
+			log.info("init::JLine Terminal...");
+			terminal = TerminalBuilder.builder().system(true).jna(true).build();
 			lineReader = LineReaderBuilder.builder().terminal(terminal).build();
 			terminalThread = new Thread(new Runnable() {
 				@Override
 				public void run() {
 					while (isTerminalRunning) {
-						if (Rukkit.getCommandManager() == null) continue;
 						try {
-							String str = lineReader.readLine();
+							String str = lineReader.readLine(PATTERN);
+							if (Rukkit.getCommandManager() == null) continue;
 							Rukkit.getCommandManager().executeServerCommand(str);
 						}
 						catch (EndOfFileException e) {
-							System.out.println("<Terminal stopped.>");
+							log.info("Stopping server...");
+							Rukkit.shutdown("Server stopped by console");
 							break;
 						}
 						catch (Exception e) {
@@ -47,7 +50,7 @@ public class RukkitLauncher
 							e.printStackTrace();
 						}
 					}
-					System.out.println("<Terminal stopped.>");
+//					System.out.println("<Terminal stopped.>");
 				}
 			});
 			terminalThread.start();

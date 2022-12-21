@@ -9,6 +9,20 @@
 
 package cn.rukkit.service;
 
-public class Service
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public abstract class Service
 {
+    /**
+     * Service internal logger.
+     */
+    public Logger log = LoggerFactory.getLogger(getClass());
+
+    /**
+    * On service start.
+     */
+    public abstract void onEnable();
+    public abstract void onDisable();
+    public abstract void onRegister();
 }

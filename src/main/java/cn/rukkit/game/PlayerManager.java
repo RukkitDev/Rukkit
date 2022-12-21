@@ -177,4 +177,8 @@ public class PlayerManager
 			players[i] = emptyPlayer;
 		}
 	}
+
+	public int getMaxPlayer() {
+		return max;
+	}
 }

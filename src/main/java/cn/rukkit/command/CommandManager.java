@@ -10,6 +10,8 @@
 package cn.rukkit.command;
 
 import java.util.*;
+
+import cn.rukkit.util.LangUtil;
 import org.slf4j.*;
 import cn.rukkit.network.*;
 import cn.rukkit.*;
@@ -44,8 +46,13 @@ public class CommandManager
 		String[] cmds = cmd.split("\\s+", 2);
 		ChatCommand cmdObj = fetchCommand(cmds[0]);
 		if (cmdObj == null) {
-			connection.sendServerMessage("Command not exist.Try '.help' to list all commands.");
+			connection.sendServerMessage(LangUtil.getString("chat.invalidCommand"));
 			return;
+		} else if (cmdObj.adminRequired){
+			if (!connection.player.isAdmin) {
+				connection.sendServerMessage(LangUtil.getString("chat.privDenied"));
+				return;
+			}
 		}
 		boolean result;
 		log.debug("cmd is:" + cmds[0]);
