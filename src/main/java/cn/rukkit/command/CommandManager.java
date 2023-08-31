@@ -42,7 +42,7 @@ public class CommandManager
 		}
 	}
 	
-	public void executeChatCommand(Connection connection, String cmd) {
+	public void executeChatCommand(RoomConnection connection, String cmd) {
 		String[] cmds = cmd.split("\\s+", 2);
 		ChatCommand cmdObj = fetchCommand(cmds[0]);
 		if (cmdObj == null) {
@@ -64,7 +64,7 @@ public class CommandManager
 		}
 		if (result == true) {
 			try {
-				Rukkit.getConnectionManager().broadcast(
+				connection.currectRoom.broadcast(
 					Packet.chat(connection.player.name,
 								"-" + cmd,
 								connection.player.playerIndex));

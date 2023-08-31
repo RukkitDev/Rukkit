@@ -73,6 +73,14 @@ public abstract class RukkitPlugin implements Plugin
 		Yaml yaml = new Yaml();
 		return yaml.loadAs((new FileInputStream(file)), cls);
 	}
+
+	public final void saveConfig(File file, Object cls) throws IOException {
+		Yaml yaml = new Yaml();
+		FileWriter writer = new FileWriter(file);
+		writer.write(yaml.dumpAs(cls, null, DumperOptions.FlowStyle.BLOCK));
+		writer.flush();
+		writer.close();
+	}
 	
 	public PluginManager getPluginManager() {
 		return Rukkit.getPluginManager();

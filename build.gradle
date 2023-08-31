@@ -7,10 +7,14 @@
  */
 
 // Apply the java plugin to add support for Java
-apply plugin: 'java'
-apply plugin: 'application'
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+}
+
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.8.2-dev"
+final def RUKKIT_VERSION = "0.9.0-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
@@ -62,12 +66,32 @@ task buildRukkit(dependsOn: jar) {
                 from file("${rootDir}/start.bat")
                 into "${rootDir}/build/outputs/";
         }
+        replaceFileText(new File("${rootDir}/build/outputs/start.sh"), "\\{version\\}", RUKKIT_VERSION)
+        replaceFileText(new File("${rootDir}/build/outputs/start.bat"), "\\{version\\}", RUKKIT_VERSION)
         println("""
           -- Well done! --
 targetRukkitVersion: ${RUKKIT_VERSION}
 Check the build/outputs to get the result.
 """)
     }
+}
+
+static def replaceFileText(file, oldText, newText) {
+    String text = file.text.replaceAll(oldText, newText)
+    file.withPrintWriter { printWriter ->
+        printWriter.print(text)
+    }
+}
+
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'cn.rukkit.RukkitLauncher'
+    }
+}
+
+shadowJar {
+
 }
 
 run {}

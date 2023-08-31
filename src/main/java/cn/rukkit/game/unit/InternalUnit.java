@@ -59,6 +59,10 @@ public class InternalUnit
 		"spreadingFire",
 		"antiAirTurretT2",
 		"turretT2",
-		"turretT3"
+		"turretT3",
+		"damagingBorder",
+		"zoneMarker",
+		"editorOrBuilder",
+		"dummyNonUnitWithTeam"
 	};
 }

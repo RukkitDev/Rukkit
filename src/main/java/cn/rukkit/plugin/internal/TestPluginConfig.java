@@ -7,10 +7,8 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.command;
-import cn.rukkit.network.*;
+package cn.rukkit.plugin.internal;
 
-public interface ChatCommandListener
-{
-	public boolean onSend(RoomConnection con, String args[]);
+public class TestPluginConfig {
+    public long cd = 5 * 1000;
 }

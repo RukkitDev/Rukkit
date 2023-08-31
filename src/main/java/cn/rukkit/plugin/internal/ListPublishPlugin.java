@@ -15,7 +15,7 @@ package cn.rukkit.plugin.internal;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommandListener;
-import cn.rukkit.network.Connection;
+import cn.rukkit.network.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -130,7 +130,7 @@ public class ListPublishPlugin extends InternalRukkitPlugin {
                 // ?
                 .append("&game_status=battleroom")
                 // 当前玩家数量
-                .append("&player_count=" + Rukkit.getConnectionManager().size())
+                .append("&player_count=" + Rukkit.getGlobalConnectionManager().size())
                 // 最大
                 .append("&max_player_count=" + (Rukkit.getConfig().maxPlayer));
         log.info(doPost("http://gs4.corrodinggames.net/masterserver/1.3/interface",sb.toString()));
@@ -174,7 +174,7 @@ public class ListPublishPlugin extends InternalRukkitPlugin {
                     // ?
                     .append("&game_status=" + stat)
                     // 当前玩家数量
-                    .append("&player_count=" + Rukkit.getConnectionManager().size())
+                    .append("&player_count=" + Rukkit.getGlobalConnectionManager().size())
                     // 最大
                     .append("&max_player_count=" + Rukkit.getConfig().maxPlayer);
             try {
@@ -187,7 +187,7 @@ public class ListPublishPlugin extends InternalRukkitPlugin {
 
     class PublishCommand implements ChatCommandListener {
         @Override
-        public boolean onSend(Connection con, String[] args) {
+        public boolean onSend(RoomConnection con, String[] args) {
             try {
                 addServer();
             } catch (Exception e) {

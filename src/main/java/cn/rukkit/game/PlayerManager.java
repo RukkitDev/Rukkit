@@ -9,6 +9,7 @@
 
 package cn.rukkit.game;
 import cn.rukkit.*;
+import cn.rukkit.network.NetworkRoom;
 
 import java.util.Arrays;
 //import sun.nio.ch.Net;
@@ -16,13 +17,15 @@ import java.util.Arrays;
 public class PlayerManager
 {
 	private int max;
+	private NetworkRoom currentRoom;
 	
 	/**
 	* Init player manager.
 	* @params maxPlayer set up maxPlayer
 	*/
-	public PlayerManager(int maxPlayer) {
+	public PlayerManager(NetworkRoom room, int maxPlayer) {
 		this.max = maxPlayer;
+		currentRoom = room;
 		reset();
 	}
 	
@@ -75,7 +78,7 @@ public class PlayerManager
 			players[index] = new NetworkPlayer();
 			return;
 		}
-		if(Rukkit.getGameServer().isGaming()){
+		if(currentRoom.isGaming()){
 			players[index].ping = -1;
 			return;
 		}

@@ -18,7 +18,10 @@ import cn.rukkit.game.unit.*;
 import cn.rukkit.network.command.*;
 import cn.rukkit.network.packet.*;
 import cn.rukkit.util.LangUtil;
+import cn.rukkit.util.MathUtil;
 import io.netty.channel.*;
+
+import java.io.DataInputStream;
 import java.util.concurrent.*;
 import org.slf4j.*;
 import io.netty.util.ReferenceCountUtil;
@@ -27,8 +30,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	Logger log = LoggerFactory.getLogger(ConnectionHandler.class);
 
 	public ChannelHandlerContext ctx;
-	private Connection conn;
+	private RoomConnection conn;
 	private ScheduledFuture timeoutFuture;
+
+	private NetworkRoom currentRoom;
 	public class TimeoutTask implements Runnable {
 		private int execTime = 0;
 		@Override
@@ -60,10 +65,16 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		// TODO: Implement this method
 		super.channelInactive(ctx);
-		PlayerLeftEvent.getListenerList().callListeners(new PlayerLeftEvent(conn.player));
-		Rukkit.getConnectionManager().discard(conn);
-		conn.stopPingTask();
-		conn.stopTeamTask();
+		// 连接正确才调用事件
+		if (conn != null) {
+			PlayerLeftEvent.getListenerList().callListeners(new PlayerLeftEvent(conn.player));
+			currentRoom.connectionManager.discard(conn);
+			Rukkit.getGlobalConnectionManager().discard(conn);
+			conn.stopPingTask();
+			conn.stopTeamTask();
+		} else {
+			log.warn("There is a unexpected connection at connection {}.", ctx.channel().remoteAddress());
+		}
 	}
 
 	@Override
@@ -81,9 +92,14 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 			case Packet.PACKET_PLAYER_INFO:
 				// Rececives a player info.
 				// 接收玩家信息
-				ctx.writeAndFlush(p.serverInfo());
+				NetworkRoom room = Rukkit.getRoomManager().getAvailableRoom();
+				if (room == null) {
+					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
+					return;
+				}
+				ctx.writeAndFlush(p.serverInfo(room.config));
 				String packageName = in.readString();
-				log.debug("Ints:" + in.readInt());
+				log.info("Ints:" + in.readInt());
 				int gameVersionCode = in.readInt();
 				in.readInt();
 				String playerName = in.readString();
@@ -91,93 +107,98 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				in.readString();
 				// 玩家固有的uuid，前提是verifyCode不改变
 				String uuid = in.readString();
-				in.readInt();
+				// 核心单位检查，用于判断玩家是否对客户端进行修改
+				// 1.14:1198432602
+				// 1.15:678359601
+				int coreUnitCheck = in.readInt();
 				String verifyResult = in.readString();
-				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s",
-									   packageName, gameVersionCode, playerName, uuid, verifyResult));
-				//Check avaliable
-				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
-					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
-					return;
-				}
-				//Init connection.
-				conn = new Connection(this);
+				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s, coreUnit=%d",
+									   packageName, gameVersionCode, playerName, uuid, verifyResult, coreUnitCheck));
+				//Check avaliable 获取可用房间，无法加入则踢出
+//				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
+//					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
+//					return;
+//				}
+
+				//Init connection. 初始化连接
+				currentRoom = room;
+				conn = new RoomConnection(this, room);
 				NetworkPlayer player = new NetworkPlayer(conn);
 				player.name = playerName;
 				player.uuid = uuid;
 				conn.player = player;
 				//Check admin.
-				if (Rukkit.getConnectionManager().size() <= 0 && !Rukkit.getConfig().nonStopMode) {
+				if (room.connectionManager.size() <= 0 && !Rukkit.getConfig().nonStopMode) {
 					conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 					conn.player.isAdmin = true;
-					ctx.writeAndFlush(Packet.serverInfo(true));
+					ctx.writeAndFlush(Packet.serverInfo(room.config, true));
 				} else {
-                    ctx.writeAndFlush(Packet.serverInfo());
+                    ctx.writeAndFlush(Packet.serverInfo(room.config));
                 }
 
 				// Check gaming && no-stop mode.
-				if (Rukkit.getGameServer().isGaming()) {
+				if (room.isGaming()) {
 					if (Rukkit.getConfig().nonStopMode) {
 						// No stop mode.
-						// If is the first player
-						if (Rukkit.getConnectionManager().size() <= 0) {
-							// Check lastSaveData
-							if (Rukkit.getGameServer().lastNoStopSave != null) {
-								Rukkit.getConnectionManager().add(conn);
+						// If is the first player 是房间内第一个玩家
+						if (room.connectionManager.size() <= 0) {
+							// Check lastSaveData 检查最后保存数据
+							if (room.lastNoStopSave != null) {
+								room.connectionManager.add(conn);
 								stopTimeout();
 								conn.startPingTask();
 								conn.updateTeamList(false);
 								// Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Send save
-								conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastNoStopSave.arr, false));
+								conn.handler.ctx.writeAndFlush(Packet.sendSave(room, room.lastNoStopSave.arr, false));
 								conn.startTeamTask();
-								Rukkit.getGameServer().notifyGameTask();
+								room.notifyGameTask();
 								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								return;
 							} else {
-								Rukkit.getConnectionManager().add(conn);
+								room.connectionManager.add(conn);
 								stopTimeout();
 								conn.startPingTask();
 								conn.updateTeamList(false);
 								// New Round!Start game.
 								conn.handler.ctx.writeAndFlush(Packet.startGame());
 								// Have a sync.
-								Rukkit.getGameServer().syncGame();
+								room.syncGame();
 								conn.startTeamTask();
-								Rukkit.getGameServer().notifyGameTask();
+								room.notifyGameTask();
 								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 								return;
 							}
 						} else {
-							Rukkit.getConnectionManager().add(conn);
+							room.connectionManager.add(conn);
 							stopTimeout();
 							conn.startPingTask();
 							conn.updateTeamList(false);
 							// New Round!Start game.
 							conn.handler.ctx.writeAndFlush(Packet.startGame());
 							// Have a sync.
-							Rukkit.getGameServer().syncGame();
+							room.syncGame();
 							conn.startTeamTask();
-							Rukkit.getGameServer().notifyGameTask();
+							room.notifyGameTask();
 							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 							return;
 						}
 					} else if (Rukkit.getConfig().syncEnabled) {
 						// If sync enabled, get target player
-						NetworkPlayer targetPlayer = Rukkit.getConnectionManager().getPlayerManager().getPlayerByUUID(uuid);
+						NetworkPlayer targetPlayer = Rukkit.getGlobalConnectionManager().getAllPlayerByUUID(uuid);
 						// If player is a reconnecting player
 						if (targetPlayer != null) {
 							stopTimeout();
-							Rukkit.getGameServer().syncGame();
+							currentRoom = targetPlayer.getRoom();
 							conn.player.playerIndex = targetPlayer.playerIndex;
-							Rukkit.getConnectionManager().set(conn, targetPlayer.playerIndex);
+							currentRoom.connectionManager.set(conn, targetPlayer.playerIndex);
 							conn.updateTeamList(false);
 							conn.startPingTask();
 							// Sync game
 							conn.handler.ctx.writeAndFlush(Packet.startGame());
 							//conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastSave.arr, false));
-							Rukkit.getGameServer().syncGame();
+							room.syncGame();
 							conn.startTeamTask();
 							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 							PlayerReconnectEvent.getListenerList().callListeners(new PlayerReconnectEvent(conn.player));
@@ -193,8 +214,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					}
 				}
 
-				//Adding into ConnectionManager.
-				Rukkit.getConnectionManager().add(conn);
+				//Adding into GlobalConnectionManager.
+				Rukkit.getGlobalConnectionManager().add(conn);
+				//Adding into RoomConnectionManager.
+				room.connectionManager.add(conn);
+				conn.sendServerMessage("Hello, you are in room #" + room.roomId);
 				//load player Data.
 				player.loadPlayerData();
 				conn.startPingTask();
@@ -212,7 +236,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					Rukkit.getCommandManager().executeChatCommand(conn , chatmsg.substring(1));
 				} else {
 					if (PlayerChatEvent.getListenerList().callListeners(new PlayerChatEvent(conn.player, chatmsg))) {
-						Rukkit.getConnectionManager().broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));
+						currentRoom.connectionManager.broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));
 					}
 				}
 				break;
@@ -231,7 +255,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				out.writeByte(index);
 				log.debug("" + index);
 
-				//是否为单位动作
+				//是否为BasicAction
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
 					//游戏指令
@@ -295,7 +319,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					if (str.readBoolean()) {
 						out.writeBoolean(true);
 						String actionId = str.readString();
-						log.debug("ACTIONID=" + actionId);
+						log.debug("SPECIALACTIONID=" + actionId);
 						out.writeString(actionId);
 					} else {
 						out.writeBoolean(false);
@@ -314,29 +338,25 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				//
 				log.debug("CommandBlock ended.");
 
+
 				boolean bool4,isCancel;
-				bool4 = str.readBoolean();
+				bool4 = str.readBoolean(); // 未知
 				isCancel = str.readBoolean();
 				log.debug("Boolean4=" + bool4);
 				//是否为取消操作
 				log.debug("Boolean5=" + isCancel);
 				out.writeBoolean(bool4);
 				out.writeBoolean(isCancel);
-				//log.debug("Boolean12="+);
-				/*
-				 if (str.readBoolean()) {
-
-				 }*/
-				//log.debug("Boolean14="+str.readBoolean());
 
 				int int1,int2;
-				int1 = str.readInt();
-				int2 = str.readInt();
-				log.debug("Int1=" + int1);
-				log.debug("Int2=" + int2);
+				int1 = str.readInt(); // SpecialAction 对应的id
+				int2 = str.readInt(); // 单位的攻击模式
+				log.debug("SpecialActionId=" + int1);
+				log.debug("AttackMode=" + int2);
 				out.writeInt(int1);
 				out.writeInt(int2);
 
+				// 疑似和核弹等目标发射有关，设置集结点
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
 					log.debug("A readBoolean is true.");
@@ -351,8 +371,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeBoolean(false);
 				}
 
+				//未知
 				boolean bool6 = str.readBoolean();
 				log.debug("Boolean6=" + bool6);
+
+				//批量执行单位
 				int t = str.readInt();
 				out.writeBoolean(bool6);
 				out.writeInt(t);
@@ -365,16 +388,18 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeLong(unitidInMatch);
 				}
 
+				// 如果为True, 则为预执行命令
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
 					log.debug("A readBoolean is true.");
-					byte2 = str.readByte();
+					byte2 = str.readByte(); //玩家
 					log.debug("Byte2=" + byte2);
 					out.writeByte(byte2);
 				} else {
 					out.writeBoolean(false);
 				}
 
+				// 与Ping有关
 				float pingX = 0;
 				float pingY = 0;
 				if (str.readBoolean()) {
@@ -387,15 +412,16 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					log.debug("PingX=" + pingY);
 					out.writeFloat(pingX);
 					out.writeFloat(pingY);
-
 				} else {
 					out.writeBoolean(false);
 				}
 
+				// 执行的单位id
 				long l6 = str.readLong();
-				log.debug("Long6=" + l6);
+				log.debug("CheckUnitID=" + l6);
 				out.writeLong(l6);
-				//Build块
+
+				//Build块（实际上叫做SpecialAction, 可能是ping，或者是build)
 				String buildUnit = str.readString();
 				log.debug("str(BuildUnit):" + buildUnit);
 				if (!buildUnit.equals("-1")) {
@@ -410,13 +436,17 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				}
 				out.writeString(buildUnit);
 
+				// 为true时，单位完成除建造和修复外的所有路径行动
 				boolean bool7 = str.readBoolean();
 				log.debug("Boolean7=" + bool7);
 				out.writeBoolean(bool7);
 
+				// 能否进行玩家控制的关键代码,填写0即可。
 				short short1 = str.readShort();
 				log.debug("Short1=" + short1);
-				out.stream.writeShort(5);
+				out.stream.writeShort(0);
+
+				// SystemAction 比较危险，可以默认舍弃
 				if (str.readBoolean()) {
 					log.debug("A readBoolean is true.");
 					out.writeBoolean(true);
@@ -435,27 +465,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeBoolean(false);
 				}
 
-				byte[] byt = new byte[str.stream.available()];
-				str.stream.read(byt);
-				out.stream.write(byt);
-				Packet packet = out.createPacket(10);
-				cmd.arr = packet.bytes;
-				if (act != null) {
-					ListenerList list = (ListenerList) act.getClass().getMethod("getListenerList").invoke(null);
-					if (list.callListeners(act)) {
-						conn.sendGameCommand(cmd);
-					} else {
-						log.debug("Event {} cancelled!", act);
-					}
-				} else {
-					conn.sendGameCommand(cmd);
-				}
-				// This code cause bugs, ignored.
-				/*StringBuffer buf = new StringBuffer("Move units count: ");
-				int n2 = str.readInt();
-				buf.append(n2 + " Unitids: ");
-				out.writeInt(n2);
-				for (int i = 0;i < n2;i++) {
+				StringBuffer buf = new StringBuffer("Move units count: ");
+				int movementUnitCount = str.readInt();
+				out.writeInt(movementUnitCount);
+				buf.append(movementUnitCount + " Unitids: ");
+				for (int i = 0;i < movementUnitCount;i++) {
 					float sx, sy, ex, ey;
 					long unitid = str.readLong();
 					sx = str.readFloat();
@@ -482,23 +496,31 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					buf.append("(" + u + ") ");
 					log.debug(u.toString());
 					out.writeEnum(u);
-					//ppp
-					if (str.readBoolean()) {
-						if (str.readBoolean()) {
+
+					// Path 有关内容
+					if (str.readBoolean()) { // 是否存在path
+						out.writeBoolean(true);
+						//正式开始读取
+						if (str.readBoolean()) { // 是否存在path
+							out.writeBoolean(true);
+							GzipEncoder outstr = out.getEncodeStream("p", true);
 							byte[] bytes = str.getDecodeBytes();
 							GzipDecoder dec = new GzipDecoder(bytes);
 							DataInputStream ins = dec.stream;
-							//跨过的图块大小
-							int n3 = ins.readInt();
-							log.debug(n3);
-							if (n3 > 0) {
+
+							//path大小
+							int pathCount = ins.readInt();
+							outstr.stream.writeInt(pathCount);
+							if (pathCount > 0) {
 								short unitx = ins.readShort();
 								short unity = ins.readShort();
+								outstr.stream.writeShort(unitx);
+								outstr.stream.writeShort(unity);
 								log.debug("Start x:" + unitx + ", Start y:" + unity);
-								for (int i2 = 1;i2 < n3;i2++) {
+								for (int i2 = 1;i2 < pathCount;i2++) {
+									// PathSize
 									int len = ins.readByte();
-									//log.debug(len);
-									//int i5 = 12;
+									outstr.stream.writeByte(len);
 									if (len < 128) {
 										int i6 = (len & 3) - 1;
 										int i7 = ((len & 12) >> 2) - 1;
@@ -506,34 +528,45 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 										if (bool) {
 											log.warn("Bad unit path.");
 										}
-										//log.debug(i6);
-										//log.debug(i7);
 										unitx = (short)(unitx + i6);
 										unity = (short)(unity + i7);
-										continue;
+									} else {
+										unitx = ins.readShort();
+										unity = ins.readShort();
+										outstr.stream.writeShort(unitx);
+										outstr.stream.writeShort(unity);
 									}
-									log.debug("{}, {}", ins.readShort(), ins.readShort());
 									//log.debug(ins.readShort());
 								}
-								log.debug("End x:" + unitx + ", End y:" + unity);
 							}
-							GzipEncoder o = out.getEncodeStream("p", false);
-							o.stream.write(bytes);
-							out.flushEncodeData(o);
+							out.flushEncodeData(outstr);
 						} else {
 							out.writeBoolean(false);
 						}
 					} else {
 						out.writeBoolean(false);
 					}
-
 				}
-				boolean bool8 = str.readBoolean();
-				out.writeBoolean(bool8);
-				log.debug("" + bool8);
-				if (n2 != 0) {
-					//sendPacket(ctx, new Packet().chat("Debug", buf.toString(), -1));
-				}*/
+				log.debug(buf.toString());
+
+				boolean bool = str.readBoolean();
+				out.writeBoolean(bool);
+
+//				byte[] byt = new byte[str.stream.available()];
+//				str.stream.read(byt);
+//				out.stream.write(byt);
+				Packet packet = out.createPacket(10);
+				cmd.arr = packet.bytes;
+				if (act != null) {
+					ListenerList list = (ListenerList) act.getClass().getMethod("getListenerList").invoke(null);
+					if (list.callListeners(act)) {
+						conn.sendGameCommand(cmd);
+					} else {
+						log.debug("Event {} cancelled!", act);
+					}
+				} else {
+					conn.sendGameCommand(cmd);
+				}
 				break;
 			case Packet.PACKET_RANDY:
 				conn.sendServerMessage(String.format("Player '%s' is randy.", conn.player.name));

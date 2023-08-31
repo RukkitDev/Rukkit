@@ -9,4 +9,5 @@ public class NetworkPlayerData {
 
     public String lastConnectedAddress;
     public HashMap<String, Object> extraData = new HashMap<String, Object>();
+    public HashMap<String, Object> tempData = new HashMap<String, Object>();
 }

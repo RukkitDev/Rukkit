@@ -10,6 +10,8 @@
 package cn.rukkit;
 import cn.rukkit.command.*;
 import cn.rukkit.config.*;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
 import java.io.*;
 
@@ -36,33 +38,30 @@ public class Rukkit {
 
 	private static CommandManager commandManager;
 
-	private static ConnectionManager connectionManager;
+	private static GlobalConnectionManager connectionManager;
 
 	private static PluginManager pluginManager;
 
 	private static ModManager modManager;
 
-	private static GameServer server;
+	private static RoomGameServer server;
 	
 	private static ThreadManager threadManager;
     
     private static SaveManager saveManager;
 
 	public final static String PLUGIN_API_VERSION = "0.6.0";
+	private static RoomManager roomManager;
+	private static SaveData defaultSave;
 
 	public static void shutdown(String message) {
 		// TODO: Implement this method
 		log.info("Server will shutdown...");
 		log.info("Disconnect current players...");
-		if (getGameServer().isGaming()) {
-			getConnectionManager().broadcastServerMessage("Server closed!");
-			getConnectionManager().clearAllSaveData();
-			getConnectionManager().disconnect();
-		} else {
-			try {
-				getConnectionManager().broadcast(Packet.kick("Server closed."));
-				getConnectionManager().disconnect();
-			} catch (IOException e) {}
+		getGlobalConnectionManager().broadcastGlobalServerMessage("Server is stopped!");
+		log.info("Saving player data...");
+		for (RoomConnection connection: getGlobalConnectionManager().getConnections()) {
+			connection.player.savePlayerData();
 		}
 		log.info("Stop ThreadManager...");
 		getThreadManager().shutdown();
@@ -127,15 +126,15 @@ public class Rukkit {
 		return commandManager;
 	}
 
-	public static ConnectionManager getConnectionManager() {
+	public static GlobalConnectionManager getGlobalConnectionManager() {
 		return connectionManager;
 	}
 
-    public static SaveManager getSaveManager() {
-        return saveManager;
-    }
+//    public static SaveManager getSaveManager() {
+//        return saveManager;
+//    }
 
-	public static GameServer getGameServer() {
+	public static RoomGameServer getGameServer() {
 		return server;
 	}
 
@@ -217,47 +216,81 @@ public class Rukkit {
 	public static final ModManager getModManager() {
 		return modManager;
 	}
+	public static RoomManager getRoomManager() {
+		return roomManager;
+	}
 
+	public static void loadDefaultSave() throws IOException {
+		InputStream in = Rukkit.class.getClassLoader().getResourceAsStream("defaultSave");
+		byte[] data = new byte[in.available()];
+		in.read(data);
+		in.close();
+		SaveData save = new SaveData();
+		save.arr = data;
+		save.time = 0;
+		defaultSave = save;
+	}
+
+	public static SaveData getDefaultSave() {
+		return defaultSave;
+	}
 	/**
 	 * Start a Rukkit server.
 	 */
 	public static final void startServer() throws IOException, InterruptedException {
 		long time = System.currentTimeMillis();
 
-		log.info("Loading server config...");
+		log.info("load::RukkitConfig...");
 		loadRukkitConfig();
-		log.info("Loading default round config...");
+		log.info("load::RoundConfig...");
 		loadRoundConfig();
-		log.info("setting up language...");
+		log.info("load::Language...");
 		LangUtil.lc = new Locale(getConfig().lang.split("_")[0], getConfig().lang.split("_")[1]);
 		log.info("Current Language: {}", LangUtil.lc);
+		//init SaveManager.
+		log.info("load::DefaultSaveData...");
+		try {
+			loadDefaultSave();
+		} catch (IOException e) {
+			log.warn("Warning: DefaultSave load failed.Game Sync will be disabled.");
+			config.syncEnabled = false;
+		}
+		log.info("init::Data dictionary...");
+		NetworkPlayer.initPlayerDataDir();
 		log.info("init::ThreadManager");
 		threadManager = new ThreadManager(config.threadPoolCount);
 		log.info("init::ModManager");
 		modManager = new ModManager();
+		/**
+		 * ATTENTION!!!这里仅限dubug进行注释，正式使用请去掉！！！
+		 */
 		modManager.loadInternalMod();
 		modManager.loadAllModsInDir();
 		log.info("init::CommandManager");
 		commandManager = new CommandManager();
-		log.info("init::GameServer");
-		server = new GameServer(config.serverPort);
+		log.info("init::RoomGameServer");
+		server = new RoomGameServer();
 		log.info("init::ConnectionManager");
-		connectionManager = new ConnectionManager(server);
+		connectionManager = new GlobalConnectionManager(server);
+		log.info("init::RoomManager");
+		roomManager = new RoomManager(round, config.maxRoom);
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new BasePlugin());
 		if (config.nonStopMode) {
 			pluginManager.loadPlugin(new NoStopCommandPlugin());
+//			log.info("This future is uncompleted!Server will shutdown!");
+//			shutdown("Uncompleted feature");
 		} else {
 			pluginManager.loadPlugin(new CommandPlugin());
 		}
-		pluginManager.loadPlugin(new TestPlugin());
+		pluginManager.loadPlugin(new NewTestPlugin());
 		pluginManager.loadPlugin(new ServerCommandPlugin());
 		pluginManager.loadPluginInDir();
-        //init SaveManager.
-        saveManager = new SaveManager();
 		
 		log.info("start::game server on port:" + config.serverPort);
 		server.action(time);
 	}
+
+
 }

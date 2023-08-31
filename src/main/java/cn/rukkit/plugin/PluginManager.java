@@ -108,7 +108,7 @@ public class PluginManager
 		log.info("Load complete!");
 	}
 
-	public void serverDone(GameServer g) {
+	public void serverDone(RoomGameServer g) {
 		if (isServerDone) {
 			throw new RuntimeException("Server already started.");
 		} else {

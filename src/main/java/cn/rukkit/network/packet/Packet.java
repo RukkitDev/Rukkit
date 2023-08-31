@@ -10,6 +10,7 @@
 package cn.rukkit.network.packet;
 
 import cn.rukkit.*;
+import cn.rukkit.config.RoundConfig;
 import cn.rukkit.game.PingType;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.map.CustomMapLoader;
@@ -94,7 +95,7 @@ public class Packet {
 	 * Server UUID and verfiy code will be sended.
 	 */
 	public static Packet preRegister() throws IOException {
-		//协议版本？
+		//协议版本？(和游戏版本一致，协议向下兼容）
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("cn.rukkit");
 		o.writeInt(1);
@@ -164,16 +165,17 @@ public class Packet {
 	 return serverInfo(bool, li);
 	 }*/
 
-	public static Packet serverInfo() throws IOException {
-		return serverInfo(false, Rukkit.getModManager().fetchAllEnabledModUnits());
+	public static Packet serverInfo(RoundConfig config) throws IOException {
+		return serverInfo(config, false, Rukkit.getModManager().fetchAllEnabledModUnits());
 	}
 
-	public static Packet serverInfo(Boolean isAdmin) throws IOException {
-		return serverInfo(isAdmin, Rukkit.getModManager().fetchAllEnabledModUnits());
+	public static Packet serverInfo(RoundConfig config, Boolean isAdmin) throws IOException {
+		return serverInfo(config, isAdmin, Rukkit.getModManager().fetchAllEnabledModUnits());
 	}
 
 
-	public static Packet serverInfo(boolean isAdmin, ArrayList<ModUnit> units) throws IOException {
+
+	public static Packet serverInfo(RoundConfig config, boolean isAdmin, ArrayList<ModUnit> units) throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("com.corrodinggames.rts");
 		//协议版本
@@ -286,11 +288,11 @@ public class Packet {
 		return (o.createPacket(150));
 	}
     
-    public static Packet sendSave(byte[] bArr,boolean isPullSave) throws IOException {
+    public static Packet sendSave(int step, byte[] bArr,boolean isPullSave) throws IOException {
         GameOutputStream out = new GameOutputStream();
         out.writeByte(0);
-        out.writeInt(Rukkit.getGameServer().getTickTime());
-        out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
+        out.writeInt(step);
+        out.writeInt(step / 10);
         out.writeFloat((float) 1);
         out.writeFloat((float) 1);
         out.writeBoolean(isPullSave);
@@ -300,11 +302,15 @@ public class Packet {
         return createPacket;
     }
 
-    public static Packet sendPullSave() throws IOException {
+	public static Packet sendSave(NetworkRoom room, byte[] bArr,boolean isPullSave) throws IOException {
+		return sendSave(room.getCurrentStep(), bArr, isPullSave);
+	}
+
+    public static Packet sendPullSave(int step) throws IOException {
         GameOutputStream out = new GameOutputStream();
         out.writeByte(0);
-        out.writeInt(Rukkit.getGameServer().getTickTime());
-        out.writeInt(Rukkit.getGameServer().getTickTime() / 10);
+        out.writeInt(step);
+        out.writeInt(step / 10);
         out.writeFloat((float) 1);
         out.writeFloat((float) 1);
         out.writeBoolean(true);
@@ -315,7 +321,7 @@ public class Packet {
 		fileInputStream.read(bArr);
 		log.debug("Save Size={}", bArr.length);
 		out.write(bArr);*/
-		out.write(Rukkit.getSaveManager().defaultSave.arr);
+		out.write(Rukkit.getDefaultSave().arr);
 		out.endBlock();
         /*GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
         FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
@@ -329,10 +335,14 @@ public class Packet {
         encodeStream.stream.close();*/
         return createPacket;
     }
+
+	public static Packet sendPullSave(NetworkRoom room) throws IOException {
+		return sendPullSave(room.getCurrentStep());
+	}
 	
-	public static Packet syncCheckSum() throws IOException {
+	public static Packet syncCheckSum(int step) throws IOException {
 		GameOutputStream out = new GameOutputStream();
-		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(step);
 		out.writeLong(0);
 		out.writeInt(14);
 		out.startBlock("checkList", false);
@@ -343,9 +353,13 @@ public class Packet {
 		return out.createPacket(PACKET_SYNC_CHECKSUM);
 	}
 
-	public static Packet gamePing(int index, PingType type, float x, float y) throws IOException {
+	public static Packet syncCheckSum(NetworkRoom room) throws IOException {
+		return syncCheckSum(room.getCurrentStep());
+	}
+
+	public static Packet gamePing(int step, int index, PingType type, float x, float y) throws IOException {
 		GameOutputStream out = new GameOutputStream();
-		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(step);
 		out.writeInt(1);
 		out.startBlock("c", false);
 		out.writeByte(index); // Team
@@ -388,12 +402,16 @@ public class Packet {
 		return out.createPacket(PACKET_TICK);
 	}
 
-	public static Packet gameSummon(String unit, float x, float y) throws IOException {
+	public static Packet gamePing(NetworkRoom room, int index, PingType type, float x, float y) throws IOException {
+		return gamePing(room.getCurrentStep(), index, type, x, y);
+	}
+
+	public static Packet gameSummon(int step, String unit, float x, float y, int team) throws IOException {
 		GameOutputStream out = new GameOutputStream();
-		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(step);
 		out.writeInt(1);
 		out.startBlock("c", false);
-		out.writeByte(-1); // Team
+		out.writeByte(team); // Team
 
 		// COMMAND BLOCK
 		out.writeBoolean(true); //Command
@@ -460,9 +478,21 @@ public class Packet {
 		return out.createPacket(PACKET_TICK);
 	}
 
-	public static Packet gameSurrounder(int index) throws IOException {
+	public static Packet gameSummon(int step, String unit, float x, float y) throws IOException {
+		return gameSummon(step, unit, x, y, -1);
+	}
+
+	public static Packet gameSummon(NetworkRoom room, String unit, float x, float y) throws IOException {
+		return gameSummon(room, unit, x, y, -1);
+	}
+
+	public static Packet gameSummon(NetworkRoom room, String unit, float x, float y, int team) throws IOException {
+		return gameSummon(room.getCurrentStep(), unit, x, y, team);
+	}
+
+	public static Packet gameSurrounder(int step, int index) throws IOException {
 		GameOutputStream out = new GameOutputStream();
-		out.writeInt(Rukkit.getGameServer().getTickTime());
+		out.writeInt(step);
 		out.writeInt(1);
 		out.startBlock("c", false);
 		out.writeByte(index); // Team
@@ -507,6 +537,10 @@ public class Packet {
 		out.writeBoolean(false);
 		out.endBlock();
 		return out.createPacket(PACKET_TICK);
+	}
+
+	public static Packet gameSurrounder(NetworkRoom room, int index) throws IOException {
+		return gameSurrounder(room.getCurrentStep(), index);
 	}
 
 	public static Packet packetQuestion(int qid, String question) throws IOException {

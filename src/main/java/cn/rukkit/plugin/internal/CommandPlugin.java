@@ -13,14 +13,15 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
+import cn.rukkit.command.ServerCommandListener;
 import cn.rukkit.config.RoundConfig;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PingType;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
-import cn.rukkit.network.Connection;
-import cn.rukkit.network.ConnectionManager;
+import cn.rukkit.network.RoomConnection;
+import cn.rukkit.network.RoomConnectionManager;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
@@ -38,13 +39,24 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	Logger log = LoggerFactory.getLogger(CommandPlugin.class);
 
 	@Override
-	public boolean onSend(Connection con, String[] args) {
+	public boolean onSend(RoomConnection con, String[] args) {
 		// TODO: Implement this method
 		StringBuilder build = new StringBuilder();
 		build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
 		build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
 		con.sendServerMessage(build.toString());
 		return false;
+	}
+
+	static class VersionCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(RoomConnection con, String[] args) {
+			StringBuilder build = new StringBuilder();
+			build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
+			build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
+			con.sendServerMessage(build.toString());
+			return false;
+		}
 	}
 
 	@Override
@@ -60,11 +72,11 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	public class KickCallBack implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
-			if (con.player.isAdmin && args.length > 1 || !Rukkit.getGameServer().isGaming()) {
+			if (con.player.isAdmin && args.length > 1 || !con.currectRoom.isGaming()) {
 				int id = Integer.parseInt(args[1]);
-				NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(id);
+				NetworkPlayer player = con.currectRoom.playerManager.get(id);
 				try {
 					player.isNull();
 					player.getConnection().kick(LangUtil.getString("chat.kicked"));
@@ -76,11 +88,11 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
-	public class TeamChatCallback implements ChatCommandListener {
+	public static class TeamChatCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
-			for (Connection conn : Rukkit.getConnectionManager().getConnections()) {
+			for (RoomConnection conn : con.currectRoom.connectionManager.getConnections()) {
 				if (args.length < 1) return false;
 				if (conn.player.team == con.player.team && conn != null) {
 					conn.sendMessage(con.player.name,
@@ -92,13 +104,13 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
-	public class MapsCallback implements ChatCommandListener {
+	public static class MapsCallback implements ChatCommandListener {
 		private int type;
 		public MapsCallback(int type) {
 			this.type = type;
 		}
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
@@ -126,8 +138,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 								Rukkit.getRoundConfig().mapName = OfficialMap.maps[i];
 								Rukkit.getRoundConfig().mapType = 0;
 								try {
-									Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-									con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+									con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+									con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 								} catch (IOException ignored) {}
 								break;
 							}
@@ -150,7 +162,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			this.type = type;
 		}
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
@@ -177,8 +189,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
 					Rukkit.getRoundConfig().mapType = 1;
 					try {
-						Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-						con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+						con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+						con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 					} catch (IOException ignored) {}
 				}
 			}
@@ -193,14 +205,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			this.type = type;
 		}
 		@Override
-		public boolean onSend(Connection con, String[] cmd) {
+		public boolean onSend(RoomConnection con, String[] cmd) {
 			switch (type) {
 					//move
 				case 0:
-					if (!con.player.isAdmin || Rukkit.getGameServer().isGaming() || cmd.length < 2) {
+					if (!con.player.isAdmin || con.currectRoom.isGaming() || cmd.length < 2) {
 						// Do nothing.
 					} else {
-						PlayerManager playerGroup = Rukkit.getConnectionManager().getPlayerManager();
+						PlayerManager playerGroup = con.currectRoom.playerManager;
 						NetworkPlayer fromPlayer = playerGroup.get(Integer.parseInt(cmd[0]) - 1);
 						NetworkPlayer targetPlayer = playerGroup.get(Integer.parseInt(cmd[1]) - 1);
 						try {
@@ -222,7 +234,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					break;
 					// Self-move
 				case 1:
-					if (Rukkit.getGameServer().isGaming() || cmd.length < 1) {
+					if (con.currectRoom.isGaming() || cmd.length < 1) {
 						// Do nothing.
 					} else {
 						try {
@@ -243,7 +255,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	// TODO: -qc 操作
 	class QcCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			if (args.length <= 0) return false;
 			getLogger().debug(args[0]);
 			Rukkit.getCommandManager().executeChatCommand(con, args[0].substring(1));
@@ -257,15 +269,15 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			this.type = type;
 		}
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			switch (type) {
 					//team
 				case 0:
-					if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 2) {
+					if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 2) {
 						// Do nothing.
 					} else {
 						try {
-							Rukkit.getConnectionManager().getPlayerManager()
+							con.currectRoom.playerManager
 								.get(Integer.parseInt(args[0]) - 1).team = (Integer.parseInt(args[1]) - 1);
 						} catch (NullPointerException e) {
 							con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
@@ -283,9 +295,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
-	class HelpCallback implements ChatCommandListener {
+	static class HelpCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
 			StringBuilder build = new StringBuilder();
 			if (args.length > 0) {
@@ -311,7 +323,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class InfoCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			log.warn("{} send a info: {}", con.player.name, args[0]);
 			return false;
 		}
@@ -319,14 +331,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class StartCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin) {
 				// Do nothing.
 			} else {
-				if (Rukkit.getConnectionManager().size() < Rukkit.getConfig().minStartPlayer) {
-					Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("chat.minStartPlayer"), Rukkit.getConfig().minStartPlayer));
+				if (con.currectRoom.connectionManager.size() < Rukkit.getConfig().minStartPlayer) {
+					con.currectRoom.connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("chat.minStartPlayer"), Rukkit.getConfig().minStartPlayer));
 				} else {
-					Rukkit.getGameServer().startGame();
+					con.currectRoom.startGame();
 				}
 			}
 			return true;
@@ -335,8 +347,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class SetFogCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				RoundConfig cfg = Rukkit.getRoundConfig();
@@ -354,8 +366,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						cfg.fogType = 2;
 				}
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -364,14 +376,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class StartingUnitCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				Rukkit.getRoundConfig().startingUnits = Integer.parseInt(args[0]);
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -380,11 +392,11 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class ShareCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || args.length < 1) {
 				// Do nothing.
 			} else {
-				ConnectionManager ChannelGroups = Rukkit.getConnectionManager();
+				RoomConnectionManager ChannelGroups = con.currectRoom.connectionManager;
 				switch (args[0]) {
 					case "on":
 						con.player.isSharingControl = true;
@@ -405,14 +417,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class SharedControlCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				Rukkit.getRoundConfig().sharedControl = Boolean.parseBoolean(args[0]);
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -421,14 +433,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class NukeCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				Rukkit.getRoundConfig().disableNuke = !Boolean.parseBoolean(args[0]);
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -437,8 +449,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class IncomeCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				Rukkit.getRoundConfig().income = Integer.parseInt(args[0]);
@@ -446,8 +458,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					Rukkit.getRoundConfig().income = 1;
 				}
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -456,14 +468,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class CreditsCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
-			if (Rukkit.getGameServer().isGaming() || !con.player.isAdmin || args.length < 1) {
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
 				Rukkit.getRoundConfig().credits = Integer.parseInt(args[0]);
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(true));
+					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -472,9 +484,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
     class SyncCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(Connection con, String[] args) {
+        public boolean onSend(RoomConnection con, String[] args) {
             if (con.player.isAdmin) {
-                Rukkit.getGameServer().syncGame();
+                con.currectRoom.syncGame();
             }
             return false;
         }
@@ -482,7 +494,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
     class DumpSyncCallBack implements ChatCommandListener {
         @Override
-        public boolean onSend(Connection con, String[] args) {
+        public boolean onSend(RoomConnection con, String[] args) {
 
             return false;
         }
@@ -490,9 +502,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class ChksumCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			try {
-				Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
+				con.currectRoom.broadcast(Packet.syncCheckSum(con.currectRoom));
 			} catch (IOException e) {
 				//con.sendChat(
 			}
@@ -502,13 +514,13 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class PingCallBack implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			if (args.length >= 2) {
 				float x = Float.parseFloat(args[0]);
 				float y = Float.parseFloat(args[1]);
 				//String name = args[0];
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.gamePing(con.player.playerIndex, PingType.happy, x, y));
+					con.currectRoom.broadcast(Packet.gamePing(con.currectRoom, con.player.playerIndex, PingType.happy, x, y));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -517,14 +529,14 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
-	class StateCallback implements ChatCommandListener {
+	static class StateCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
 			StringBuilder build = new StringBuilder();
 			build.append("- State - \n");
 			build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
-			build.append("Connections: " + Rukkit.getConnectionManager().size());
+			build.append("Connections: " + Rukkit.getGlobalConnectionManager().size());
 			build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
 			try {
 				con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
@@ -536,9 +548,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class PlayerListCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			StringBuffer buffer = new StringBuffer("- Players -\n");
-			for (Connection conn: Rukkit.getConnectionManager().getConnections()) {
+			for (RoomConnection conn: con.currectRoom.connectionManager.getConnections()) {
 				buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - conn.pingTime)));
 			}
 			con.sendServerMessage(buffer.toString());
@@ -548,11 +560,11 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	class SurrenderCallback implements ChatCommandListener {
 		@Override
-		public boolean onSend(Connection con, String[] args) {
+		public boolean onSend(RoomConnection con, String[] args) {
 			if (!con.player.isSurrounded) {
 				try {
-					Rukkit.getConnectionManager().broadcast(Packet.gameSurrounder(con.player.playerIndex));
-					Rukkit.getConnectionManager().broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
+					con.currectRoom.broadcast(Packet.gameSurrounder(con.currectRoom, con.player.playerIndex));
+					con.currectRoom.connectionManager.broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
 					con.player.isSurrounded = true;
 				} catch (IOException e) {
 					e.printStackTrace();

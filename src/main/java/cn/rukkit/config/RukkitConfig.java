@@ -18,6 +18,7 @@ public class RukkitConfig extends BaseConfig
 	public String serverMotd = "My Rukkit server";
 	public int serverPort = 5123;
 	public int maxPlayer = 10;
+	public int maxRoom = 5;
 	public int gameVersion = 143;
 	public int maxWatcher = 5;
 	public int minStartPlayer = 4;

@@ -27,12 +27,12 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
-        Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
+        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
     }
 
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
-        Rukkit.getConnectionManager().broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
+        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
     }
 
     @Override

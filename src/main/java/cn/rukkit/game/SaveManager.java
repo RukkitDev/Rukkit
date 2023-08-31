@@ -15,29 +15,26 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import cn.rukkit.network.NetworkRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cn.rukkit.network.packet.Packet;
 import java.io.InputStream;
 
 public class SaveManager {
-    
-    public SaveData defaultSave;
+
     public SaveData lastSave;
-    private Logger log = LoggerFactory.getLogger(SaveManager.class);
+    public NetworkRoom currentRoom;
+    private Logger log;
     
-    public SaveManager() {
-        log.info("SaveManager::init");
-        try {
-            loadDefaultSave();
-        } catch (IOException e) {
-            log.error("Default save load failed.Sync system is unavailable.", e);
-            Rukkit.getConfig().syncEnabled = false;
-        }
+    public SaveManager(NetworkRoom room) {
+        currentRoom = room;
+        log = LoggerFactory.getLogger("SaveManager Room #" + currentRoom.roomId);
     }
     
     public SaveData getDeafultSave() {
-        return defaultSave;
+        return Rukkit.getDefaultSave();
     }
     
     public SaveData getLastSave() {
@@ -45,12 +42,12 @@ public class SaveManager {
     }
     
     public void sendDefaultSaveToAll(boolean isPullSave) throws IOException {
-        Rukkit.getConnectionManager().broadcast(Packet.sendSave(defaultSave.arr, isPullSave));
+        currentRoom.broadcast(Packet.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
     }
     
     public void sendLastSaveToAll(boolean isPullSave) throws IOException {
         if (lastSave != null) {
-            Rukkit.getConnectionManager().broadcast(Packet.sendSave(lastSave.arr,isPullSave));
+            currentRoom.broadcast(Packet.sendSave(currentRoom, lastSave.arr,isPullSave));
         } else {
             log.error("lastSave is NULL!Ignoring sendLastSaveToAll.");
         }
@@ -59,17 +56,7 @@ public class SaveManager {
     public void setLastSave(SaveData save) {
         lastSave = save;
     }
-    
-    private void loadDefaultSave() throws IOException {
-        InputStream in = getClass().getClassLoader().getResourceAsStream("defaultSave");
-        byte[] data = new byte[in.available()];
-        in.read(data);
-        in.close();
-        SaveData save = new SaveData();
-        save.arr = data;
-        save.time = 0;
-        defaultSave = save;
-    }
+
     
     public void dumpLastSave(String filename) throws FileNotFoundException, IOException {
         File f = new File(Rukkit.getEnvPath() + "/" + filename);
@@ -85,7 +72,7 @@ public class SaveManager {
         }
     }
     
-    public SaveData readSaveFromFile(String filename) throws FileNotFoundException, IOException {
+    public static SaveData readSaveFromFile(String filename) throws FileNotFoundException, IOException {
         FileInputStream in = new FileInputStream(filename);
         byte[] data = new byte[in.available()];
         in.read(data);

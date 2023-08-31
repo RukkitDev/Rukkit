@@ -10,7 +10,6 @@
 package cn.rukkit.game.mod;
 
 import cn.rukkit.*;
-import cn.rukkit.game.mod.*;
 import cn.rukkit.game.mod.Mod.*;
 import com.alibaba.fastjson.*;
 import java.io.*;

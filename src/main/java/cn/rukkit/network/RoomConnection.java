@@ -8,18 +8,22 @@
  */
 
 package cn.rukkit.network;
-import cn.rukkit.game.*;
-import cn.rukkit.network.packet.*;
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.*;
-import cn.rukkit.*;
-import cn.rukkit.util.*;
-import cn.rukkit.network.command.*;
 
-public class Connection {
+import cn.rukkit.Rukkit;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.SaveData;
+import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.packet.Packet;
+import cn.rukkit.util.GameUtils;
+
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.ScheduledFuture;
+
+public class RoomConnection {
 	public NetworkPlayer player;
 	public ConnectionHandler handler;
+	public NetworkRoom currectRoom;
 	public long pingTime;
 	public int lastSyncTick = -1;
 	private ScheduledFuture pingFuture;
@@ -28,6 +32,7 @@ public class Connection {
 	//public ChannelHandlerContext ctx;
 
 	/**
+	 * 心跳包任务
 	 * Ping runnable.
 	 */
 	public class PingTasker implements Runnable {
@@ -48,6 +53,7 @@ public class Connection {
 	}
 
 	/**
+	 * 队伍列表任务
 	 * TeamTask Scheduler.
 	 */
 	public class TeamTasker implements Runnable {
@@ -68,8 +74,9 @@ public class Connection {
 		}
 	}
 
-	public Connection(ConnectionHandler handler) {
+	public RoomConnection(ConnectionHandler handler, NetworkRoom currectRoom) {
 		this.handler = handler;
+		this.currectRoom = currectRoom;
 	}
 	
 	public void startPingTask() {
@@ -94,42 +101,65 @@ public class Connection {
 		teamFuture = null;
 	}
 
+	/**
+	 * 发送公开聊天
+	 * @param msg
+	 */
 	public void sendChat(String msg) {
 		try {
-			Rukkit.getConnectionManager().broadcast(Packet.chat(player.name, msg, player.playerIndex));
+			currectRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
 		} catch (IOException ignored) {}
 	}
 
+	/**
+	 * 发送服务器信息 ([SERVER])
+	 * @param msg
+	 */
 	public void sendServerMessage(String msg) {
 		try {
 			handler.ctx.writeAndFlush(Packet.chat("SERVER", msg, -1));
 		} catch (IOException e) {}
 	}
-	
+
+	/**
+	 * 发送玩家信息
+	 * @param from 来源玩家名
+	 * @param msg 信息
+	 * @param team 队伍
+	 */
 	public void sendMessage(String from, String msg, int team) {
 		try {
 			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
 		} catch (IOException e) {}
 	}
-	
+
+	/**
+	 * 发送游戏指令
+	 * @param cmd GameCommand实例.
+	 */
 	public void sendGameCommand(GameCommand cmd) {
         // If game is paused, throw everything.
-        if (Rukkit.getGameServer().isPaused()) {
+        if (currectRoom.isPaused()) {
             return;
         }
 		if (Rukkit.getConfig().useCommandQuere) {
-			Rukkit.getGameServer().addCommand(cmd);
+			currectRoom.addCommand(cmd);
 		} else {
 			try {
-				Rukkit.getConnectionManager().broadcast(Packet.gameCommand(Rukkit.getGameServer().getTickTime(), cmd));
+				currectRoom.connectionManager.broadcast(Packet.gameCommand(currectRoom.getTickTime(), cmd));
 			} catch (IOException ignored) {}
 		}
 	}
 	
 	public void updateTeamList() throws IOException {
-		updateTeamList(Rukkit.getGameServer().isGaming());
+		updateTeamList(currectRoom.isGaming());
 	}
-	
+
+	/**
+	 * 更新队伍列表。
+	 * @param simpleMode 简单模式(1.14+).减少网络数据通信。
+	 * @throws IOException
+	 */
 	public void updateTeamList(boolean simpleMode) throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		//log.d("Sending teamlist...");
@@ -142,7 +172,7 @@ public class Connection {
 
 		for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
 		{
-			NetworkPlayer playerp = Rukkit.getConnectionManager().getPlayerManager().get(i);
+			NetworkPlayer playerp = currectRoom.playerManager.get(i);
 
 			// No-stop mode changes:Add fake players
 			if (Rukkit.getConfig().nonStopMode) {
@@ -166,8 +196,8 @@ public class Connection {
 		}
 		o.flushEncodeData(enc);
 
-		o.writeInt(Rukkit.getRoundConfig().fogType);
-		o.writeInt(GameUtils.getMoneyFormat(Rukkit.getRoundConfig().credits));
+		o.writeInt(currectRoom.config.fogType);
+		o.writeInt(GameUtils.getMoneyFormat(currectRoom.config.credits));
 		o.writeBoolean(true);
 		//ai
 		o.writeInt(1);
@@ -178,24 +208,31 @@ public class Connection {
 		o.writeInt(250);
 
 		//初始单位
-		o.writeInt(Rukkit.getRoundConfig().startingUnits);
-		o.writeFloat(Rukkit.getRoundConfig().income);
-		o.writeBoolean(Rukkit.getRoundConfig().disableNuke);
+		o.writeInt(currectRoom.config.startingUnits);
+		o.writeFloat(currectRoom.config.income);
+		o.writeBoolean(currectRoom.config.disableNuke);
 		o.writeBoolean(false);
 		o.writeBoolean(false);
-		o.writeBoolean(Rukkit.getRoundConfig().sharedControl);
+		o.writeBoolean(currectRoom.config.sharedControl);
 
 		Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
 
 		handler.ctx.writeAndFlush(p);
 	}
-	
+
+	/**
+	 * 踢出玩家
+	 * @param reason 踢出理由
+	 */
 	public void kick(String reason) {
 		try {
 			handler.ctx.writeAndFlush(Packet.kick(reason));
 		} catch (IOException e) {}
 	}
-	
+
+	/**
+	 * 心跳包返回
+	 */
 	public void pong() {
 		player.ping = (int) (System.currentTimeMillis() - pingTime);
 	}

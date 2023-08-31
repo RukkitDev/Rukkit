@@ -62,6 +62,10 @@ public class GameOutputStream
         this.stream.writeLong(val);
     }
 
+	public void writeShort(short val) throws IOException {
+		this.stream.writeShort(val);
+	}
+
     public void writeString(String val) throws IOException {
         this.stream.writeUTF(val);
     }

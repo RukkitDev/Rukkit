@@ -17,6 +17,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -35,7 +36,7 @@ public class NetworkPlayer
 	// Preparing for 1.15
 	public int startingUnit;
 
-	private Connection connection = null;
+	private RoomConnection connection = null;
 
 	public int ping = -1;
 	public boolean isAdmin = false;
@@ -47,8 +48,9 @@ public class NetworkPlayer
 	public boolean isSurrounded = false;
 	private NetworkRoom room;
 
-	public NetworkPlayer(Connection connection) {
+	public NetworkPlayer(RoomConnection connection) {
 		this.connection = connection;
+		this.room = connection.currectRoom;
 		this.isEmpty = false;
 	}
 
@@ -57,7 +59,7 @@ public class NetworkPlayer
 		this.isEmpty = true;
 	}
 	
-	public Connection getConnection() {
+	public RoomConnection getConnection() {
 		return this.connection;
 	}
 	
@@ -77,6 +79,35 @@ public class NetworkPlayer
 		return (T) data.extraData.getOrDefault(key, defaultValue);
 	}
 
+	/**
+	 * 获取玩家的临时数据
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	public Object getTempData(String key, Object defaultValue) {
+		return data.tempData.getOrDefault(key, defaultValue);
+	}
+
+	/**
+	 * 放入临时数据
+	 * @param key
+	 * @param value
+	 */
+	public void putTempData(String key, Object value) {
+		data.tempData.put(key, value);
+	}
+
+	public void clearTempData() {
+		data.tempData = new HashMap<String, Object>();
+	}
+
+	/**
+	 * Get extra data.
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
 	public Object getExtraData(String key, Object defaultValue) {
 		return data.extraData.getOrDefault(key, defaultValue);
 	}
@@ -162,7 +193,7 @@ public class NetworkPlayer
 	public boolean movePlayer(int index){
 		//If index larger then maxPlayer
 		if (index > Rukkit.getConfig().maxPlayer) return false;
-		PlayerManager playerGroup = Rukkit.getConnectionManager().getPlayerManager();
+		PlayerManager playerGroup = room.playerManager;
 		if (!playerGroup.get(index).isEmpty) {
 			return false;
 		}
@@ -182,7 +213,7 @@ public class NetworkPlayer
 	}
 
 	public boolean giveAdmin(int index){
-		NetworkPlayer player = Rukkit.getConnectionManager().getPlayerManager().get(index);
+		NetworkPlayer player = room.playerManager.get(index);
 		if(index < Rukkit.getConfig().maxPlayer && index >= 0 && !player.isEmpty && this.isAdmin){
 			player.isAdmin = true;
 			this.isAdmin = false;
@@ -209,6 +240,19 @@ public class NetworkPlayer
 		return false;
 	}
 
+	public static final void initPlayerDataDir() {
+		File dataDir = new File(Rukkit.getEnvPath() + "/data");
+		if (!dataDir.isDirectory()) {
+			dataDir.delete();
+			dataDir.mkdir();
+		}
+		File userDataDir = new File(Rukkit.getEnvPath() + "/data/player");
+		if (!userDataDir.isDirectory()) {
+			userDataDir.delete();
+			userDataDir.mkdir();
+		}
+	}
+
 	public void loadPlayerData() {
 		Logger log = LoggerFactory.getLogger("PlayerData");
 		log.info("Load player infomation.");
@@ -221,7 +265,7 @@ public class NetworkPlayer
 				data.lastUsedName = name;
 				data.lastConnectedTime = new Date().toString();
 				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
-				FileWriter writer = new FileWriter(dataFile);
+				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
 				writer.close();
@@ -233,7 +277,7 @@ public class NetworkPlayer
 				data.lastUsedName = name;
 				data.lastConnectedTime = new Date().toString();
 				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
-				FileWriter writer = new FileWriter(dataFile);
+				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
 				writer.close();
