@@ -46,7 +46,7 @@ public class RoomGameServer {
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     //.handler(new LoggingHandler(log))
-                    .handler(new LoggingHandler(log.getName(), LogLevel.ERROR))
+                    .handler(new LoggingHandler(log.getName(), LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>(){
 
                         @Override
@@ -62,10 +62,6 @@ public class RoomGameServer {
                 public void run() {
                     log.info("Done! (" + (System.currentTimeMillis() - time) + "ms)");
                     Rukkit.setStarted(true);
-                    //log.info("Server is running on non-stop mode.");
-                    if (Rukkit.getConfig().nonStopMode) {
-
-                    }
                     // TODO: Implement this method
                 }
             }).start();

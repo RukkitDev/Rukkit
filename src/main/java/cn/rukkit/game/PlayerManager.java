@@ -74,10 +74,10 @@ public class PlayerManager
 	* Remove player by index.
 	*/
 	public void remove(int index){
-		if(Rukkit.getConfig().nonStopMode) {
-			players[index] = new NetworkPlayer();
-			return;
-		}
+//		if(Rukkit.getConfig().nonStopMode) {
+//			players[index] = new NetworkPlayer();
+//			return;
+//		}
 		if(currentRoom.isGaming()){
 			players[index].ping = -1;
 			return;

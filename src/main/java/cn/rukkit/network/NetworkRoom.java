@@ -48,10 +48,6 @@ public class NetworkRoom {
         connectionManager = new RoomConnectionManager(this);
         saveManager = new SaveManager(this);
         config = Rukkit.getRoundConfig();
-        if (Rukkit.getConfig().nonStopMode) {
-            isGaming = true;
-            startNoStopGame();
-        }
     }
 
     public class GameTask implements Runnable {
@@ -165,10 +161,6 @@ public class NetworkRoom {
                 while (true) {
                     save = connectionManager.getAvailableSave();
                     if (save != null) {
-                        //If no-stop enabled use lastNoStopSave.
-                        if (Rukkit.getConfig().nonStopMode) {
-                            lastNoStopSave = save;
-                        }
                         saveManager.setLastSave(save);
                         saveManager.sendLastSaveToAll(false);
                         //save.loadSave();
@@ -230,9 +222,9 @@ public class NetworkRoom {
     }
 
     public boolean isGaming() {
-        if (Rukkit.getConfig().nonStopMode) {
-            return true;
-        }
+//        if (Rukkit.getConfig().nonStopMode) {
+//            return true;
+//        }
         if (currentStep <= 0) {
             isGaming = false;
         } else {
@@ -278,11 +270,11 @@ public class NetworkRoom {
      * Start a no-stop game.
      * only works if nonStop config == true
      */
-    public void startNoStopGame() {
-        if (Rukkit.getConfig().nonStopMode) {
-            gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), stepRate, stepRate);
-        }
-    }
+//    public void startNoStopGame() {
+//        if (Rukkit.getConfig().nonStopMode) {
+//            gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), stepRate, stepRate);
+//        }
+//    }
 
     public void changeMapWhileRunning(String mapName, int type) {
         Rukkit.getRoundConfig().mapName = mapName;

@@ -277,13 +277,7 @@ public class Rukkit {
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new BasePlugin());
-		if (config.nonStopMode) {
-			pluginManager.loadPlugin(new NoStopCommandPlugin());
-//			log.info("This future is uncompleted!Server will shutdown!");
-//			shutdown("Uncompleted feature");
-		} else {
-			pluginManager.loadPlugin(new CommandPlugin());
-		}
+		pluginManager.loadPlugin(new CommandPlugin());
 		pluginManager.loadPlugin(new NewTestPlugin());
 		pluginManager.loadPlugin(new ServerCommandPlugin());
 		pluginManager.loadPluginInDir();

@@ -174,23 +174,16 @@ public class RoomConnection {
 		{
 			NetworkPlayer playerp = currectRoom.playerManager.get(i);
 
-			// No-stop mode changes:Add fake players
-			if (Rukkit.getConfig().nonStopMode) {
-				// Always true
-				enc.stream.writeBoolean(true);
-			} else {
-				enc.stream.writeBoolean(!playerp.isEmpty);
-			}
+			enc.stream.writeBoolean(!playerp.isEmpty);
 
 			// Ignore empty player
 			if (playerp.isEmpty) {
-				if (!Rukkit.getConfig().nonStopMode){
-					continue;
-				}
+				continue;
 			}
 
 			//1.14
 			//enc.stream.writeByte(0);
+
 			enc.stream.writeInt(255);
 			playerp.writePlayer(enc.stream, simpleMode);
 		}

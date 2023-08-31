@@ -99,11 +99,12 @@ public class Packet {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("cn.rukkit");
 		o.writeInt(1);
-		o.writeInt(151);
-		o.writeInt(151);
+		o.writeInt(176);
+		o.writeInt(176);
 		o.writeString("cn.rukkit");
 		o.writeString(Rukkit.getConfig().UUID);
 		o.writeInt(114514);
+		o.writeInt(176);
 		return o.createPacket(PACKET_REGISTER_CONNECTION);
 	}
 
@@ -179,7 +180,7 @@ public class Packet {
 		GameOutputStream o = new GameOutputStream();
 		o.writeString("com.corrodinggames.rts");
 		//协议版本
-		o.writeInt(151);
+		o.writeInt(176);
 		//地图类型 0=官方 1=自定义 2=保存的游戏
 		o.writeInt(Rukkit.getRoundConfig().mapType);
 		o.writeString(Rukkit.getRoundConfig().mapName);

@@ -187,6 +187,15 @@ public class NetworkPlayer
 			stream.writeBoolean(false);
 			//是否房主
 			stream.writeInt(0);
+
+			// 1.15新增
+			stream.writeBoolean(false);
+			stream.writeBoolean(false);
+			stream.writeBoolean(false);
+			stream.writeBoolean(false);
+
+			//占个位先
+			stream.writeInt(0);
 		}
 	}
 	

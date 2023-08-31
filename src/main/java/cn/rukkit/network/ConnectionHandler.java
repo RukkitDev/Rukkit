@@ -128,7 +128,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				player.uuid = uuid;
 				conn.player = player;
 				//Check admin.
-				if (room.connectionManager.size() <= 0 && !Rukkit.getConfig().nonStopMode) {
+				if (room.connectionManager.size() <= 0) {
 					conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(room.config, true));
@@ -136,55 +136,9 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
                     ctx.writeAndFlush(Packet.serverInfo(room.config));
                 }
 
-				// Check gaming && no-stop mode.
+				// Check gaming
 				if (room.isGaming()) {
-					if (Rukkit.getConfig().nonStopMode) {
-						// No stop mode.
-						// If is the first player 是房间内第一个玩家
-						if (room.connectionManager.size() <= 0) {
-							// Check lastSaveData 检查最后保存数据
-							if (room.lastNoStopSave != null) {
-								room.connectionManager.add(conn);
-								stopTimeout();
-								conn.startPingTask();
-								conn.updateTeamList(false);
-								// Start game.
-								conn.handler.ctx.writeAndFlush(Packet.startGame());
-								// Send save
-								conn.handler.ctx.writeAndFlush(Packet.sendSave(room, room.lastNoStopSave.arr, false));
-								conn.startTeamTask();
-								room.notifyGameTask();
-								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
-								return;
-							} else {
-								room.connectionManager.add(conn);
-								stopTimeout();
-								conn.startPingTask();
-								conn.updateTeamList(false);
-								// New Round!Start game.
-								conn.handler.ctx.writeAndFlush(Packet.startGame());
-								// Have a sync.
-								room.syncGame();
-								conn.startTeamTask();
-								room.notifyGameTask();
-								PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
-								return;
-							}
-						} else {
-							room.connectionManager.add(conn);
-							stopTimeout();
-							conn.startPingTask();
-							conn.updateTeamList(false);
-							// New Round!Start game.
-							conn.handler.ctx.writeAndFlush(Packet.startGame());
-							// Have a sync.
-							room.syncGame();
-							conn.startTeamTask();
-							room.notifyGameTask();
-							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
-							return;
-						}
-					} else if (Rukkit.getConfig().syncEnabled) {
+					if (Rukkit.getConfig().syncEnabled) {
 						// If sync enabled, get target player
 						NetworkPlayer targetPlayer = Rukkit.getGlobalConnectionManager().getAllPlayerByUUID(uuid);
 						// If player is a reconnecting player

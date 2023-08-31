@@ -45,18 +45,9 @@ public class RoomManager {
     public NetworkRoom getAvailableRoom() {
         for (NetworkRoom room: roomList) {
             if (room.playerManager.getPlayerCount() < room.playerManager.getMaxPlayer()){
-                if (Rukkit.getConfig().nonStopMode) {
-                    if (room.connectionManager.size() < room.playerManager.getMaxPlayer()) {
-                        return room;
-                    } else {
-                        continue;
-                    }
-                } else {
-                    if (!room.isGaming()) {
-                        return room;
-                    }
+                if (!room.isGaming()) {
+                    return room;
                 }
-
             }
         }
         return null;
