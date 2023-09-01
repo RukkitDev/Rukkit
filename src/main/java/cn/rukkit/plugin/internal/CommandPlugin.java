@@ -63,11 +63,12 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public void loadConfig() {
 		// TODO: Implement this method
 		config = new PluginConfig();
-		config.name = "command-plugin";
+		config.name = "Basic Chat Command Plugin";
 		config.author = "rukkit";
-		config.version = "1.0.0";
+		config.version = Rukkit.RUKKIT_VERSION;
+		config.id = "command-plugin";
 		config.pluginClass = "cn.rukkit.plugin.internal.CommandPlugin";
-		config.apiVersion = "ANY";
+		config.apiVersion = Rukkit.PLUGIN_API_VERSION;
 	}
 
 	public class KickCallBack implements ChatCommandListener {

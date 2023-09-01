@@ -8,14 +8,23 @@
   -->
 
 <configuration>
-    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
-	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-		<encoder>
-			<pattern>%highlight(%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n)</pattern>
+	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+		<file>lastrun.log</file>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss} %level] [%logger{50}]: %msg%n</pattern>
 		</encoder>
 	</appender>
 
+	<appender name="TERMINAL" class="cn.rukkit.RukkitLauncher">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>%yellow([%d{yyyy-MM-dd HH:mm:ss} %level]) %blue([%logger{0}]): %msg%n</pattern>
+		</encoder>
+	</appender>
+
+    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
 	<root level="INFO">
-		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="TERMINAL"/>
+		<appender-ref ref="FILE"/>
 	</root>
 </configuration>

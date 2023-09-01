@@ -305,10 +305,11 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
     public void loadConfig() {
         // TODO: Implement this method
         config = new PluginConfig();
-        config.name = "server-command-plugin";
+        config.name = "Internal Server Command Plugin";
         config.author = "rukkit";
-        config.version = "1.0.0";
+        config.id = "server-command-plugin";
+        config.version = Rukkit.RUKKIT_VERSION;
         config.pluginClass = "cn.rukkit.plugin.internal.ServerCommandPlugin";
-        config.apiVersion = "ANY";
+        config.apiVersion = Rukkit.PLUGIN_API_VERSION;
     }
 }

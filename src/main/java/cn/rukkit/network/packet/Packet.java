@@ -317,23 +317,9 @@ public class Packet {
         out.writeBoolean(true);
         out.writeBoolean(false);
 		out.startBlock("gameSave", false);
-		/*FileInputStream fileInputStream = new FileInputStream(Rukkit.getEnvPath() + "/defaultSave");
-		byte[] bArr = new byte[fileInputStream.available()];
-		fileInputStream.read(bArr);
-		log.debug("Save Size={}", bArr.length);
-		out.write(bArr);*/
 		out.write(Rukkit.getDefaultSave().arr);
 		out.endBlock();
-        /*GzipEncoder encodeStream = out.getEncodeStream("gameSave", false);
-        FileInputStream fileInputStream = new FileInputStream(new StringBuffer().append(Rukkit.getEnvPath()).append("/defaultSave").toString());
-        byte[] bArr = new byte[fileInputStream.available()];
-        fileInputStream.read(bArr);
-        encodeStream.stream.write(bArr);
-        out.flushEncodeData(encodeStream);*/
         Packet createPacket = out.createPacket(PACKET_SYNC);
-       	/*fileInputStream.close();
-        encodeStream.buffer.close();
-        encodeStream.stream.close();*/
         return createPacket;
     }
 

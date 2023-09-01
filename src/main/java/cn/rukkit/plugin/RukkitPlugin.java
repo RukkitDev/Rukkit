@@ -10,6 +10,10 @@
 package cn.rukkit.plugin;
 import cn.rukkit.*;
 import java.io.*;
+import java.util.ArrayList;
+
+import cn.rukkit.event.EventListener;
+import cn.rukkit.event.EventListenerContainer;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
 import cn.rukkit.config.*;
@@ -17,6 +21,7 @@ import cn.rukkit.config.*;
 public abstract class RukkitPlugin implements Plugin
 {
 	public PluginConfig config;
+	protected ArrayList<EventListener> listeners = new ArrayList<EventListener>();
 	
 	private boolean isEnabled;
 	
@@ -80,6 +85,10 @@ public abstract class RukkitPlugin implements Plugin
 		writer.write(yaml.dumpAs(cls, null, DumperOptions.FlowStyle.BLOCK));
 		writer.flush();
 		writer.close();
+	}
+
+	public String getPluginId() {
+		return config.id;
 	}
 	
 	public PluginManager getPluginManager() {

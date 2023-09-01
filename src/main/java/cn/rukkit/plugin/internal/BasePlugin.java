@@ -64,10 +64,11 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
     @Override
     public void loadConfig() {
         config = new PluginConfig();
-        config.name = "base-plugin";
+        config.name = "Basic Game Plugin";
         config.author = "rukkit";
-        config.version = "1.0.0";
+        config.version = Rukkit.RUKKIT_VERSION;
+        config.id = "base-plugin";
         config.pluginClass = "cn.rukkit.plugin.internal.BasePlugin";
-        config.apiVersion = "ANY";
+        config.apiVersion = Rukkit.PLUGIN_API_VERSION;
     }
 }

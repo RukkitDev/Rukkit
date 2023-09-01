@@ -14,6 +14,7 @@ public class PluginConfig extends BaseConfig
 {
 	public String author;
 	public String name;
+	public String id;
 	public String version;
 	public String apiVersion;
 	public String pluginClass;

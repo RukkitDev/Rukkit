@@ -16,6 +16,6 @@ public class LangUtil {
 			ResourceBundle bd = ResourceBundle.getBundle("i18n/messages", lc);
 			bundle = bd;
 		}
-		return new String(bundle.getString(text).getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+		return new String(bundle.getString(text).getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 	}
 }

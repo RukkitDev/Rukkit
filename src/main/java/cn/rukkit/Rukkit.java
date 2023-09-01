@@ -15,7 +15,6 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
 import java.io.*;
 
-import cn.rukkit.network.packet.Packet;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
@@ -30,8 +29,8 @@ import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.8.2-dev";
-	public static final int SUPPORT_GAME_VERSION = 151;
+	public static final String RUKKIT_VERSION = "0.9.1-dev";
+	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
 	private static RukkitConfig config;
@@ -50,7 +49,7 @@ public class Rukkit {
     
     private static SaveManager saveManager;
 
-	public final static String PLUGIN_API_VERSION = "0.6.0";
+	public final static String PLUGIN_API_VERSION = "0.8.0";
 	private static RoomManager roomManager;
 	private static SaveData defaultSave;
 
@@ -69,7 +68,8 @@ public class Rukkit {
 		getGameServer().stopServer();
 		log.info("Stop terminal...");
 		RukkitLauncher.isTerminalRunning = false;
-		RukkitLauncher.terminalThread.interrupt();
+		// RukkitLauncher.terminalThread.interrupt();
+		System.exit(0);
 	}
 
 	/**
@@ -278,12 +278,20 @@ public class Rukkit {
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new BasePlugin());
 		pluginManager.loadPlugin(new CommandPlugin());
-		pluginManager.loadPlugin(new NewTestPlugin());
+		pluginManager.loadPlugin(new TestPlugin());
 		pluginManager.loadPlugin(new ServerCommandPlugin());
 		pluginManager.loadPluginInDir();
 		
 		log.info("start::game server on port:" + config.serverPort);
-		server.action(time);
+		threadManager.submit(() -> {
+			try {
+				server.action(time);
+			} catch (InterruptedException e) {
+				log.error("A error occurred:", e);
+				throw new RuntimeException(e);
+			}
+		});
+
 	}
 
 

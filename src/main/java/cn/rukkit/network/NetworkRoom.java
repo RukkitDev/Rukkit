@@ -323,5 +323,19 @@ public class NetworkRoom {
         }
     }
 
+    public void summonUnit(String unitName, float x, float y, int player) {
+        try {
+            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y, player));
+        } catch (IOException e) {
 
+        }
+    }
+
+    public void summonUnit(String unitName, float x, float y) {
+        try {
+            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y));
+        } catch (IOException e) {
+
+        }
+    }
 }

@@ -12,6 +12,11 @@ package cn.rukkit.command;
 import java.util.*;
 
 import cn.rukkit.util.LangUtil;
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.slf4j.*;
 import cn.rukkit.network.*;
 import cn.rukkit.*;
@@ -23,6 +28,8 @@ public class CommandManager
 	private Logger log = LoggerFactory.getLogger(CommandManager.class);
 	private HashMap<String, ChatCommand> loadedCommand = new HashMap<String, ChatCommand>();
 	private HashMap<String, ServerCommand> loadedServerCommand = new HashMap<String, ServerCommand>();
+
+	private List<String> serverCmdString = new ArrayList<>();
 	
 	public void registerCommand(ChatCommand cmd) {
 		log.debug(String.format("Registering Command '%s' from plugin '%s'...",cmd.cmd,cmd.getFromPlugin().config.name));
@@ -39,6 +46,7 @@ public class CommandManager
 			log.warn(String.format("ServerCommand '%s' had already registered.",cmd.cmd));
 		} else {
 			loadedServerCommand.put(cmd.cmd, cmd);
+			serverCmdString.add(cmd.cmd);
 		}
 	}
 	
@@ -103,5 +111,9 @@ public class CommandManager
 
 	public HashMap<String, ServerCommand> getLoadedServerCommand() {
 		return loadedServerCommand;
+	}
+
+	public List<String> getLoadedServerCommandStringList() {
+		return serverCmdString;
 	}
 }
