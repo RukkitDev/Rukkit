@@ -132,7 +132,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
     class SayCallback implements ServerCommandListener {
         @Override
         public void onSend(String[] args) {
-            if (args.length > 2) {
+            if (args.length >= 2) {
                 Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0])).connectionManager.broadcastServerMessage(args[1]);
             }
         }

@@ -17,7 +17,7 @@
 
 	<appender name="TERMINAL" class="cn.rukkit.RukkitLauncher">
 		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-			<pattern>%yellow([%d{yyyy-MM-dd HH:mm:ss} %level]) %blue([%logger{0}]): %msg%n</pattern>
+			<pattern>%yellow([%d{yyyy-MM-dd HH:mm:ss} %level]) %-5highlight([%logger{0}]): %msg%n</pattern>
 		</encoder>
 	</appender>
 

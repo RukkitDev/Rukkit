@@ -63,7 +63,7 @@ public class CommandManager
 			}
 		}
 		boolean result;
-		log.debug("cmd is:" + cmds[0]);
+		log.trace("cmd is:" + cmds[0]);
 		if (cmds.length > 1 && cmdObj.args > 0) {
 			String[] args = cmds[1].split(" ", cmdObj.args);
 			result = cmdObj.getListener().onSend(connection,args);
@@ -87,7 +87,7 @@ public class CommandManager
 			System.out.println("Command not exist.Try 'help' to list all commands.");
 			return;
 		}
-		log.debug("cmd is:" + cmds[0]);
+		log.trace("cmd is:" + cmds[0]);
 		if (cmds.length > 1 && cmdObj.args > 0) {
 			String[] args = cmds[1].split(" ", cmdObj.args);
 			cmdObj.getListener().onSend(args);

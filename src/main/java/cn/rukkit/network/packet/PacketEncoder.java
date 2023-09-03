@@ -25,10 +25,10 @@ public class PacketEncoder extends MessageToByteEncoder<Packet>
 		// TODO: Implement this method
 		//log.setTag(p1.name());
 		if (p2.type != 10) {
-			log.debug("Sending packets... (type=" + p2.type + " size=" + p2.bytes.length + ")");
+			log.trace("Sending packets... (type=" + p2.type + " size=" + p2.bytes.length + ")");
 		} else {
 			if (p2.bytes.length > 20) {
-				log.debug("Sending game packets... (type=" + p2.type + " size=" + p2.bytes.length + ")");
+				log.trace("Sending game packets... (type=" + p2.type + " size=" + p2.bytes.length + ")");
 			}
 		}
 		p3.writeInt(p2.bytes.length);

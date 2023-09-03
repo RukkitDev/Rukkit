@@ -61,7 +61,7 @@ public class PacketDecoder extends ByteToMessageDecoder
 
 		Packet p = new Packet(type);
 		p.bytes = bytes;
-		log.debug("Got the packet. (type=" + p.type + " size=" + p.bytes.length + ")");
+		log.trace("Got the packet. (type=" + p.type + " size=" + p.bytes.length + ")");
 
 		p3.add(p);
 	}

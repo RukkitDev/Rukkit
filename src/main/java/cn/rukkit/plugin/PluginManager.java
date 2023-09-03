@@ -247,10 +247,10 @@ public class PluginManager
 				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0]))
 				{
 					method.setAccessible(true);
-					log.debug("Got Event was: " + method.getParameters()[0].getType());
+					log.trace("Got Event was: " + method.getParameters()[0].getType());
 					try
 					{
-						log.debug("got called");
+						log.trace("got called");
 						ListenerList list = ((ListenerList) method.getParameters()[0].getType().getMethod("getListenerList").invoke(null));
 						EventListenerContainer container = new EventListenerContainer(plugin, method, listener);
 						plugin.listeners.add(listener);
@@ -281,7 +281,7 @@ public class PluginManager
 		log.debug(" ");
 		for (Method method: methods)
 		{
-			log.debug("get");
+			log.trace("get");
 			//判断方法是否进行注解
 			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic())
 			{
@@ -290,10 +290,10 @@ public class PluginManager
 				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0]))
 				{
 					method.setAccessible(true);
-					log.debug("Got Event was: " + method.getParameters()[0].getType());
+					log.trace("Got Event was: " + method.getParameters()[0].getType());
 					try
 					{
-						log.debug("got called");
+						log.trace("got called");
 						ListenerList list = ((ListenerList) method.getParameters()[0].getType().getMethod("getListenerList").invoke(null));
 						list.removePluginListener(listener);
 					}

@@ -46,7 +46,7 @@ public class RoomGameServer {
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     //.handler(new LoggingHandler(log))
-                    .handler(new LoggingHandler(log.getName(), LogLevel.INFO))
+                    .handler(new LoggingHandler(log.getName(), LogLevel.DEBUG))
                     .childHandler(new ChannelInitializer<SocketChannel>(){
 
                         @Override

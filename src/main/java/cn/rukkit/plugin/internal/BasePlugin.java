@@ -16,23 +16,35 @@ package cn.rukkit.plugin.internal;
 import cn.rukkit.Rukkit;
 import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
+import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
 public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
+    private Logger log = LoggerFactory.getLogger("Rukkit");
+
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} joined!", event.getPlayer().name);
     }
 
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!", event.getPlayer().name);
+    }
+
+    @EventHandler
+    public void onPlayerChatInfo(PlayerChatEvent event) {
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("[{}] {}", event.getPlayer().name, event.getMessage());
     }
 
     @Override
