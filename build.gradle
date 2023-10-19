@@ -14,7 +14,7 @@ plugins {
 }
 
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.9.1-dev"
+final def RUKKIT_VERSION = "0.9.2-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
