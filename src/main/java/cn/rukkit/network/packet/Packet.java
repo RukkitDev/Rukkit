@@ -187,7 +187,7 @@ public class Packet {
 		//资金
 		o.writeInt(GameUtils.getMoneyFormat(Rukkit.getRoundConfig().credits));
 		o.writeInt(Rukkit.getRoundConfig().fogType);
-		o.writeBoolean(true);
+		o.writeBoolean(true); // revealedMap
 		o.writeInt(1);
 		o.writeByte(4);
 		o.writeBoolean(false);
@@ -201,7 +201,7 @@ public class Packet {
 		//禁核
 		o.writeBoolean(Rukkit.getRoundConfig().disableNuke);
 		o.writeBoolean(false);
-		o.writeBoolean(true);
+		o.writeBoolean(true); //是否为游戏房间，false则不读取下面的单位内容
 
 
 		/*GzipEncoder out = o.getEncodeStream("customUnits", false);

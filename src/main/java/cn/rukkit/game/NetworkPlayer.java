@@ -10,6 +10,7 @@
 package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.*;
+import cn.rukkit.network.packet.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
@@ -194,8 +195,8 @@ public class NetworkPlayer
 			stream.writeBoolean(false);
 			stream.writeBoolean(false);
 
-			//占个位先
-			stream.writeInt(0);
+			//color
+			stream.writeInt(playerIndex);
 		}
 	}
 	
@@ -229,6 +230,12 @@ public class NetworkPlayer
 			return true;
 		}
 		return false;
+	}
+
+	public void updateServerInfo() {
+		try {
+			connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+		} catch (IOException e) {}
 	}
 
 	@Override

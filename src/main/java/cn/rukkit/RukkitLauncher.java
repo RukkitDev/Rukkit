@@ -62,6 +62,10 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 					}
 					Rukkit.getCommandManager().executeServerCommand(str);
 				}
+				catch (UserInterruptException e) {
+					log.info("Stopping server...");
+					Rukkit.shutdown("Server stopped by console");
+				}
 				catch (EndOfFileException e) {
 					log.info("Stopping server...");
 					Rukkit.shutdown("Server stopped by console");

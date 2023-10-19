@@ -40,7 +40,7 @@ public abstract class RukkitPlugin implements Plugin
 	}
 	
 	public final Logger getLogger() {
-		return LoggerFactory.getLogger(this.getClass());
+		return LoggerFactory.getLogger(this.getPluginId() + "-" + this.getClass());
 	}
 	
 	public final File getConfigFile(String config)

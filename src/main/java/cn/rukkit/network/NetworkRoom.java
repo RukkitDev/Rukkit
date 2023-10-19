@@ -11,6 +11,7 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.packet.Packet;
+import cn.rukkit.util.Vote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,8 @@ public class NetworkRoom {
     private ScheduledFuture gameTaskFuture;
     private SaveManager saveManager;
 
+    public Vote vote;
+
     public NetworkRoom(int id) {
         // 指定房间id
         roomId = id;
@@ -48,6 +51,7 @@ public class NetworkRoom {
         connectionManager = new RoomConnectionManager(this);
         saveManager = new SaveManager(this);
         config = Rukkit.getRoundConfig();
+        vote = new Vote(this);
     }
 
     public class GameTask implements Runnable {

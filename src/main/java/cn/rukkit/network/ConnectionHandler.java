@@ -90,14 +90,6 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
 				break;
 			case Packet.PACKET_PLAYER_INFO:
-				// Rececives a player info.
-				// 接收玩家信息
-				NetworkRoom room = Rukkit.getRoomManager().getAvailableRoom();
-				if (room == null) {
-					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
-					return;
-				}
-				ctx.writeAndFlush(p.serverInfo(room.config));
 				String packageName = in.readString();
 				log.info("Ints:" + in.readInt());
 				int gameVersionCode = in.readInt();
@@ -114,72 +106,91 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				String verifyResult = in.readString();
 				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s, coreUnit=%d",
 									   packageName, gameVersionCode, playerName, uuid, verifyResult, coreUnitCheck));
-				//Check avaliable 获取可用房间，无法加入则踢出
-//				if (Rukkit.getConnectionManager().size() > Rukkit.getConfig().maxPlayer) {
-//					ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameFull")));
-//					return;
-//				}
 
-				//Init connection. 初始化连接
-				currentRoom = room;
-				conn = new RoomConnection(this, room);
-				NetworkPlayer player = new NetworkPlayer(conn);
-				player.name = playerName;
-				player.uuid = uuid;
-				conn.player = player;
-				//Check admin.
+				// 获取当前的可用房间
+				NetworkRoom room = Rukkit.getRoomManager().getAvailableRoom();
+
+				// 获取是否为断线玩家
+				NetworkPlayer targetPlayer = Rukkit.getGlobalConnectionManager().getAllPlayerByUUID(uuid);
+				// 是否启用同步
+				if (Rukkit.getConfig().syncEnabled) {
+					if (targetPlayer != null) {
+						// 获取上次断线时的断线房间
+						currentRoom = targetPlayer.getRoom();
+					} else {
+						currentRoom = room;
+					}
+				} else {
+					currentRoom = room;
+				}
+
+				// 刷新房间信息
+				ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
+
+				// 创建 RoomConnection
+				conn = new RoomConnection(this, currentRoom);
+				// 玩家实例判断
+				if (targetPlayer != null && Rukkit.getConfig().syncEnabled) {
+					conn.player = targetPlayer;
+					conn.player.name = playerName;
+				} else {
+					NetworkPlayer player = new NetworkPlayer(conn);
+					player.name = playerName;
+					player.uuid = uuid;
+					conn.player = player;
+				}
+
+				// 检查房主
 				if (room.connectionManager.size() <= 0) {
 					conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 					conn.player.isAdmin = true;
 					ctx.writeAndFlush(Packet.serverInfo(room.config, true));
 				} else {
-                    ctx.writeAndFlush(Packet.serverInfo(room.config));
-                }
+					ctx.writeAndFlush(Packet.serverInfo(room.config));
+				}
 
-				// Check gaming
-				if (room.isGaming()) {
+				// 当前房间是否在游戏
+				if (currentRoom.isGaming()) {
+					// 是否启用同步
 					if (Rukkit.getConfig().syncEnabled) {
-						// If sync enabled, get target player
-						NetworkPlayer targetPlayer = Rukkit.getGlobalConnectionManager().getAllPlayerByUUID(uuid);
-						// If player is a reconnecting player
-						if (targetPlayer != null) {
-							stopTimeout();
-							currentRoom = targetPlayer.getRoom();
-							conn.player.playerIndex = targetPlayer.playerIndex;
-							currentRoom.connectionManager.set(conn, targetPlayer.playerIndex);
-							conn.updateTeamList(false);
-							conn.startPingTask();
-							// Sync game
-							conn.handler.ctx.writeAndFlush(Packet.startGame());
-							//conn.handler.ctx.writeAndFlush(Packet.sendSave(Rukkit.getGameServer().lastSave.arr, false));
-							room.syncGame();
-							conn.startTeamTask();
-							PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
-							PlayerReconnectEvent.getListenerList().callListeners(new PlayerReconnectEvent(conn.player));
-						} else {
-							// kick
-							ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameStarted")));
-						}
-						return;
+						log.info("Start Syncing!");
+						stopTimeout();
+						conn.player.updateServerInfo();
+						currentRoom.connectionManager.set(conn, conn.player.playerIndex);
+						conn.startTeamTask();
+						conn.updateTeamList(false);
+						conn.startPingTask();
+						// Sync game
+						conn.handler.ctx.writeAndFlush(Packet.startGame());
+						// conn.handler.ctx.writeAndFlush(Packet.sendSave(currentRoom, Rukkit.getDefaultSave().arr, false));
+						room.syncGame();
+
+						PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+						PlayerReconnectEvent.getListenerList().callListeners(new PlayerReconnectEvent(conn.player));
 					} else {
-						// kick
 						ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameStarted")));
-						return;
 					}
 				}
 
 				//Adding into GlobalConnectionManager.
 				Rukkit.getGlobalConnectionManager().add(conn);
 				//Adding into RoomConnectionManager.
-				room.connectionManager.add(conn);
-				conn.sendServerMessage("Hello, you are in room #" + room.roomId);
+				if (targetPlayer == null) {
+					room.connectionManager.add(conn);
+				}
+
+				conn.sendServerMessage("Hello, you are in room #" + currentRoom.roomId);
 				//load player Data.
-				player.loadPlayerData();
-				conn.startPingTask();
-				conn.startTeamTask();
-				conn.updateTeamList(false);
-				stopTimeout();
-				PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+				conn.player.loadPlayerData();
+
+				if (targetPlayer == null) {
+					conn.startPingTask();
+					conn.startTeamTask();
+					conn.updateTeamList(false);
+					stopTimeout();
+					PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+				}
+
 				break;
 			case Packet.PACKET_HEART_BEAT_RESPONSE:
 				conn.pong();

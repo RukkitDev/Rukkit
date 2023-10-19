@@ -23,6 +23,7 @@ import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -87,7 +88,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         @Override
         public void onSend(String[] args) {
             // TODO: Implement this method
-            if (args.length > 2) {
+            if (args.length >= 2) {
                 int roomid = Integer.parseInt(args[0]);
                 int playerid = Integer.parseInt(args[1]);
                 if (Rukkit.getRoomManager().getRoom(roomid).isGaming()) {
@@ -134,6 +135,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         public void onSend(String[] args) {
             if (args.length >= 2) {
                 Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0])).connectionManager.broadcastServerMessage(args[1]);
+                LoggerFactory.getLogger("Room #" + Integer.parseInt(args[0])).info("[Server] {}", args[1]);
             }
         }
     }
@@ -266,13 +268,14 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         CommandManager mgr = Rukkit.getCommandManager();
         Rukkit.getPluginManager().registerEventListener(this, this);
         mgr.registerServerCommand(new ServerCommand("help", LangUtil.getString("chat.help"), 1, new HelpCallback(), this));
-        mgr.registerServerCommand(new ServerCommand("kick", LangUtil.getString("chat.kick"), 1, new KickCallBack(), this));
+        mgr.registerServerCommand(new ServerCommand("kick", LangUtil.getString("chat.kick"), 2, new KickCallBack(), this));
         mgr.registerServerCommand(new ServerCommand("surrender", LangUtil.getString("chat.surrender"), 1, new SurrenderCallback(),this));
         mgr.registerServerCommand(new ServerCommand("state", LangUtil.getString("chat.state"), 0, new StateCallback(), this));
         mgr.registerServerCommand(new ServerCommand("list", LangUtil.getString("chat.list"), 0, new PlayerListCallback(),this));
         mgr.registerServerCommand(new ServerCommand("kickall", LangUtil.getString("server.kickAll"), 0, new KickAllCallback(), this));
         mgr.registerServerCommand(new ServerCommand("shutdown", LangUtil.getString("server.shutdown"), 0, new ShutdownCallback(), this));
-        mgr.registerServerCommand(new ServerCommand("say", LangUtil.getString("server.say"), 1, new SayCallback(), this));
+        mgr.registerServerCommand(new ServerCommand("stop", LangUtil.getString("server.shutdown"), 0, new ShutdownCallback(), this));
+        mgr.registerServerCommand(new ServerCommand("say", LangUtil.getString("server.say"), 2, new SayCallback(), this));
         mgr.registerServerCommand(new ServerCommand("maps", LangUtil.getString("chat.maps"), 1, new MapsCallback(0), this));
         mgr.registerServerCommand(new ServerCommand("map", LangUtil.getString("chat.map"), 1, new MapsCallback(1), this));
         //mgr.registerServerCommand(new ServerCommand("cmaps", LangUtil.getString("chat.cmaps"), 1, new CustomMapsCallback(0), this));

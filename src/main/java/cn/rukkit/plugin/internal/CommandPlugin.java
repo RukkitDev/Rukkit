@@ -15,11 +15,15 @@ import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
 import cn.rukkit.command.ServerCommandListener;
 import cn.rukkit.config.RoundConfig;
+import cn.rukkit.event.EventHandler;
+import cn.rukkit.event.EventListener;
+import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PingType;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
+import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.network.RoomConnectionManager;
 import cn.rukkit.network.packet.Packet;
@@ -28,8 +32,11 @@ import cn.rukkit.util.LangUtil;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +44,16 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	//int info = 0;
 	Logger log = LoggerFactory.getLogger(CommandPlugin.class);
+
+	public class CommandEventListener implements EventListener {
+		@EventHandler
+		public void playerChat(PlayerChatEvent e) {
+			if (e.getPlayer().isAdmin || e.getPlayer().getRoom().vote.voteId.equals("afk")) {
+				e.getPlayer().getRoom().connectionManager.broadcastServerMessage("Countdown stopped!");
+				e.getPlayer().getRoom().vote.stopVote();
+			}
+		}
+	}
 
 	@Override
 	public boolean onSend(RoomConnection con, String[] args) {
@@ -216,6 +233,19 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						PlayerManager playerGroup = con.currectRoom.playerManager;
 						NetworkPlayer fromPlayer = playerGroup.get(Integer.parseInt(cmd[0]) - 1);
 						NetworkPlayer targetPlayer = playerGroup.get(Integer.parseInt(cmd[1]) - 1);
+						if (cmd.length == 3) {
+							int team = Integer.parseInt(cmd[2]);
+							if (team == -1 || team == -2)
+							{
+								if (targetPlayer.playerIndex % 2 == 1) {
+									fromPlayer.team = 1;
+								} else {
+									fromPlayer.team = 0;
+								}
+							} else {
+								fromPlayer.team = team;
+							}
+						}
 						try {
 							if (fromPlayer.movePlayer(Integer.parseInt(cmd[1]) - 1)) {
 								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
@@ -223,6 +253,10 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 								int fromslot, toslot;
 								fromslot = fromPlayer.playerIndex;
 								toslot = targetPlayer.playerIndex;
+								if (fromslot == toslot) {
+									con.sendServerMessage("not same player!");
+									break;
+								}
 								playerGroup.remove(targetPlayer);
 								fromPlayer.movePlayer(toslot);
 								targetPlayer.movePlayer(fromslot);
@@ -239,6 +273,19 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						// Do nothing.
 					} else {
 						try {
+							if (cmd.length == 2) {
+								int team = Integer.parseInt(cmd[2]);
+								if (team == -1 || team == -2)
+								{
+									if ((Integer.parseInt(cmd[0]) - 1) % 2 == 1) {
+										con.player.team = 1;
+									} else {
+										con.player.team = 0;
+									}
+								} else {
+									con.player.team = team;
+								}
+							}
 							if (con.player.movePlayer(Integer.parseInt(cmd[0]) - 1)) {
 								con.sendServerMessage(LangUtil.getString("chat.moveComplete"));
 							} else {
@@ -258,7 +305,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
 			if (args.length <= 0) return false;
-			getLogger().debug(args[0]);
+			getLogger().info("Player {} issued command: {}", con.player.name, args[0]);
 			Rukkit.getCommandManager().executeChatCommand(con, args[0].substring(1));
 			return false;
 		}
@@ -278,8 +325,19 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						// Do nothing.
 					} else {
 						try {
+							int team = (Integer.parseInt(args[1]) - 1);
+							int slot = Integer.parseInt(args[0]) - 1;
+							if (team == -1 || team == -2) {
+								if (slot % 2 == 1) {
+									con.currectRoom.playerManager
+											.get(slot).team = 1;
+								} else {
+									con.currectRoom.playerManager
+											.get(slot).team = 2;
+								}
+							}
 							con.currectRoom.playerManager
-								.get(Integer.parseInt(args[0]) - 1).team = (Integer.parseInt(args[1]) - 1);
+								.get(slot).team = team;
 						} catch (NullPointerException e) {
 							con.sendServerMessage(LangUtil.getString("chat.playerEmpty"));
 						}
@@ -486,12 +544,56 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
     class SyncCallback implements ChatCommandListener {
         @Override
         public boolean onSend(RoomConnection con, String[] args) {
-            if (con.player.isAdmin) {
-                con.currectRoom.syncGame();
-            }
-            return false;
+			if (con.currectRoom.isGaming()) {
+				con.currectRoom.vote.submitVoting(() -> {
+					con.currectRoom.syncGame();
+				}, "sync", "有玩家发起了同步！输入-y或者-n来投票！", 15);
+			}
+			return false;
         }
     }
+
+	public class AgreeCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.vote.disabledVote) {
+				con.sendServerMessage("投票已禁用！");
+				return false;
+			}
+			if (con.currectRoom.vote.isVoting) {
+				if (con.currectRoom.vote.agree(con.player.playerIndex)) {
+					con.sendServerMessage(LangUtil.getString("nostop.vote.submit"));
+				} else {
+					con.sendServerMessage(LangUtil.getString("nostop.vote.alreadySubmit"));
+				}
+			} else {
+				con.sendServerMessage(LangUtil.getString("nostop.vote.noCurrentVote"));
+			}
+			return false;
+		}
+	}
+
+
+
+	public class DisagreeCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.currectRoom.vote.disabledVote) {
+				con.sendServerMessage("投票已禁用！");
+				return false;
+			}
+			if (con.currectRoom.vote.isVoting) {
+				if (con.currectRoom.vote.disagree(con.player.playerIndex)) {
+					con.sendServerMessage(LangUtil.getString("nostop.vote.submit"));
+				} else {
+					con.sendServerMessage(LangUtil.getString("nostop.vote.alreadySubmit"));
+				}
+			} else {
+				con.sendServerMessage(LangUtil.getString("nostop.vote.noCurrentVote"));
+			}
+			return false;
+		}
+	}
 
     class DumpSyncCallBack implements ChatCommandListener {
         @Override
@@ -575,6 +677,25 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
+	static class AfkCallback implements ChatCommandListener {
+		@Override
+		public boolean onSend(RoomConnection con, String[] args) {
+			if (con.player == con.currectRoom.playerManager.getAdmin()) return false;
+			con.currectRoom.vote.disabledVote = true;
+			con.currectRoom.vote.submitVoting(new Runnable() {
+				@Override
+				public void run() {
+					NetworkPlayer forePlayer = con.currectRoom.playerManager.getAdmin();
+					NetworkPlayer currPlayer = con.player;
+					forePlayer.giveAdmin(currPlayer.playerIndex);
+					forePlayer.updateServerInfo();
+					currPlayer.updateServerInfo();
+				}
+			}, "afk", "Afk", 30);
+			return false;
+		}
+	}
+
 	/*class InfoCallback implements ChatCommandListener {
 	 @Override
 	 public boolean onSend(Connection con, String[] args) {
@@ -600,7 +721,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		mgr.registerCommand(new ChatCommand("kick", LangUtil.getString("chat.kick"), 1, new KickCallBack(), this, true));
 		mgr.registerCommand(new ChatCommand("team", LangUtil.getString("chat.team"), 2, new TeamCallback(0), this, true));
 		mgr.registerCommand(new ChatCommand("self_team", LangUtil.getString("chat.self_team"), 1, new TeamCallback(1), this));
-		mgr.registerCommand(new ChatCommand("move", LangUtil.getString("chat.move"), 2, new MoveCallback(0), this, true));
+		mgr.registerCommand(new ChatCommand("move", LangUtil.getString("chat.move"), 3, new MoveCallback(0), this, true));
 		mgr.registerCommand(new ChatCommand("self_move", LangUtil.getString("chat.self_move"), 2, new MoveCallback(1), this));
 		mgr.registerCommand(new ChatCommand("qc", LangUtil.getString("chat.qc"), 1, new QcCallback(), this));
 		mgr.registerCommand(new ChatCommand("fog", LangUtil.getString("chat.fog"), 1, new SetFogCallback(), this, true));
@@ -616,6 +737,10 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		mgr.registerCommand(new ChatCommand("maping", LangUtil.getString("chat.maping"), 2, new PingCallBack(), this));
 		mgr.registerCommand(new ChatCommand("list", LangUtil.getString("chat.list"), 0, new PlayerListCallback(), this));
 		mgr.registerCommand(new ChatCommand("surrender", LangUtil.getString("chat.surrender"), 0, new SurrenderCallback(), this));
+		mgr.registerCommand(new ChatCommand("afk", LangUtil.getString("chat.afk"), 0, new AfkCallback(), this));
+		mgr.registerCommand(new ChatCommand("y", LangUtil.getString("nostop.y"), 0, new AgreeCallback(), this));
+		mgr.registerCommand(new ChatCommand("n", LangUtil.getString("nostop.n"), 0, new DisagreeCallback(), this));
+		getPluginManager().registerEventListener(new CommandEventListener(), this);
 	}
 
 	@Override

@@ -56,6 +56,11 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
         boolean isTriggered = (boolean) player.getTempData("isSpawnTriggered", false);
         String unit = (String) event.getPlayer().getTempData("spawnUnit", "tank");
         if (isTriggered) {
+            if (unit.equals("editorOrBuilder")) {
+                if (!player.isAdmin) {
+                    player.getConnection().sendServerMessage("只有管理才可以生成该单位！");
+                }
+            }
             try {
                 player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
             } catch (IOException ignored) {}
