@@ -537,4 +537,10 @@ public class Packet {
 		out.writeString(question);
 		return out.createPacket(PACKET_QUESTION);
 	}
+
+	public static Packet packetReturnToBattleroom() throws IOException {
+		GameOutputStream out = new GameOutputStream();
+		out.writeByte(0);
+		return out.createPacket(122);
+	}
 }

@@ -14,7 +14,7 @@ plugins {
 }
 
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.9.2-dev"
+final def RUKKIT_VERSION = "0.9.3-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
@@ -28,7 +28,19 @@ repositories {
 dependencies {
     // The production code uses the SLF4J logging API at compile time
     // compile 'org.slf4j:slf4j-api:1.7.25'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.41'
+    implementation 'org.jline:jline-terminal:3.23.0'
+    implementation 'org.jline:jline-console:3.23.0'
+    implementation 'org.jline:jline:3.23.0'
+    implementation 'org.jline:jline-reader:3.23.0'
+    implementation 'org.jline:jline-terminal-jna:3.23.0'
+    implementation 'io.netty:netty-all:4.1.95.Final'
+    implementation 'ch.qos.logback:logback-core:1.4.8'
+    implementation 'ch.qos.logback:logback-classic:1.4.8'
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+    implementation 'org.yaml:snakeyaml:1.25'
+
+
     //compile 'netty'
     // Declare the dependency for your favourite test framework you want to use in your tests.
     // TestNG is also supported by the Gradle Test task. Just change the
@@ -37,24 +49,24 @@ dependencies {
     //testCompile 'junit:junit:4.12'
 }
 
-tasks.withType(Javadoc) {
+tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
 }
 
-task buildRukkit(dependsOn: jar) {
+task buildRukkit(dependsOn: shadowJar) {
     doLast {
         println("Okay.Doing last step...")
         mkdir("./build/outputs")
-        copy() {
+        /*copy() {
             CopySpec copySpec ->
                 from file("${rootDir}/libs")
                 into "${rootDir}/build/outputs/libs"
-        }
+        }*/
         copy() {
             CopySpec copySpec ->
-                from file("${rootDir}/build/libs/Rukkit.jar")
+                from file("${rootDir}/build/libs/Rukkit-all.jar")
                 into "${rootDir}/build/outputs/"
-                rename ('Rukkit.jar', "Rukkit-${RUKKIT_VERSION}.jar")
+                rename ('Rukkit-all.jar', "Rukkit-${RUKKIT_VERSION}.jar")
         }
         copy() {
             CopySpec copySpec ->

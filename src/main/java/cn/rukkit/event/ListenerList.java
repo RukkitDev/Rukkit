@@ -42,11 +42,20 @@ public class ListenerList
 	}
 	
 	public void removePluginListener(EventListener listener) {
+		// 更安全的移除
+		Iterator<EventListenerContainer> iterator = listenerList.iterator();
+		while (iterator.hasNext()) {
+			EventListenerContainer container = iterator.next();
+			if (container.listener.getClass() == listener.getClass()) {
+				iterator.remove();
+			}
+		}
+		/*
 		for (EventListenerContainer c: listenerList) {
 			if (c.listener.getClass() == listener.getClass()) {
 				listenerList.remove(c);
 			}
-		}
+		}*/
 	}
 
 	public void clear() {

@@ -98,6 +98,7 @@ public class Vote{
         agree = disagree = 0;
         disabledVote = false;
         Arrays.fill(voteState, false);
+        if (voteFuture != null)
         Rukkit.getThreadManager().shutdownTask(voteFuture);
     }
 }

@@ -29,7 +29,7 @@ import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.9.2-dev";
+	public static final String RUKKIT_VERSION = "0.9.3-dev";
 	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
@@ -58,6 +58,8 @@ public class Rukkit {
 		log.info("Server will shutdown...");
 		log.info("Disconnect current players...");
 		getGlobalConnectionManager().broadcastGlobalServerMessage("Server is stopped!");
+		log.info("Disabling all plugins...");
+		pluginManager.disableAllPlugins();
 		log.info("Saving player data...");
 		for (RoomConnection connection: getGlobalConnectionManager().getConnections()) {
 			connection.player.savePlayerData();
@@ -240,15 +242,15 @@ public class Rukkit {
 	public static final void startServer() throws IOException, InterruptedException {
 		long time = System.currentTimeMillis();
 
-		log.info("load::RukkitConfig...");
+		log.info("load::RukkitConfig..."); // 加载配置文件
 		loadRukkitConfig();
 		log.info("load::RoundConfig...");
 		loadRoundConfig();
-		log.info("load::Language...");
+		log.info("load::Language..."); // 加载语言文件
 		LangUtil.lc = new Locale(getConfig().lang.split("_")[0], getConfig().lang.split("_")[1]);
 		log.info("Current Language: {}", LangUtil.lc);
 		//init SaveManager.
-		log.info("load::DefaultSaveData...");
+		log.info("load::DefaultSaveData..."); // 加载保存文件
 		try {
 			loadDefaultSave();
 		} catch (IOException e) {
@@ -257,7 +259,7 @@ public class Rukkit {
 		}
 		log.info("init::Data dictionary...");
 		NetworkPlayer.initPlayerDataDir();
-		log.info("init::ThreadManager");
+		log.info("init::ThreadManager"); // 初始化线程管理
 		threadManager = new ThreadManager(config.threadPoolCount);
 		log.info("init::ModManager");
 		modManager = new ModManager();

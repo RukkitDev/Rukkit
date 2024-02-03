@@ -48,7 +48,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public class CommandEventListener implements EventListener {
 		@EventHandler
 		public void playerChat(PlayerChatEvent e) {
-			if (e.getPlayer().isAdmin || e.getPlayer().getRoom().vote.voteId.equals("afk")) {
+			if (e.getPlayer().isAdmin && e.getPlayer().getRoom().vote.voteId.equals("afk")) {
 				e.getPlayer().getRoom().connectionManager.broadcastServerMessage("Countdown stopped!");
 				e.getPlayer().getRoom().vote.stopVote();
 			}

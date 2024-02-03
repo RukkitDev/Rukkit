@@ -113,8 +113,8 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				// 获取是否为断线玩家
 				NetworkPlayer targetPlayer = Rukkit.getGlobalConnectionManager().getAllPlayerByUUID(uuid);
 				// 是否启用同步
-				if (Rukkit.getConfig().syncEnabled) {
-					if (targetPlayer != null) {
+				if (targetPlayer != null) {
+					if (Rukkit.getConfig().syncEnabled) {
 						// 获取上次断线时的断线房间
 						currentRoom = targetPlayer.getRoom();
 					} else {
@@ -122,6 +122,17 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					}
 				} else {
 					currentRoom = room;
+				}
+
+				if (!currentRoom.isGaming() && targetPlayer != null) { // 如果 room 不在游戏，说明该uuid玩家发起了重复连接
+					log.info("Dup player {} (UUID={}) joined!", playerName, uuid);
+					if (Rukkit.getConfig().isDebug) {
+						log.info("You are in the debug mode, allowing this situation!");
+						targetPlayer = null; // 释放来保证正确加入
+					} else {
+						ctx.writeAndFlush(Packet.kick("You are already in server!"));
+						return;
+					}
 				}
 
 				// 刷新房间信息

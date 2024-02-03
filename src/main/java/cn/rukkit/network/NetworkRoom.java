@@ -193,21 +193,37 @@ public class NetworkRoom {
         isPaused = paused;
     }
 
+    public void stopGame() {
+        stopGame(false);
+    }
+
     /**
      * Stop a round game.
      */
-    public void stopGame() {
-        // Reset player slot
-        playerManager.reset();
+    public void stopGame(boolean isRuturn) {
+
         // Reset ticktime
         currentStep = 0;
         // End all connections
-        connectionManager.disconnect();
+        if (isRuturn) {
+            try {
+                playerManager.clearDisconnectedPlayers();
+                connectionManager.broadcast(Packet.packetReturnToBattleroom());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // Reset player slot
+            playerManager.reset();
+            connectionManager.disconnect();
+        }
         gameTaskFuture.cancel(true);
         isGaming = false;
         RoomStopGameEvent.getListenerList().callListeners(new RoomStopGameEvent(this));
         //Rukkit.getThreadManager().shutdown();
     }
+
+
 
     /**
      * Broadcast a packet.

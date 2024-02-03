@@ -181,6 +181,19 @@ public class PlayerManager
 		}
 	}
 
+	public void clearDisconnectedPlayers() {
+		for (int i=0;i<players.length;i++) {
+			if (!players[i].isEmpty) {
+				if (players[i].ping == -1) {
+					NetworkPlayer emptyPlayer = new NetworkPlayer();
+					emptyPlayer.playerIndex = i;
+					if (i % 2 == 1) emptyPlayer.team = 1;
+					players[i] = emptyPlayer;
+				}
+			}
+		}
+	}
+
 	public int getMaxPlayer() {
 		return max;
 	}

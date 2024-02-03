@@ -9,7 +9,7 @@
 
 package cn.rukkit.game.mod;
 import cn.rukkit.*;
-import com.alibaba.fastjson.*;
+import com.alibaba.fastjson2.*;
 import java.io.*;
 import java.util.*;
 import org.slf4j.*;

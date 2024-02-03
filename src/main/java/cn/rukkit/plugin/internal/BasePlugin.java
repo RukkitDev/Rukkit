@@ -19,6 +19,7 @@ import cn.rukkit.event.EventListener;
 import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
+import cn.rukkit.network.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     private Logger log = LoggerFactory.getLogger("Rukkit");
 
+
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
@@ -40,6 +42,7 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
         LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!", event.getPlayer().name);
+        event.getPlayer().savePlayerData();
     }
 
     @EventHandler
@@ -60,7 +63,7 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     @Override
     public void onDisable() {
-
+        getLogger().info("PlayerManager::Saving Player Data...");
     }
 
     @Override

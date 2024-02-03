@@ -68,6 +68,14 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
         }
     }
 
+    public class StopCallback implements ChatCommandListener {
+        @Override
+        public boolean onSend(RoomConnection con, String[] args) {
+            con.currectRoom.stopGame(true);
+            return false;
+        }
+    }
+
     @Override
     public void onLoad() {
         getLogger().info("TestPlugin is loading...");
@@ -83,6 +91,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
             getLogger().warn("Config cannot be loaded.");
         }
         Rukkit.getCommandManager().registerCommand(new ChatCommand("summon", "Summon a unit.", 1, new SummonCallback(), this));
+        Rukkit.getCommandManager().registerCommand(new ChatCommand("gamestop", "Stop a game immidately and return to the battleroom", 0, new StopCallback(), this));
     }
 
     @Override

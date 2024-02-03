@@ -209,7 +209,7 @@ public class PluginManager
 	}
 
 	//禁用所有插件
-	void disableAllPlugins()
+	public void disableAllPlugins()
 	{
 		for (RukkitPlugin plugin: pluginMap.values())
 		{
