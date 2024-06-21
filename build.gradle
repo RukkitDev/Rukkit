@@ -14,7 +14,7 @@ plugins {
 }
 
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.9.3-dev"
+final def RUKKIT_VERSION = "0.9.4-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
@@ -29,16 +29,17 @@ dependencies {
     // The production code uses the SLF4J logging API at compile time
     // compile 'org.slf4j:slf4j-api:1.7.25'
     implementation 'com.alibaba.fastjson2:fastjson2:2.0.41'
-    implementation 'org.jline:jline-terminal:3.23.0'
-    implementation 'org.jline:jline-console:3.23.0'
-    implementation 'org.jline:jline:3.23.0'
-    implementation 'org.jline:jline-reader:3.23.0'
-    implementation 'org.jline:jline-terminal-jna:3.23.0'
-    implementation 'io.netty:netty-all:4.1.95.Final'
-    implementation 'ch.qos.logback:logback-core:1.4.8'
-    implementation 'ch.qos.logback:logback-classic:1.4.8'
+    implementation 'org.jline:jline-terminal:3.25.0'
+    implementation 'org.jline:jline-console:3.25.0'
+    implementation 'org.jline:jline:3.25.0'
+    implementation 'org.jline:jline-reader:3.25.0'
+    implementation 'org.jline:jline-terminal-jna:3.25.0'
+    // https://mvnrepository.com/artifact/io.netty/netty-all
+    implementation 'io.netty:netty-all:4.1.100.Final'
+    implementation 'ch.qos.logback:logback-core:1.4.14'
+    implementation 'ch.qos.logback:logback-classic:1.4.12'
     implementation 'org.slf4j:slf4j-api:2.0.7'
-    implementation 'org.yaml:snakeyaml:1.25'
+    implementation 'org.yaml:snakeyaml:2.0'
 
 
     //compile 'netty'
@@ -53,7 +54,8 @@ tasks.withType(Javadoc).configureEach {
     options.encoding = 'UTF-8'
 }
 
-task buildRukkit(dependsOn: shadowJar) {
+tasks.register('buildRukkit') {
+    dependsOn shadowJar
     doLast {
         println("Okay.Doing last step...")
         mkdir("./build/outputs")
@@ -66,17 +68,17 @@ task buildRukkit(dependsOn: shadowJar) {
             CopySpec copySpec ->
                 from file("${rootDir}/build/libs/Rukkit-all.jar")
                 into "${rootDir}/build/outputs/"
-                rename ('Rukkit-all.jar', "Rukkit-${RUKKIT_VERSION}.jar")
+                rename('Rukkit-all.jar', "Rukkit-${RUKKIT_VERSION}.jar")
         }
         copy() {
             CopySpec copySpec ->
                 from file("${rootDir}/start.sh")
-                into "${rootDir}/build/outputs/";
+                into "${rootDir}/build/outputs/"
         }
         copy() {
             CopySpec copySpec ->
                 from file("${rootDir}/start.bat")
-                into "${rootDir}/build/outputs/";
+                into "${rootDir}/build/outputs/"
         }
         replaceFileText(new File("${rootDir}/build/outputs/start.sh"), "\\{version\\}", RUKKIT_VERSION)
         replaceFileText(new File("${rootDir}/build/outputs/start.bat"), "\\{version\\}", RUKKIT_VERSION)
