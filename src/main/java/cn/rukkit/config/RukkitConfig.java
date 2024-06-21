@@ -14,7 +14,7 @@ import java.util.Locale;
 public class RukkitConfig extends BaseConfig
 {
 	public String serverUser = "RUKKIT";
-	public String welcomeMsg = "Welcome to Rukkit server, {user}!";
+	public String welcomeMsg = "Welcome to Rukkit server, {playerName}!";
 	public String serverMotd = "My Rukkit server";
 	public int serverPort = 5123;
 	public int maxPlayer = 10;
@@ -30,6 +30,10 @@ public class RukkitConfig extends BaseConfig
 	public String lang = Locale.getDefault().toString();
 	//max threads in manager.Default = 8;
 	public int threadPoolCount = 8;
+	// max unit in per player 单玩家最大单位
+	public int maxUnitsPerPlayer = 250;
+	// using question system to vote 投票系统使用提示框模式实现
+	// public boolean usingPopupInVote = false;
 	
 	//Ping packet receive timeout.default = 8000 (ms)
 	public int pingTimeout = 8000;

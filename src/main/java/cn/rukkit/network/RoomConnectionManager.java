@@ -28,7 +28,7 @@ import java.util.List;
 
 public class RoomConnectionManager {
     private final NetworkRoom room;
-    List<RoomConnection> connections = new ArrayList<RoomConnection>();
+    volatile List<RoomConnection> connections = new ArrayList<RoomConnection>();
     private ChannelGroup CHANNEL_GROUP;
 
     private PlayerManager playerManager;

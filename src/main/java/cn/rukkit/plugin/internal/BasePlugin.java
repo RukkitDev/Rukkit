@@ -19,6 +19,7 @@ import cn.rukkit.event.EventListener;
 import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
+import cn.rukkit.event.player.PlayerReconnectEvent;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
@@ -41,6 +42,9 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
+        if (event.getPlayer().getRoom().isGaming()) {
+            event.getPlayer().sendTeamMessage(LangUtil.getString("rukkit.playerSharingControlDueDisconnected"));
+        }
         LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!", event.getPlayer().name);
         event.getPlayer().savePlayerData();
     }
@@ -48,6 +52,12 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
     @EventHandler
     public void onPlayerChatInfo(PlayerChatEvent event) {
         LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("[{}] {}", event.getPlayer().name, event.getMessage());
+    }
+
+    @EventHandler
+    public void onPlayerReconnected(PlayerReconnectEvent event) {
+        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerReconnect"), event.getPlayer().name));
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} reconnected!", event.getPlayer().name);
     }
 
     @Override

@@ -9,8 +9,19 @@
 
 package cn.rukkit.command.completer;
 
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.completer.StringsCompleter;
 
+import java.util.List;
+
 public class PlayerCompleter extends StringsCompleter {
-    
+    Completer completer;
+
+    @Override
+    public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+        StringsCompleter stringsCompleter = new StringsCompleter();
+    }
 }

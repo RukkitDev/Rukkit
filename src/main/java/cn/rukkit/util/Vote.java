@@ -40,6 +40,7 @@ public class Vote{
         RoomConnectionManager con = room.connectionManager;
         con.broadcastServerMessage(reason);
         timeRemain = timeRem;
+        voteId = id;
         voteDesc = reason;
         voteFuture = Rukkit.getThreadManager().schedule(
                 new Runnable() {
@@ -98,7 +99,6 @@ public class Vote{
         agree = disagree = 0;
         disabledVote = false;
         Arrays.fill(voteState, false);
-        if (voteFuture != null)
-        Rukkit.getThreadManager().shutdownTask(voteFuture);
+        if (voteFuture != null) Rukkit.getThreadManager().shutdownTask(voteFuture);
     }
 }

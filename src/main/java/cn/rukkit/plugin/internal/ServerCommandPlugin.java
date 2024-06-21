@@ -19,6 +19,7 @@ import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
+import cn.rukkit.network.RoomManager;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,8 +79,11 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         @Override
         public void onSend(String[] args) {
             StringBuffer buffer = new StringBuffer("- Players -\n");
-            for (RoomConnection conn: Rukkit.getGlobalConnectionManager().getConnections()) {
-                buffer.append(String.format("%s (Team %d) (%d ms)\n",conn.player.name, conn.player.team, (System.currentTimeMillis() - conn.pingTime)));
+            for (NetworkRoom networkRoom: Rukkit.getRoomManager().roomList) {
+                buffer.append(MessageFormat.format("- Room #{0} (gaming={1})（step={2}) -\n", networkRoom.roomId, networkRoom.isGaming(), networkRoom.getCurrentStep()));
+                for (RoomConnection connection: networkRoom.connectionManager.getConnections()) {
+                    buffer.append(MessageFormat.format("[{0}] {1} ping={2}\n", connection.player.playerIndex, connection.player.name, connection.player.ping));
+                }
             }
             System.out.println(buffer);
         }

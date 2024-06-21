@@ -42,12 +42,13 @@ import org.slf4j.LoggerFactory;
 
 public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandListener {
 
-	//int info = 0;
+	int totalInfo = 0;
 	Logger log = LoggerFactory.getLogger(CommandPlugin.class);
 
 	public class CommandEventListener implements EventListener {
 		@EventHandler
 		public void playerChat(PlayerChatEvent e) {
+			log.debug("admin = {}, voteId = {}", e.getPlayer().isAdmin, e.getPlayer().getRoom().vote.voteId);
 			if (e.getPlayer().isAdmin && e.getPlayer().getRoom().vote.voteId.equals("afk")) {
 				e.getPlayer().getRoom().connectionManager.broadcastServerMessage("Countdown stopped!");
 				e.getPlayer().getRoom().vote.stopVote();
@@ -110,14 +111,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
 			// TODO: Implement this method
-			for (RoomConnection conn : con.currectRoom.connectionManager.getConnections()) {
-				if (args.length < 1) return false;
-				if (conn.player.team == con.player.team && conn != null) {
-					conn.sendMessage(con.player.name,
-									 LangUtil.getString("chat.teamMsg") + args[0],
-									 con.player.playerIndex);
-				}
-			}
+			if (args.length < 1) return false;
+			con.player.sendTeamMessage(args[0]);
 			return false;
 		}
 	}
@@ -274,7 +269,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					} else {
 						try {
 							if (cmd.length == 2) {
-								int team = Integer.parseInt(cmd[2]);
+								int team = Integer.parseInt(cmd[1]);
 								if (team == -1 || team == -2)
 								{
 									if ((Integer.parseInt(cmd[0]) - 1) % 2 == 1) {
@@ -292,7 +287,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 								con.sendServerMessage(LangUtil.getString("chat.playerExist"));
 							}
 						} catch (Exception e) {
-							e.printStackTrace();
+							log.error("Error:", e);
 						}
 					}
 			}
@@ -383,7 +378,13 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	class InfoCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
+			totalInfo++;
 			log.warn("{} send a info: {}", con.player.name, args[0]);
+			if (totalInfo >= 3) {
+				con.currectRoom.connectionManager.broadcastServerMessage("Desync founded!Server is resyncing...");
+				con.currectRoom.syncGame();
+				totalInfo = 0;
+			}
 			return false;
 		}
 	}
@@ -512,8 +513,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
-				Rukkit.getRoundConfig().income = Integer.parseInt(args[0]);
-				if (Rukkit.getRoundConfig().income > 100 && Rukkit.getRoundConfig().income < 0) {
+				Rukkit.getRoundConfig().income = Float.parseFloat(args[0]);
+				if (Rukkit.getRoundConfig().income > 100 || Rukkit.getRoundConfig().income < 0) {
 					Rukkit.getRoundConfig().income = 1;
 				}
 				try {
@@ -691,7 +692,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					forePlayer.updateServerInfo();
 					currPlayer.updateServerInfo();
 				}
-			}, "afk", "Afk", 30);
+			}, "afk", LangUtil.getFormatString("chat.vote.afk", con.player.name), 30);
 			return false;
 		}
 	}

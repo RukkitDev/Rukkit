@@ -8,6 +8,7 @@
  */
 
 package cn.rukkit;
+import ch.qos.logback.classic.Level;
 import cn.rukkit.command.*;
 import cn.rukkit.config.*;
 import cn.rukkit.game.NetworkPlayer;
@@ -23,13 +24,14 @@ import cn.rukkit.game.mod.*;
 import cn.rukkit.plugin.internal.*;
 import cn.rukkit.service.*;
 import cn.rukkit.game.SaveManager;
+import org.yaml.snakeyaml.nodes.Tag;
 
 import java.util.Locale;
 import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.9.3-dev";
+	public static final String RUKKIT_VERSION = "0.9.4-dev";
 	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
@@ -157,7 +159,7 @@ public class Rukkit {
 			FileWriter writer = new FileWriter(confFile);
             RukkitConfig conf = new RukkitConfig();
             conf.UUID = UUID.randomUUID().toString();
-			writer.write(yaml.dumpAs(conf, null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(yaml.dumpAs(conf, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 		}
@@ -175,7 +177,7 @@ public class Rukkit {
 			confFile.delete();
 			confFile.createNewFile();
 			FileWriter writer = new FileWriter(confFile);
-			writer.write(yaml.dumpAs(new RoundConfig(), null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(yaml.dumpAs(new RoundConfig(), Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 		}
@@ -192,7 +194,7 @@ public class Rukkit {
 			confFile.delete();
 			confFile.createNewFile();
 			FileWriter writer = new FileWriter(confFile);
-			writer.write(yaml.dumpAs(cls, null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(yaml.dumpAs(cls, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 		}
@@ -244,10 +246,22 @@ public class Rukkit {
 
 		log.info("load::RukkitConfig..."); // 加载配置文件
 		loadRukkitConfig();
+		if (config.isDebug) {
+			log.info("debug::Change log level to debug...");
+			ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
+					.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+			root.setLevel(Level.DEBUG);
+
+		}
 		log.info("load::RoundConfig...");
 		loadRoundConfig();
 		log.info("load::Language..."); // 加载语言文件
-		LangUtil.lc = new Locale(getConfig().lang.split("_")[0], getConfig().lang.split("_")[1]);
+		String[] lang_format = getConfig().lang.split("_");
+		if (lang_format.length < 2) {
+			log.warn("Invalid Language configuration {} detected, we will use system default language. Please check your rukkit.yml.", getConfig().lang);
+		} else {
+			LangUtil.lc = new Locale(lang_format[0], lang_format[1]);
+		}
 		log.info("Current Language: {}", LangUtil.lc);
 		//init SaveManager.
 		log.info("load::DefaultSaveData..."); // 加载保存文件

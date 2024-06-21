@@ -29,7 +29,7 @@ public class PlayerManager
 		reset();
 	}
 	
-	private NetworkPlayer[] players;
+	private volatile NetworkPlayer[] players;
 	//private static Player[] inGamePlayers = new Player[ServerProperties.maxPlayer];
 
 	/**
@@ -80,6 +80,7 @@ public class PlayerManager
 //		}
 		if(currentRoom.isGaming()){
 			players[index].ping = -1;
+			players[index].isDisconnected = true;
 			return;
 		}
 		players[index] = new NetworkPlayer();

@@ -64,7 +64,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
             try {
                 player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
             } catch (IOException ignored) {}
-            player.putExtraData("isSpawnTriggered", false);
+            player.putTempData("isSpawnTriggered", false);
         }
     }
 

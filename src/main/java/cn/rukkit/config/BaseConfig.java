@@ -14,6 +14,7 @@ import java.io.*;
 import org.yaml.snakeyaml.*;
 //import java.util.logging.*;
 import org.slf4j.*;
+import org.yaml.snakeyaml.nodes.Tag;
 
 public abstract class BaseConfig
 {
@@ -32,7 +33,7 @@ public abstract class BaseConfig
 			confFile.createNewFile();
 			BaseConfig cfg = this.getClass().newInstance();
 			FileWriter writer = new FileWriter(confFile);
-			writer.write(new Yaml().dumpAs(cfg, null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(new Yaml().dumpAs(cfg, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 			return cfg;

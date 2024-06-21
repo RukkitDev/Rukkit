@@ -11,11 +11,14 @@ package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.*;
 import cn.rukkit.network.packet.Packet;
+import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.nodes.Tag;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +50,9 @@ public class NetworkPlayer
 	public boolean isSharingControl = false;
 
 	public boolean isSurrounded = false;
+	public boolean isDisconnected = false;
+
+	public boolean isAfk = false;
 	private NetworkRoom room;
 
 	public NetworkPlayer(RoomConnection connection) {
@@ -126,10 +132,10 @@ public class NetworkPlayer
 	 * Save player data.
 	 */
 	public void savePlayerData() {
-		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class));
+		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class, new LoaderOptions()));
 		try {
 			FileWriter writer = new FileWriter(Rukkit.getEnvPath() + "/data/player/" + uuid + ".yaml");
-			writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+			writer.write(yaml.dumpAs(data, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 			writer.flush();
 			writer.close();
 		} catch (FileNotFoundException e) {
@@ -143,8 +149,8 @@ public class NetworkPlayer
 		if (simpleMode) {
 			stream.writeByte(0);
 			stream.writeInt(ping);
-			stream.writeBoolean(true);
-			stream.writeBoolean(true);
+			stream.writeBoolean(isSharingControl);
+			stream.writeBoolean(isDisconnected || isAfk);
 		} else {
 			//玩家位置
 			stream.writeByte(playerIndex);
@@ -238,6 +244,16 @@ public class NetworkPlayer
 		} catch (IOException e) {}
 	}
 
+	public void sendTeamMessage(String message) {
+		for (RoomConnection conn: room.connectionManager.getConnections()) {
+			if (team == conn.player.team) {
+				conn.sendMessage(name,
+						LangUtil.getString("chat.teamMsg") + " " + message,
+						playerIndex);
+			}
+		}
+	}
+
 	@Override
 	public String toString() {
 		return "NetworkPlayer{" +
@@ -271,22 +287,22 @@ public class NetworkPlayer
 
 	public void loadPlayerData() {
 		Logger log = LoggerFactory.getLogger("PlayerData");
-		log.info("Load player infomation.");
-		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class));
+		log.debug("Load player infomation.");
+		Yaml yaml = new Yaml(new Constructor(NetworkPlayerData.class, new LoaderOptions()));
 		File dataFile = new File(Rukkit.getEnvPath() + "/data/player/" + uuid + ".yaml");
 		try {
 			if (dataFile.exists()) {
-				log.info("Player exists.Loading...");
+				log.debug("Player exists.Loading...");
 				data = yaml.load(new FileInputStream(dataFile));
 				data.lastUsedName = name;
 				data.lastConnectedTime = new Date().toString();
 				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
 				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
-				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+				writer.write(yaml.dumpAs(data, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
 				writer.close();
 			} else {
-				log.info("New player.Creating file...");
+				log.info("New player.Creating data file...");
 				dataFile.createNewFile();
 				data = new NetworkPlayerData();
 				data.uuid = uuid;
@@ -294,7 +310,7 @@ public class NetworkPlayer
 				data.lastConnectedTime = new Date().toString();
 				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
 				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
-				writer.write(yaml.dumpAs(data, null, DumperOptions.FlowStyle.BLOCK));
+				writer.write(yaml.dumpAs(data, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
 				writer.close();
 			}

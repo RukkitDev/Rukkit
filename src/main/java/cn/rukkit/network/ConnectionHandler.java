@@ -73,7 +73,9 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 			conn.stopPingTask();
 			conn.stopTeamTask();
 		} else {
-			log.warn("There is a unexpected connection at connection {}.", ctx.channel().remoteAddress());
+			if (!(ctx.channel().remoteAddress().toString().contains("18.216.139.119") || ctx.channel().remoteAddress().toString().contains("192.241.156.189"))) { // Whitelist of official server
+				log.warn("There is a unexpected connection at connection {}.", ctx.channel().remoteAddress());
+			}
 		}
 	}
 
@@ -91,21 +93,23 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				break;
 			case Packet.PACKET_PLAYER_INFO:
 				String packageName = in.readString();
-				log.info("Ints:" + in.readInt());
+				log.debug("Ints:" + in.readInt());
 				int gameVersionCode = in.readInt();
 				in.readInt();
 				String playerName = in.readString();
-				in.readByte();
-				in.readString();
-				// 玩家固有的uuid，前提是verifyCode不改变
+				// 服务器密码判定
+				in.readByte(); // 其实是 boolean
+				// 如果上面那个为 true，则接下来读 String 做密码
+				in.readString(); // packageName
+				// 玩家固有的uuid，前提是verifyCode不改变 (在rw内叫clientKey)
 				String uuid = in.readString();
 				// 核心单位检查，用于判断玩家是否对客户端进行修改
 				// 1.14:1198432602
 				// 1.15:678359601
 				int coreUnitCheck = in.readInt();
 				String verifyResult = in.readString();
-				log.info(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, verify=%s, coreUnit=%d",
-									   packageName, gameVersionCode, playerName, uuid, verifyResult, coreUnitCheck));
+				log.debug(String.format("Got Player(package=%s, version=%d, name=%s, uuid=%s, coreUnit=%d",
+									   packageName, gameVersionCode, playerName, uuid, coreUnitCheck));
 
 				// 获取当前的可用房间
 				NetworkRoom room = Rukkit.getRoomManager().getAvailableRoom();
@@ -117,11 +121,18 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					if (Rukkit.getConfig().syncEnabled) {
 						// 获取上次断线时的断线房间
 						currentRoom = targetPlayer.getRoom();
+						log.info("Found offline room {}", currentRoom.toString());
 					} else {
 						currentRoom = room;
 					}
 				} else {
 					currentRoom = room;
+				}
+
+				// 无可用房间，踢出
+				if (currentRoom == null) {
+					ctx.writeAndFlush(Packet.kick(LangUtil.getString("rukkit.gameFull")));
+					return;
 				}
 
 				if (!currentRoom.isGaming() && targetPlayer != null) { // 如果 room 不在游戏，说明该uuid玩家发起了重复连接
@@ -152,12 +163,12 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				}
 
 				// 检查房主
-				if (room.connectionManager.size() <= 0) {
+				if (currentRoom.connectionManager.size() <= 0) {
 					conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 					conn.player.isAdmin = true;
-					ctx.writeAndFlush(Packet.serverInfo(room.config, true));
+					ctx.writeAndFlush(Packet.serverInfo(currentRoom.config, true));
 				} else {
-					ctx.writeAndFlush(Packet.serverInfo(room.config));
+					ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
 				}
 
 				// 当前房间是否在游戏
@@ -174,9 +185,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 						// Sync game
 						conn.handler.ctx.writeAndFlush(Packet.startGame());
 						// conn.handler.ctx.writeAndFlush(Packet.sendSave(currentRoom, Rukkit.getDefaultSave().arr, false));
-						room.syncGame();
+						currentRoom.syncGame();
+						conn.player.isDisconnected = false;
 
-						PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
+						// PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 						PlayerReconnectEvent.getListenerList().callListeners(new PlayerReconnectEvent(conn.player));
 					} else {
 						ctx.writeAndFlush(p.kick(LangUtil.getString("rukkit.gameStarted")));
@@ -187,12 +199,21 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				Rukkit.getGlobalConnectionManager().add(conn);
 				//Adding into RoomConnectionManager.
 				if (targetPlayer == null) {
-					room.connectionManager.add(conn);
+					currentRoom.connectionManager.add(conn);
 				}
 
-				conn.sendServerMessage("Hello, you are in room #" + currentRoom.roomId);
 				//load player Data.
-				conn.player.loadPlayerData();
+				try {
+					conn.player.loadPlayerData();
+				} catch (Exception e) {
+					log.warn("Player {} data load failed!", playerName);
+				}
+				conn.sendServerMessage(LangUtil.getFormatString("rukkit.room", currentRoom.roomId));
+				conn.sendServerMessage(Rukkit.getConfig().welcomeMsg
+						.replace("{playerName}", playerName)
+						.replace("{simpleUUID}", uuid.substring(0, 7))
+						.replace("{packageName}", packageName)
+						.replace("{versionCode}", String.valueOf(gameVersionCode)));
 
 				if (targetPlayer == null) {
 					conn.startPingTask();
@@ -229,7 +250,8 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				//log.debug(str.readByte());
 				index = str.readByte();
 				out.writeByte(index);
-				log.debug("" + index);
+				log.debug("-- Command Recording --");
+				log.debug("teamIndex=" + index);
 
 				//是否为BasicAction
 				if (str.readBoolean()) {
@@ -248,7 +270,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 						targetUnit = str.readString();
 						out.writeString(targetUnit);
 						//((BuildAction)act).targetUnit = unit;
-						log.info("Custom=" + targetUnit);
+						log.debug("Custom=" + targetUnit);
 						//sendPacket(ctx, new Packet().chat("Debug", "(External)You are building by builder:" + targetUnit, -1));
 					}
 
@@ -279,12 +301,12 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					boolean bool1 = str.readBoolean();
 					boolean bool2 = str.readBoolean();
 					boolean bool3 = str.readBoolean();
-					log.debug("Byte1=" + byte1);
-					log.debug("Float1=" + float1);
-					log.debug("Float2=" + float2);
-					log.debug("Boolean1=" + bool1);
-					log.debug("Boolean2=" + bool2);
-					log.debug("Boolean3=" + bool3);
+					log.trace("Byte1=" + byte1);
+					log.trace("Float1=" + float1);
+					log.trace("Float2=" + float2);
+					log.trace("Boolean1=" + bool1);
+					log.trace("Boolean2=" + bool2);
+					log.trace("Boolean3=" + bool3);
 					out.writeByte(byte1);
 					out.writeFloat(float1);
 					out.writeFloat(float2);
@@ -312,15 +334,15 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeBoolean(false);
 				}
 				//
-				log.debug("CommandBlock ended.");
+				log.trace("CommandBlock ended.");
 
 
 				boolean bool4,isCancel;
 				bool4 = str.readBoolean(); // 未知
 				isCancel = str.readBoolean();
-				log.debug("Boolean4=" + bool4);
+				log.trace("Boolean4=" + bool4);
 				//是否为取消操作
-				log.debug("Boolean5=" + isCancel);
+				log.debug("isCancel=" + isCancel);
 				out.writeBoolean(bool4);
 				out.writeBoolean(isCancel);
 
@@ -335,12 +357,12 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				// 疑似和核弹等目标发射有关，设置集结点
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
-					log.debug("A readBoolean is true.");
+					log.trace("A readBoolean is true.");
 					float f3,f4;
 					f3 = str.readFloat();
 					f4 = str.readFloat();
-					log.debug("Float3=" + f3);
-					log.debug("Float4=" + f4);
+					log.trace("Float3=" + f3);
+					log.trace("Float4=" + f4);
 					out.writeFloat(f3);
 					out.writeFloat(f4);
 				} else {
@@ -349,7 +371,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 
 				//未知
 				boolean bool6 = str.readBoolean();
-				log.debug("Boolean6=" + bool6);
+				log.trace("Boolean6=" + bool6);
 
 				//批量执行单位
 				int t = str.readInt();
@@ -367,9 +389,9 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				// 如果为True, 则为预执行命令
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
-					log.debug("A readBoolean is true.");
+					log.trace("A readBoolean is true.");
 					byte2 = str.readByte(); //玩家
-					log.debug("Byte2=" + byte2);
+					log.trace("Byte2=" + byte2);
 					out.writeByte(byte2);
 				} else {
 					out.writeBoolean(false);
@@ -380,12 +402,11 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				float pingY = 0;
 				if (str.readBoolean()) {
 					out.writeBoolean(true);
-					log.debug("Its a ping packet.");
+					log.trace("Its a ping packet.");
 					//float f5,f6;
 					pingX = str.readFloat();
 					pingY = str.readFloat();
-					log.debug("PingX=" + pingX);
-					log.debug("PingX=" + pingY);
+					log.debug("PingX={} , PingY={}", pingX, pingY);
 					out.writeFloat(pingX);
 					out.writeFloat(pingY);
 				} else {
@@ -414,17 +435,17 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 
 				// 为true时，单位完成除建造和修复外的所有路径行动
 				boolean bool7 = str.readBoolean();
-				log.debug("Boolean7=" + bool7);
+				log.trace("Boolean7=" + bool7);
 				out.writeBoolean(bool7);
 
-				// 能否进行玩家控制的关键代码,填写0即可。
+				// 能否进行玩家控制的关键代码,填写32767即可。
 				short short1 = str.readShort();
-				log.debug("Short1=" + short1);
-				out.stream.writeShort(0);
+				log.trace("Short1=" + short1);
+				out.stream.writeShort(32767);
 
 				// SystemAction 比较危险，可以默认舍弃
 				if (str.readBoolean()) {
-					log.debug("A readBoolean is true.");
+					log.trace("A readBoolean is true.");
 					out.writeBoolean(true);
 					str.readByte();
 					out.writeByte(0);
@@ -433,7 +454,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					f1 = str.readFloat();
 					f2 = str.readFloat();
 					i1 = str.readInt();
-					log.debug("{}, {}, {}", f1, f2, i1);
+					log.trace("{}, {}, {}", f1, f2, i1);
 					out.writeFloat(f1);
 					out.writeFloat(f2);
 					out.writeInt(i1);
@@ -441,10 +462,9 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeBoolean(false);
 				}
 
-				StringBuffer buf = new StringBuffer("Move units count: ");
 				int movementUnitCount = str.readInt();
 				out.writeInt(movementUnitCount);
-				buf.append(movementUnitCount + " Unitids: ");
+				log.debug("count={}", movementUnitCount);
 				for (int i = 0;i < movementUnitCount;i++) {
 					float sx, sy, ex, ey;
 					long unitid = str.readLong();
@@ -457,20 +477,12 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					out.writeFloat(sy);
 					out.writeFloat(ex);
 					out.writeFloat(ey);
-					log.debug("unitid:" + unitid);
-					buf.append(unitid + " ");
-					log.debug("startx:" + sx);
-					log.debug("starty:" + sy);
-					log.debug("endx" + ex);
-					log.debug("endy" + ey);
 					//当前时间刻
 					int timestamp = str.readInt();
-					log.debug("" + timestamp);
 					out.writeInt(timestamp);
 					//单位类型（1陆，潜艇，跨悬崖，跨悬崖跨水，悬浮5)
 					UnitType u = (UnitType) str.readEnum(UnitType.class);
-					buf.append("(" + u + ") ");
-					log.debug(u.toString());
+					log.debug("id={} startPos=({}, {}), endPos=({}, {}), startStamp={}, unitType={}", unitid, sx, sy, ex, ey, timestamp, u);
 					out.writeEnum(u);
 
 					// Path 有关内容
@@ -492,7 +504,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 								short unity = ins.readShort();
 								outstr.stream.writeShort(unitx);
 								outstr.stream.writeShort(unity);
-								log.debug("Start x:" + unitx + ", Start y:" + unity);
+								log.trace("Start x:" + unitx + ", Start y:" + unity);
 								for (int i2 = 1;i2 < pathCount;i2++) {
 									// PathSize
 									int len = ins.readByte();
@@ -523,10 +535,10 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 						out.writeBoolean(false);
 					}
 				}
-				log.debug(buf.toString());
 
 				boolean bool = str.readBoolean();
 				out.writeBoolean(bool);
+				log.debug("-- Command recording end --");
 
 //				byte[] byt = new byte[str.stream.available()];
 //				str.stream.read(byt);
@@ -545,7 +557,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				}
 				break;
 			case Packet.PACKET_RANDY:
-				conn.sendServerMessage(String.format("Player '%s' is randy.", conn.player.name));
+				currentRoom.connectionManager.broadcastServerMessage(String.format("Player '%s' is randy.", conn.player.name));
                 break;
             case Packet.PACKET_SYNC:
                 in.readByte();

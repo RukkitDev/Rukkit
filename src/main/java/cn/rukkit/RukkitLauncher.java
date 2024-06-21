@@ -53,13 +53,14 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 			Rukkit.startServer();
 			while (isTerminalRunning) {
 				try {
-					String str = lineReader.readLine(PATTERN);
+					Thread.sleep(1); // 不知道为什么反正要这个东西
 					if (Rukkit.getCommandManager() == null) continue;
 					if (Rukkit.isStarted()) {
 						serverCommandCompleter.setCommandCompleteVars(Rukkit.getCommandManager().getLoadedServerCommandStringList());
 					} else {
 						continue;
 					}
+					String str = lineReader.readLine(PATTERN);
 					Rukkit.getCommandManager().executeServerCommand(str);
 				}
 				catch (UserInterruptException e) {

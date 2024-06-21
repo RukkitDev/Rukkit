@@ -272,7 +272,7 @@ public class PluginManager
 	}
 
 	/**
-	 * 取消注册一个EventListener里面所有的时间监听。
+	 * 取消注册一个EventListener里面所有的事件监听。
 	 * @param listener
 	 */
 	public void unregisterEventListener(EventListener listener)

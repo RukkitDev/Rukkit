@@ -17,6 +17,7 @@ import cn.rukkit.event.EventListenerContainer;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
 import cn.rukkit.config.*;
+import org.yaml.snakeyaml.nodes.Tag;
 
 public abstract class RukkitPlugin implements Plugin
 {
@@ -82,7 +83,7 @@ public abstract class RukkitPlugin implements Plugin
 	public final void saveConfig(File file, Object cls) throws IOException {
 		Yaml yaml = new Yaml();
 		FileWriter writer = new FileWriter(file);
-		writer.write(yaml.dumpAs(cls, null, DumperOptions.FlowStyle.BLOCK));
+		writer.write(yaml.dumpAs(cls, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 		writer.flush();
 		writer.close();
 	}

@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.concurrent.ScheduledFuture;
 
@@ -42,6 +43,12 @@ public class NetworkRoom {
     private SaveManager saveManager;
 
     public Vote vote;
+
+    @Override
+    public String toString() {
+        return MessageFormat.format("NetworkRoom [id = {0}, isGaming = {1}, isPaused = {2}, currentStep = {3}, stepRate = {4}]",
+                roomId, isGaming, isPaused, currentStep, stepRate);
+    }
 
     public NetworkRoom(int id) {
         // 指定房间id
@@ -268,7 +275,7 @@ public class NetworkRoom {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
-                        p.isSharingControl = true;
+                        p.isSharingControl = false;
                     } catch (NullPointerException ignored) {continue;}
                 }
             }
@@ -306,7 +313,7 @@ public class NetworkRoom {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
-                        p.isSharingControl = true;
+                        // p.isSharingControl = true;
                     } catch (NullPointerException ignored) {continue;}
                 }
             }

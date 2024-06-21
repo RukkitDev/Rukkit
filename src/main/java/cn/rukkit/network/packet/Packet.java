@@ -182,24 +182,24 @@ public class Packet {
 		//协议版本
 		o.writeInt(176);
 		//地图类型 0=官方 1=自定义 2=保存的游戏
-		o.writeInt(Rukkit.getRoundConfig().mapType);
-		o.writeString(Rukkit.getRoundConfig().mapName);
+		o.writeInt(config.mapType);
+		o.writeString(config.mapName);
 		//资金
-		o.writeInt(GameUtils.getMoneyFormat(Rukkit.getRoundConfig().credits));
-		o.writeInt(Rukkit.getRoundConfig().fogType);
+		o.writeInt(GameUtils.getMoneyFormat(config.credits));
+		o.writeInt(config.fogType);
 		o.writeBoolean(true); // revealedMap
 		o.writeInt(1);
 		o.writeByte(4);
 		o.writeBoolean(false);
 		//是否为管理
 		o.writeBoolean(isAdmin);
-		o.writeInt(250);
-		o.writeInt(250);
+		o.writeInt(Rukkit.getConfig().maxUnitsPerPlayer);
+		o.writeInt(Rukkit.getConfig().maxUnitsPerPlayer);
 
-		o.writeInt(Rukkit.getRoundConfig().startingUnits);
-		o.writeFloat(Rukkit.getRoundConfig().income);
+		o.writeInt(config.startingUnits);
+		o.writeFloat(config.income);
 		//禁核
-		o.writeBoolean(Rukkit.getRoundConfig().disableNuke);
+		o.writeBoolean(config.disableNuke);
 		o.writeBoolean(false);
 		o.writeBoolean(true); //是否为游戏房间，false则不读取下面的单位内容
 
