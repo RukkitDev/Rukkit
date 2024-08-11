@@ -21,14 +21,20 @@ public class PlayerLeftEvent extends PlayerEvent
 		return list;
 	}
 
-	public PlayerLeftEvent(NetworkPlayer p) {
+	public PlayerLeftEvent(NetworkPlayer p, String reason) {
 		this.player = p;
+		this.reason = reason;
 	}
 
 	private NetworkPlayer player;
+	private String reason;
 
 	public NetworkPlayer getPlayer()
 	{
 		return player;
+	}
+
+	public String getReason() {
+		return reason;
 	}
 }

@@ -16,6 +16,7 @@ import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.util.GameUtils;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
@@ -25,7 +26,10 @@ public class RoomConnection {
 	public ConnectionHandler handler;
 	public NetworkRoom currectRoom;
 	public long pingTime;
-	public int lastSyncTick = -1;
+	public int lastSyncTick = 0;
+	public boolean checkSumSent = false;
+	public int numberOfDesyncError = 0;
+
 	private ScheduledFuture pingFuture;
 	private ScheduledFuture teamFuture;
     public SaveData save;
@@ -99,6 +103,12 @@ public class RoomConnection {
 		if (teamFuture == null) return;
 		Rukkit.getThreadManager().shutdownTask(teamFuture);
 		teamFuture = null;
+	}
+
+	public void doChecksum() {
+		try {
+			handler.ctx.writeAndFlush(Packet.syncCheckSum(lastSyncTick));
+		} catch (IOException ignored) {}
 	}
 
 	/**

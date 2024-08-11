@@ -8,27 +8,26 @@
  */
 
 package cn.rukkit;
-import java.io.*;
-import java.util.Arrays;
-import java.util.Scanner;
 
-import ch.qos.logback.classic.PatternLayout;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.layout.TTLLLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.Layout;
-import ch.qos.logback.core.encoder.Encoder;
-import cn.rukkit.command.CommandManager;
 import cn.rukkit.command.ServerCommandCompleter;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Slf4JLoggerFactory;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.StringsCompleter;
-import org.slf4j.*;
-import io.netty.util.internal.logging.*;
-import org.jline.terminal.*;
-import org.jline.reader.*;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 {

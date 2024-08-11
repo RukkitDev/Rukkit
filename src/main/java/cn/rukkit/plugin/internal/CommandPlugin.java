@@ -211,6 +211,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 	}
 
+
 	// TODO: -move && -self-move 操作
 	class MoveCallback implements ChatCommandListener {
 		private int type;
@@ -380,11 +381,11 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		public boolean onSend(RoomConnection con, String[] args) {
 			totalInfo++;
 			log.warn("{} send a info: {}", con.player.name, args[0]);
-			if (totalInfo >= 3) {
-				con.currectRoom.connectionManager.broadcastServerMessage("Desync founded!Server is resyncing...");
-				con.currectRoom.syncGame();
-				totalInfo = 0;
-			}
+//			if (totalInfo >= 3) {
+//				con.currectRoom.connectionManager.broadcastServerMessage("Desync founded!Server is resyncing...");
+//				con.currectRoom.syncGame();
+//				totalInfo = 0;
+//			}
 			return false;
 		}
 	}
@@ -608,7 +609,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
 			try {
-				con.currectRoom.broadcast(Packet.syncCheckSum(con.currectRoom));
+				con.currectRoom.broadcast(Packet.syncCheckSum(con.currectRoom.getCurrentStep()));
 			} catch (IOException e) {
 				//con.sendChat(
 			}

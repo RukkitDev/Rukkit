@@ -331,12 +331,10 @@ public class Packet {
 		GameOutputStream out = new GameOutputStream();
 		out.writeInt(step);
 		out.writeLong(0);
-		out.writeInt(14);
-		out.startBlock("checkList", false);
-		for (int i = 0;i< 14;i++) {
+		out.writeInt(15);
+		for (int i = 0;i< 15;i++) {
 			out.writeLong(0);
 		}
-		out.endBlock();
 		return out.createPacket(PACKET_SYNC_CHECKSUM);
 	}
 

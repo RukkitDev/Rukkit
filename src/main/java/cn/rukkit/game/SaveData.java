@@ -40,7 +40,7 @@ public class SaveData {
 			log.debug("" + in.readBoolean());
 		}
 		if (version >= 23) {
-			in.startBlock();
+			in.startBlock(true);
 
 			if (version >= 54) {
 				log.debug("{}, {}", in.readString(), in.readInt());
@@ -134,7 +134,7 @@ public class SaveData {
 			out.writeBoolean(in.readBoolean());
 		}
 		if (version >= 23) {
-			in.startBlock();
+			in.startBlock(true);
 			out.startBlock("saveCompression", true);
 
 			if (version >= 54) {

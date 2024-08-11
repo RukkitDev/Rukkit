@@ -30,6 +30,9 @@ import java.io.IOException;
 
 public class GameCommand
 {
+	class BasicGameAction {
+
+	}
 	public int sendBy;
 	public byte[] arr;
 	public long unitId;

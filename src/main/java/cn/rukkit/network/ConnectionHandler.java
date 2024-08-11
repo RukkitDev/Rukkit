@@ -34,6 +34,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	private ScheduledFuture timeoutFuture;
 
 	private NetworkRoom currentRoom;
+	private String disconnectReason = "Unknown";
 	public class TimeoutTask implements Runnable {
 		private int execTime = 0;
 		@Override
@@ -67,7 +68,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 		super.channelInactive(ctx);
 		// 连接正确才调用事件
 		if (conn != null) {
-			PlayerLeftEvent.getListenerList().callListeners(new PlayerLeftEvent(conn.player));
+			PlayerLeftEvent.getListenerList().callListeners(new PlayerLeftEvent(conn.player, disconnectReason));
 			currentRoom.connectionManager.discard(conn);
 			Rukkit.getGlobalConnectionManager().discard(conn);
 			conn.stopPingTask();
@@ -255,6 +256,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 
 				//是否为BasicAction
 				if (str.readBoolean()) {
+					log.debug("-- BasicGameAction --");
 					out.writeBoolean(true);
 					//游戏指令
 					GameActions action = (GameActions) str.readEnum(GameActions.class);
@@ -306,7 +308,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 					log.trace("Float2=" + float2);
 					log.trace("Boolean1=" + bool1);
 					log.trace("Boolean2=" + bool2);
-					log.trace("Boolean3=" + bool3);
+					log.debug("Boolean3=" + bool3);
 					out.writeByte(byte1);
 					out.writeFloat(float1);
 					out.writeFloat(float2);
@@ -330,6 +332,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 							act = new MoveEvent(conn.player, x, y, targetUnitID);
 							break;
 					}
+					log.debug("-- End BasicGameAction --");
 				} else {
 					out.writeBoolean(false);
 				}
@@ -561,7 +564,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
                 break;
             case Packet.PACKET_SYNC:
                 in.readByte();
-                in.readInt();
+                int frame = in.readInt();
                 int time = in.readInt() / 15;
                 log.debug("{}, {}, {}, {}", in.readFloat(), in.readFloat(), in.readBoolean(), in.readBoolean());
                 byte[] save = new byte[in.stream.available()];
@@ -577,8 +580,36 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 				in.readByte();
 				int serverTick = in.readInt();
 				int clientTick = in.readInt();
+				log.info("[{}] Server tick: {}, Client tick: {}", conn.player.name, serverTick, clientTick);
 				conn.lastSyncTick = clientTick;
+				if (in.readBoolean()) {
+					log.info("Player {} send checksum!", conn.player.name);
+					in.readLong();
+					in.readLong();
+					DataInputStream din = in.getUnDecodeStream();
+					din.readInt();
+					int checkSumConut = din.readInt();
+					log.debug("Total checksum: {}", checkSumConut);
+					for (int i = 0;i < checkSumConut;i++) {
+						din.readLong();
+						long clientCheckData = din.readLong();
+						log.trace("{}: client={}", conn.player.checkList.get(i).getDescription(), clientCheckData);
+						conn.player.checkList.get(i).setCheckData(clientCheckData);
+					}
+					conn.currectRoom.checkSumReceived.incrementAndGet();
+					conn.checkSumSent = true;
+					synchronized (conn.currectRoom.checkSumReceived) {
+						conn.currectRoom.checkSumReceived.notifyAll();
+					}
+				} else {
+					log.info("Player {} did'n send checksum!We can sent back again!", conn.player.name);
+					conn.doChecksum();
+				}
+
+				break;
 			case Packet.PACKET_DISCONNECT:
+				String reason = in.readString();
+				disconnectReason = reason;
 				// Disconnects gracefully.
 				ctx.disconnect();
 				break;

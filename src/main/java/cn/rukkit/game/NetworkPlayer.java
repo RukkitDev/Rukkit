@@ -53,6 +53,8 @@ public class NetworkPlayer
 	public boolean isDisconnected = false;
 
 	public boolean isAfk = false;
+
+	public CheckSumList checkList = new CheckSumList();
 	private NetworkRoom room;
 
 	public NetworkPlayer(RoomConnection connection) {

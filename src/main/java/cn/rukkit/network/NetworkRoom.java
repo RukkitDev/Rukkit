@@ -5,10 +5,7 @@ import cn.rukkit.config.RoundConfig;
 import cn.rukkit.config.RukkitConfig;
 import cn.rukkit.event.room.RoomStartGameEvent;
 import cn.rukkit.event.room.RoomStopGameEvent;
-import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.game.PlayerManager;
-import cn.rukkit.game.SaveData;
-import cn.rukkit.game.SaveManager;
+import cn.rukkit.game.*;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.util.Vote;
@@ -17,8 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NetworkRoom {
     public PlayerManager playerManager;
@@ -31,7 +31,12 @@ public class NetworkRoom {
     public RoundConfig config;
     public int stepRate = 200;
     public int currentStep = 0;
+    public int checkSumFrame = 0;
+    public final AtomicInteger checkSumReceived = new AtomicInteger();
+    public int syncCount = 0;
     public int roomId;
+
+    private volatile boolean checkRequested = false;
 
     /**
      * NoStop模式下的房间存档
@@ -61,6 +66,85 @@ public class NetworkRoom {
         vote = new Vote(this);
     }
 
+    public class CheckSumTask implements Runnable {
+        Logger log = LoggerFactory.getLogger("CheckSum Task Room #" + roomId);
+        public void check(int recheck) {
+            // recheck 失败，同步游戏
+            if (recheck >= 3) {
+                log.error("Checksum failed!May be a resync needed!");
+                syncGame();
+                return;
+            }
+            // 随机选取玩家的checklist进行对比
+            CheckSumList list = null;
+            int diffcount = 0;
+            AtomicInteger time = new AtomicInteger();
+            HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
+            for (RoomConnection r: connectionManager.getConnections()) {
+                if (r.checkSumSent) {
+                    map.put(r.lastSyncTick,
+                            map.getOrDefault(r.lastSyncTick, 0) + 1);
+                }
+            }
+            AtomicInteger max = new AtomicInteger();
+            map.forEach((k, v) -> {
+                if (v > max.get()) {
+                    max.set(v);
+                    time.set(k);
+                }
+            });
+            // log.info("Max sync time: {}", time);
+            for (RoomConnection r: connectionManager.getConnections()) {
+                // 未发送不检查
+                if (!r.checkSumSent) continue;
+                // 随机挑选一位玩家的checkList做样本进行检查
+                if (list == null) {
+                    int rnd = new Random().nextInt(connectionManager.size());
+                    if (connectionManager.getConnections().get(rnd).checkSumSent)
+                        list = connectionManager.getConnections().get(rnd).player.checkList;
+                    else continue;
+                }
+                // 同步时间检查，若不符合正确的 tick 则不检查
+                if (time.get() != r.lastSyncTick) continue;
+                // 检查所有数据, 出现问题则diffcount++;
+                if (!list.checkData(r.player.checkList)) {
+                    diffcount++;
+                }
+            }
+            if (diffcount >= Math.ceil(connectionManager.size() / 2.0) && connectionManager.size() >= 2) {
+                log.warn("diffcount {} > {} players!Do recheck!", diffcount, Math.ceil(connectionManager.size() / 2.0));
+                check(recheck+1);
+                // 如果有 2 人以上不同步则执行游戏同步
+            } else if (diffcount >= 2){
+                log.info("Desync found.Resyncing game...");
+                syncGame();
+            } else {
+                log.info("Checksum complete!");
+            }
+            for (RoomConnection r: connectionManager.getConnections()) {
+                r.checkSumSent = false;
+            }
+            log.info("diffcount: {}, maxSyncTime: {}", diffcount, time);
+        }
+        @Override
+        public void run() {
+            if (checkRequested) {
+                synchronized (checkSumReceived) {
+                    while (true) {
+                        try {
+                            checkSumReceived.wait();
+                            if (checkSumReceived.get() >= connectionManager.size()) break;
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+                check(0);
+                checkRequested = false;
+            }
+        }
+    }
+
     public class GameTask implements Runnable {
         @Override
         public void run() {
@@ -68,6 +152,20 @@ public class NetworkRoom {
             if (!isPaused) {
                 // Add step
                 currentStep += 10;
+                if (Rukkit.getConfig().checksumSync) {
+                    if (currentStep % 300 == 0) {
+                        if (!checkRequested) {
+                            checkSumReceived.set(0);
+                            doChecksum();
+                        } else {
+                            // 立刻开始检查已经发送的人员而不是重新进行
+                            checkSumReceived.set(connectionManager.size());
+                            synchronized (checkSumReceived) {
+                                checkSumReceived.notify();
+                            }
+                        }
+                    }
+                }
             }
             if (connectionManager.size() <= 0) {
                 stopGame();
@@ -90,7 +188,7 @@ public class NetworkRoom {
                     } else {
                         while(!commandQuere.isEmpty() && !isPaused){
                             GameCommand cmd = commandQuere.removeLast();
-                            connectionManager.broadcast(new Packet().gameCommand(currentStep, cmd));
+                            connectionManager.broadcast(Packet.gameCommand(currentStep, cmd));
                         }
                     }
                 } catch (IOException ignored) {}
@@ -174,6 +272,7 @@ public class NetworkRoom {
                     if (save != null) {
                         saveManager.setLastSave(save);
                         saveManager.sendLastSaveToAll(false);
+                        syncCount++;
                         //save.loadSave();
                         //tickTime = save.time;
                         setPaused(false);
@@ -204,13 +303,23 @@ public class NetworkRoom {
         stopGame(false);
     }
 
+    public void doChecksum() {
+        checkRequested = true;
+        for (RoomConnection r: connectionManager.connections) {
+            r.doChecksum();
+        }
+        Rukkit.getThreadManager().submit(new CheckSumTask());
+    }
+
     /**
      * Stop a round game.
      */
     public void stopGame(boolean isRuturn) {
 
-        // Reset ticktime
+        // Reset ticktime and checksum
         currentStep = 0;
+        checkSumFrame = 0;
+        syncCount = 0;
         // End all connections
         if (isRuturn) {
             try {

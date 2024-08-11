@@ -27,6 +27,14 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 
     TestPluginConfig testConfig = new TestPluginConfig();
 
+    class TestSyncCallback implements ChatCommandListener {
+        @Override
+        public boolean onSend(RoomConnection con, String[] args) {
+            con.currectRoom.syncGame();
+            return false;
+        }
+    }
+
     class SummonCallback implements ChatCommandListener {
         @Override
         public boolean onSend(RoomConnection con, String[] args) {
@@ -92,6 +100,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
         }
         Rukkit.getCommandManager().registerCommand(new ChatCommand("summon", "Summon a unit.", 1, new SummonCallback(), this));
         Rukkit.getCommandManager().registerCommand(new ChatCommand("gamestop", "Stop a game immidately and return to the battleroom", 0, new StopCallback(), this));
+        Rukkit.getCommandManager().registerCommand(new ChatCommand("testsync", "Sync", 0, new TestSyncCallback(), this));
     }
 
     @Override

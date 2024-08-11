@@ -21,6 +21,12 @@
 		</encoder>
 	</appender>
 
+	<appender name="TERMINAL" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>%yellow([%d{yyyy-MM-dd HH:mm:ss} %level]) %-5highlight([%logger{0}]): %msg%n</pattern>
+		</encoder>
+	</appender>
+
     <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
 
 	<root level="INFO">

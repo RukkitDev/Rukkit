@@ -10,6 +10,8 @@
 package cn.rukkit.network;
 
 import cn.rukkit.network.packet.*;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.util.*;
 
@@ -39,7 +41,8 @@ public class GameInputStream
 
 	public DataInputStream getUnDecodeStream() throws IOException
 	{
-		this.readString();
+		String blockName = this.readString();
+		// LoggerFactory.getLogger("GameInputStream").info("BlockName: {}", blockName);
 		byte[] bytes = readStreamBytes();
 		return new DataInputStream(new ByteArrayInputStream(bytes));
 		// TODO: Implement this method
@@ -84,7 +87,8 @@ public class GameInputStream
     }
 
 	public DataInputStream getDecodeStream() throws IOException{
-		this.readString();
+		String blockName = this.readString();
+		// LoggerFactory.getLogger("GameInputStream").info("BlockName: {}", blockName);
 		byte[] bytes = readStreamBytes();
 		GzipDecoder coder = new GzipDecoder(bytes);
 		return coder.stream;
@@ -104,14 +108,29 @@ public class GameInputStream
 		int i = this.readInt();
 		return (Enum)clazz.getEnumConstants()[i];
 	}
+
+	public boolean readMark() throws IOException {
+		short mark = this.readShort();
+		if (mark != 12345) {
+			LoggerFactory.getLogger("GameInputStream").error("Failed to readMark: {} != 12345", mark);
+			return false;
+		} else {
+			return true;
+		}
+	}
 	
 	/*
 	* Starts a block to read content.
 	* Block content will buffered to List;
 	*/
-	public void startBlock() throws IOException {
-		stream = getDecodeStream();
-		blockQuere.add(stream);
+	public void startBlock(boolean isCompressed) throws IOException {
+		if (isCompressed) {
+			stream = getDecodeStream();
+			blockQuere.add(stream);
+		} else {
+			stream = getUnDecodeStream();
+			blockQuere.add(stream);
+		}
 	}
 	
 	/*

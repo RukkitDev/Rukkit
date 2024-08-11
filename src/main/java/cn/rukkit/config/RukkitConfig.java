@@ -43,6 +43,8 @@ public class RukkitConfig extends BaseConfig
 	
 	//Using commandQuere to manage game commands
 	public boolean useCommandQuere = false;
+
+	public boolean checksumSync = false;
 	
 	public RukkitConfig() {
 		this.configName = "rukkit.yml";

@@ -41,11 +41,11 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
-        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name));
+        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name, event.getReason()));
         if (event.getPlayer().getRoom().isGaming()) {
             event.getPlayer().sendTeamMessage(LangUtil.getString("rukkit.playerSharingControlDueDisconnected"));
         }
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!", event.getPlayer().name);
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!({})", event.getPlayer().name, event.getReason());
         event.getPlayer().savePlayerData();
     }
 
