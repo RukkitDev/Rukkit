@@ -257,10 +257,12 @@ public class Rukkit {
 		loadRoundConfig();
 		log.info("load::Language..."); // 加载语言文件
 		String[] lang_format = getConfig().lang.split("_");
-		if (lang_format.length < 2) {
-			log.warn("Invalid Language configuration {} detected, we will use system default language. Please check your rukkit.yml.", getConfig().lang);
-		} else {
+		if (lang_format.length > 2) {
 			LangUtil.lc = new Locale(lang_format[0], lang_format[1]);
+		} else if (lang_format.length == 1) {
+			LangUtil.lc = new Locale(lang_format[0]);
+		} else {
+			log.warn("Invalid Language configuration {} detected, we will use system default language. Please check your rukkit.yml.", getConfig().lang);
 		}
 		log.info("Current Language: {}", LangUtil.lc);
 		//init SaveManager.
