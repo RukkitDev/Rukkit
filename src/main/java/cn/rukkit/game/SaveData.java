@@ -10,8 +10,9 @@
 package cn.rukkit.game;
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.map.CustomMapLoader;
-import cn.rukkit.network.GameInputStream;
-import cn.rukkit.network.GameOutputStream;
+import cn.rukkit.network.io.GameInputStream;
+import cn.rukkit.network.io.GameOutputStream;
+
 import java.io.File;
 import java.io.IOException;
 import org.slf4j.Logger;
@@ -76,10 +77,11 @@ public class SaveData {
 			}
 			
 			int tickTime;
+			//奇怪了 明明用上了 却说没用上
+			@SuppressWarnings("unused")
 			float mapX, mapY;
 			
-			log.debug("{}, {}, {}, {}",
-					  tickTime = in.readInt(), mapY = in.readFloat(), mapX = in.readFloat(), in.readFloat());
+			log.debug("{}, {}, {}, {}",tickTime = in.readInt(), mapY = in.readFloat(), mapX = in.readFloat(), in.readFloat());
 					  
 			this.time = tickTime;
 			
@@ -114,6 +116,7 @@ public class SaveData {
 		FileOutputStream out = new FileOutputStream(f);
 		out.write(arr);
 		out.flush();
+		out.close();
 	}
 
 	@Deprecated

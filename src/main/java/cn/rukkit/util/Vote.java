@@ -10,8 +10,8 @@
 package cn.rukkit.util;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnectionManager;
+import cn.rukkit.network.room.ServerRoom;
+import cn.rukkit.network.room.RoomConnectionManager;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ public class Vote{
     // 投票id
     public String voteId = "null";
     // 房间实例
-    NetworkRoom room;
+    ServerRoom room;
     private int agree = 0;
     private int disagree = 0;
     private int timeRemain = 15;
@@ -71,7 +71,7 @@ public class Vote{
         return true;
     }
 
-    public Vote(NetworkRoom room) {
+    public Vote(ServerRoom room) {
         this.room = room;
         voteState = new boolean[room.playerManager.getMaxPlayer()];
     }

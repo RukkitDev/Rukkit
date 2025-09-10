@@ -1,12 +1,3 @@
-/*
- * Copyright 2020-2022 RukkitDev Team and contributors.
- *
- * This project uses GNU Affero General Public License v3.0.You can find this license in the following link.
- * 本项目使用 GNU Affero General Public License v3.0 许可证，你可以在下方链接查看:
- *
- * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
- */
-
 package cn.rukkit;
 
 import ch.qos.logback.classic.layout.TTLLLayout;
@@ -24,6 +15,9 @@ import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import java.awt.*;
+import javax.swing.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,17 +55,14 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 					}
 					String str = lineReader.readLine(PATTERN);
 					Rukkit.getCommandManager().executeServerCommand(str);
-				}
-				catch (UserInterruptException e) {
+				}catch (UserInterruptException e) {
 					log.info("Stopping server...");
 					Rukkit.shutdown("Server stopped by console");
-				}
-				catch (EndOfFileException e) {
+				}catch (EndOfFileException e) {
 					log.info("Stopping server...");
 					Rukkit.shutdown("Server stopped by console");
 					break;
-				}
-				catch (Exception e) {
+				}catch (Exception e) {
 					System.out.println("Oops.A exception occurred.");
 					e.printStackTrace();
 				}
@@ -80,13 +71,22 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 			//e.printStackTrace();
 		} catch (InterruptedException e) {
 			//e.printStackTrace();
+		} catch (NoClassDefFoundError e){
+			//终端有时会有这个bug 导致无法退出进程
+			//e.printStackTrace();
 		}
 	}
 
+	public static void mainx(String args[]){
+		JFrame a =new JFrame("hello");
+		a.setBounds(600, 500, 700, 500);
+		java.awt.Button b =new Button("ffff");
+		b.setBackground(Color.BLACK);
+		//a.add(b);
+		a.add(b);
+		a.setVisible(true);
+	}
 	Layout<ILoggingEvent> layout = new TTLLLayout();
-
-	private static void nop() {}
-
 
 	@Override
 	public void start() {
@@ -106,3 +106,35 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 	}
 
 }
+
+/**
+ *                             _ooOoo_
+ *                            o8888888o
+ *                            88" . "88
+ *                            (| -_- |)
+ *                            O\  =  /O
+ *                         ____/`---'\____
+ *                       .'  \\|     |//  `.
+ *                      /  \\|||  :  |||//  \
+ *                     /  _||||| -:- |||||-  \
+ *                     |   | \\\  -  /// |   |
+ *                     | \_|  ''\---/''  |   |
+ *                     \  .-\__  `-`  ___/-. /
+ *                   ___`. .'  /--.--\  `. . __
+ *                ."" '<  `.___\_<|>_/___.'  >'"".
+ *               | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+ *               \  \ `-.   \_ __\ /__ _/   .-` /  /
+ *          ======`-.____`-.___\_____/___.-`____.-'======
+ *                             `=---='
+ *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ *                     佛祖保佑        永无BUG
+ *            佛曰:
+ *                   写字楼里写字间，写字间里程序员；
+ *                   程序人员写程序，又拿程序换酒钱。
+ *                   酒醒只在网上坐，酒醉还来网下眠；
+ *                   酒醉酒醒日复日，网上网下年复年。
+ *                   但愿老死电脑间，不愿鞠躬老板前；
+ *                   奔驰宝马贵者趣，公交自行程序员。
+ *                   别人笑我忒疯癫，我笑自己命太贱；
+ *                   不见满街漂亮妹，哪个归得程序员？
+*/

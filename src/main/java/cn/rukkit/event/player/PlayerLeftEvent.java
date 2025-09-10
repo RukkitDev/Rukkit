@@ -10,7 +10,6 @@
 package cn.rukkit.event.player;
 
 import cn.rukkit.event.*;
-import cn.rukkit.event.player.*;
 import cn.rukkit.game.*;
 
 public class PlayerLeftEvent extends PlayerEvent 

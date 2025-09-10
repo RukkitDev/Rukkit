@@ -9,19 +9,15 @@
 
 package cn.rukkit.event;
 
-import cn.rukkit.plugin.*;
 import java.lang.reflect.*;
-import java.util.*;
 
 public class EventListenerContainer
 {
 	public Method method;
-	public RukkitPlugin plugin;
 	public EventListener listener;
-	public EventListenerContainer(RukkitPlugin plugin, Method method, EventListener listener){
+	public EventListenerContainer(Method method, EventListener listener){
 		this.method = method;
 		this.listener = listener;
-		this.plugin = plugin;
 	}
 
 	public Event callMethod(Event event) {

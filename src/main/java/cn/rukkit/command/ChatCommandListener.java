@@ -8,9 +8,9 @@
  */
 
 package cn.rukkit.command;
-import cn.rukkit.network.*;
+import cn.rukkit.network.room.ServerRoomConnection;
 
 public interface ChatCommandListener
 {
-	public boolean onSend(RoomConnection con, String args[]);
+	public boolean onSend(ServerRoomConnection con, String args[]);
 }

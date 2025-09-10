@@ -9,21 +9,19 @@
 
 package cn.rukkit.event;
 
-import cn.rukkit.event.*;
 import java.util.*;
-import cn.rukkit.util.*;
 import org.slf4j.*;
-import cn.rukkit.plugin.RukkitPlugin;
 
 public class ListenerList
 {
-	private Class eventClass;
+	private Class<?> eventClass;
 	private static Logger log;
 	private ArrayList<EventListenerContainer> listenerList = new ArrayList<EventListenerContainer>();
 
-	public ListenerList(Class clazz) {
+	public ListenerList(Class<?> clazz) {
 		this.eventClass = clazz;
-		this.log = LoggerFactory.getLogger("List" + eventClass.toString());
+		//下方移除了this关键字 真的对吗?
+		log = LoggerFactory.getLogger("List" + eventClass.toString());
 	}
 
 	public void registerListener(EventListenerContainer listener) {

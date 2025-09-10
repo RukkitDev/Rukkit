@@ -12,15 +12,10 @@ package cn.rukkit.command;
 import java.util.*;
 
 import cn.rukkit.util.LangUtil;
-import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
-import org.jline.reader.LineReader;
-import org.jline.reader.ParsedLine;
-import org.jline.reader.impl.completer.StringsCompleter;
 import org.slf4j.*;
-import cn.rukkit.network.*;
-import cn.rukkit.*;
-import cn.rukkit.network.packet.*;
+import cn.rukkit.network.core.packet.*;
+import cn.rukkit.network.room.ServerRoomConnection;
+
 import java.io.*;
 
 public class CommandManager 
@@ -50,7 +45,7 @@ public class CommandManager
 		}
 	}
 	
-	public void executeChatCommand(RoomConnection connection, String cmd) {
+	public void executeChatCommand(ServerRoomConnection connection, String cmd) {
 		String[] cmds = cmd.split("\\s+", 2);
 		ChatCommand cmdObj = fetchCommand(cmds[0]);
 		if (cmdObj == null) {
@@ -72,8 +67,7 @@ public class CommandManager
 		}
 		if (result == true) {
 			try {
-				connection.currectRoom.broadcast(
-					Packet.chat(connection.player.name,
+				connection.currectRoom.broadcast(UniversalPacket.chat(connection.player.name,
 								"-" + cmd,
 								connection.player.playerIndex));
 			} catch (IOException e) {}

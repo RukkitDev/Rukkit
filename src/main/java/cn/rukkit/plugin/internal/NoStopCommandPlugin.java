@@ -13,29 +13,26 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
-import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.RoomConnectionManager;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.ServerRoom;
+import cn.rukkit.network.room.ServerRoomConnection;
+import cn.rukkit.network.room.RoomConnectionManager;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
-public class NoStopCommandPlugin extends InternalRukkitPlugin{
+public class NoStopCommandPlugin extends InternalRukkitPlugin {
     // 投票类
-    public class Vote{
+    public class Vote {
         // 投票id
         int voteId;
         // 房间实例
-        NetworkRoom room;
+        ServerRoom room;
         private int agree = 0;
         private int disagree = 0;
         private int timeRemain = 15;
@@ -63,25 +60,28 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
                             if (timeRemain == 0) {
                                 if (agree >= disagree) {
                                     con.broadcastServerMessage(
-                                            MessageFormat.format(LangUtil.getString("nostop.vote.success"), agree, disagree));
+                                            MessageFormat.format(LangUtil.getString("nostop.vote.success"), agree,
+                                                    disagree));
                                     runnable.run();
                                 } else {
                                     con.broadcastServerMessage(
-                                            MessageFormat.format(LangUtil.getString("nostop.vote.failure"), agree, disagree));
+                                            MessageFormat.format(LangUtil.getString("nostop.vote.failure"), agree,
+                                                    disagree));
                                 }
                                 stopVote();
                             }
                             if (timeRemain % 10 == 0) {
-                                con.broadcastServerMessage(MessageFormat.format(LangUtil.getString("nostop.vote.timeRemain"), timeRemain));
+                                con.broadcastServerMessage(
+                                        MessageFormat.format(LangUtil.getString("nostop.vote.timeRemain"), timeRemain));
                             }
-                            timeRemain --;
+                            timeRemain--;
                         }
                     }, 1000, 1000);
             isVoting = true;
             return true;
         }
 
-        public Vote(NetworkRoom room) {
+        public Vote(ServerRoom room) {
             this.room = room;
             voteState = new boolean[room.playerManager.getMaxPlayer()];
         }
@@ -114,7 +114,7 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
 
     public class AgreeCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             Vote vote = voteList.get(con.currectRoom);
             if (vote.isVoting) {
                 if (vote.agree(con.player.playerIndex)) {
@@ -129,11 +129,9 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
         }
     }
 
-
-
     public class DisagreeCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             Vote vote = voteList.get(con.currectRoom);
             if (vote.isVoting) {
                 if (vote.disagree(con.player.playerIndex)) {
@@ -150,23 +148,26 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
 
     class NukeCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, final String[] args) {
+        public boolean onSend(ServerRoomConnection con, final String[] args) {
             Vote vote = voteList.get(con.currectRoom);
             if (args.length < 1) {
                 // Do nothing.
             } else {
                 boolean result = vote.submitVoting(new Runnable() {
-                                                       @Override
-                                                       public void run() {
-                                                           Rukkit.getRoundConfig().disableNuke = !Boolean.parseBoolean(args[0]);
-                                                           try {
-                                                               con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-                                                           } catch (IOException ignored) {}
-                                                       }
-                                                   },
-                        MessageFormat.format(LangUtil.getString("nostop.vote.nukes"), con.player.name, (Boolean.parseBoolean(args[0]) ? "启用":"禁用")),
+                    @Override
+                    public void run() {
+                        Rukkit.getRoundConfig().disableNuke = !Boolean.parseBoolean(args[0]);
+                        try {
+                            con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+                        } catch (IOException ignored) {
+                        }
+                    }
+                },
+                        MessageFormat.format(LangUtil.getString("nostop.vote.nukes"), con.player.name,
+                                (Boolean.parseBoolean(args[0]) ? "启用" : "禁用")),
                         30);
-                if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
+                if (!result)
+                    con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
 
             }
             return false;
@@ -175,8 +176,9 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
 
     class IncomeCallback implements ChatCommandListener {
         float income = 0;
+
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             Vote vote = voteList.get(con.currectRoom);
             if (args.length == 0) {
                 // Do nothing.
@@ -186,18 +188,22 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
                     income = 1;
                 }
                 boolean result = vote.submitVoting(new Runnable() {
-                                                       @Override
-                                                       public void run() {
-                                                           try {
-                                                               con.currectRoom.config.income = income;
-                                                               con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-                                                               con.currectRoom.syncGame();
-                                                           } catch (IOException e) {}
-                                                       }
-                                                   },
+                    @Override
+                    public void run() {
+                        try {
+                            con.currectRoom.config.income = income;
+                            con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+                            // con.currectRoom.syncGame();
+                            // log.error("未完成");
+                            //TODO: unfinish
+                        } catch (IOException e) {
+                        }
+                    }
+                },
                         MessageFormat.format(LangUtil.getString("nostop.vote.income"), con.player.name, income),
                         30);
-                if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
+                if (!result)
+                    con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
             }
             return false;
         }
@@ -205,39 +211,50 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
 
     class SyncCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             Vote vote = voteList.get(con.currectRoom);
             boolean result = vote.submitVoting(new Runnable() {
-                                                   @Override
-                                                   public void run() {
-                                                       con.currectRoom.syncGame();
-                                                   }
-                                               },
+                @Override
+                public void run() {
+                    // con.currectRoom.syncGame();
+                    //TODO: unfinish
+                }
+            },
                     MessageFormat.format(LangUtil.getString("nostop.vote.sync"), con.player.name),
                     30);
-            if (!result) con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
+            if (!result)
+                con.sendServerMessage(LangUtil.getString("nostop.vote.voteExist"));
             return false;
         }
     }
 
-    public HashMap<NetworkRoom, Vote> voteList = new HashMap<NetworkRoom, Vote>();
+    public HashMap<ServerRoom, Vote> voteList = new HashMap<ServerRoom, Vote>();
 
     @Override
     public void onLoad() {
         CommandManager mgr = Rukkit.getCommandManager();
-        mgr.registerCommand(new ChatCommand("help", LangUtil.getString("chat.help"), 1, new CommandPlugin.HelpCallback(), this));
-        mgr.registerCommand(new ChatCommand("state", LangUtil.getString("chat.state"), 0, new CommandPlugin.StateCallback(), this));
-        mgr.registerCommand(new ChatCommand("version", LangUtil.getString("chat.version"), 0, new CommandPlugin.VersionCallback(), this));
-        //mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new TeamChatCallback(), this));
-        mgr.registerCommand(new ChatCommand("t", LangUtil.getString("chat.t"), 1, new CommandPlugin.TeamChatCallback(), this));
-        mgr.registerCommand(new ChatCommand("maps", LangUtil.getString("chat.maps"), 1, new CommandPlugin.MapsCallback(0), this));
-        mgr.registerCommand(new ChatCommand("cmaps", LangUtil.getString("chat.cmaps"), 1, new CommandPlugin.CustomMapsCallback(0), this));
+        mgr.registerCommand(
+                new ChatCommand("help", LangUtil.getString("chat.help"), 1, new CommandPlugin.HelpCallback(), this));
+        mgr.registerCommand(
+                new ChatCommand("state", LangUtil.getString("chat.state"), 0, new CommandPlugin.StateCallback(), this));
+        mgr.registerCommand(new ChatCommand("version", LangUtil.getString("chat.version"), 0,
+                new CommandPlugin.VersionCallback(), this));
+        // mgr.registerCommand(new ChatCommand("team", "Send a team message.", 1, new
+        // TeamChatCallback(), this));
+        mgr.registerCommand(
+                new ChatCommand("t", LangUtil.getString("chat.t"), 1, new CommandPlugin.TeamChatCallback(), this));
+        mgr.registerCommand(
+                new ChatCommand("maps", LangUtil.getString("chat.maps"), 1, new CommandPlugin.MapsCallback(0), this));
+        mgr.registerCommand(new ChatCommand("cmaps", LangUtil.getString("chat.cmaps"), 1,
+                new CommandPlugin.CustomMapsCallback(0), this));
         mgr.registerCommand(new ChatCommand("y", LangUtil.getString("nostop.y"), 0, new AgreeCallback(), this));
         mgr.registerCommand(new ChatCommand("n", LangUtil.getString("nostop.n"), 0, new DisagreeCallback(), this));
-        mgr.registerCommand(new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
+        mgr.registerCommand(
+                new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
         mgr.registerCommand(new ChatCommand("nukes", LangUtil.getString("chat.nukes"), 1, new NukeCallback(), this));
-        mgr.registerCommand(new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
-        for (NetworkRoom networkRoom: Rukkit.getRoomManager().roomList) {
+        mgr.registerCommand(
+                new ChatCommand("income", LangUtil.getString("chat.income"), 1, new IncomeCallback(), this));
+        for (ServerRoom networkRoom : Rukkit.getRoomManager().roomList) {
             voteList.put(networkRoom, new Vote(networkRoom));
         }
     }

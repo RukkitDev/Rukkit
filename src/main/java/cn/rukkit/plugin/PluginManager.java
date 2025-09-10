@@ -12,7 +12,6 @@ package cn.rukkit.plugin;
 import cn.rukkit.*;
 import cn.rukkit.event.*;
 import cn.rukkit.event.EventListener;
-import cn.rukkit.plugin.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.net.*;
@@ -25,45 +24,38 @@ import org.slf4j.*;
 import cn.rukkit.network.*;
 import org.yaml.snakeyaml.*;
 
-public class PluginManager 
-{
-	private static String PLUGIN_FOLDER= Rukkit.getEnvPath() + "/plugins";
+public class PluginManager {
+	private static String PLUGIN_FOLDER = Rukkit.getEnvPath() + "/plugins";
 	private static Logger log = LoggerFactory.getLogger(PluginManager.class);
 	private static boolean isServerDone = false;
 	private static HashMap<String, RukkitPlugin> pluginMap = new LinkedHashMap<>();
-	//加载plugins文件夹内的插件
-	public void loadPluginInDir() throws IOException
-	{
+
+	// 加载plugins文件夹内的插件
+	public void loadPluginInDir() throws IOException {
 		log.info("Plugin loader started");
 		File folder = new File(PLUGIN_FOLDER);
 		folder.mkdir();
-		if (!folder.isDirectory())
-		{
+		if (!folder.isDirectory()) {
 			log.warn("Not a dir.Change a another dir...");
 			folder = new File(PLUGIN_FOLDER + "_rukkit");
 			folder.mkdir();
-			if (!folder.exists() || !folder.isDirectory())
-			{
+			if (!folder.exists() || !folder.isDirectory()) {
 				log.error("Load failed.Stop working.");
 				return;
 			}
 		}
 
-		for (File f: folder.listFiles())
-		{
+		for (File f : folder.listFiles()) {
 			String name = f.getName();
 			String[] names = name.split("\\.");
-			//log.d(f.getName()+names.toString());
-			if (names[names.length - 1].equals("jar"))
-			{
+			// log.d(f.getName()+names.toString());
+			if (names[names.length - 1].equals("jar")) {
 				JarFile jar = new JarFile(f.getPath());
 				Enumeration<JarEntry> e = jar.entries();
-				while (e.hasMoreElements())
-				{
+				while (e.hasMoreElements()) {
 					JarEntry entry = e.nextElement();
-					if (entry.getName().contains("plugin.yml"))
-					{
-						//System.out.println("go");
+					if (entry.getName().contains("plugin.yml")) {
+						// System.out.println("go");
 						PluginConfig pluginConf = new Yaml().loadAs(jar.getInputStream(entry), PluginConfig.class);
 
 						// 插件无效，未配置id
@@ -72,36 +64,32 @@ public class PluginManager
 							break;
 						}
 
-						if (pluginConf.pluginClass == null)
-						{
-							log.error("Plugin " + pluginConf.name + " not have a Main class.Please check your properties file.");
+						if (pluginConf.pluginClass == null) {
+							log.error("Plugin " + pluginConf.name
+									+ " not have a Main class.Please check your properties file.");
 							break;
 						}
 
 						log.debug(pluginConf.pluginClass);
 						URL url1 = new URL("file:" + f.getAbsolutePath());
-						URLClassLoader myClassLoader1 = new URLClassLoader(new URL[] { url1 }, Thread.currentThread().getContextClassLoader());
-						try
-						{
+						URLClassLoader myClassLoader1 = new URLClassLoader(new URL[] { url1 },
+								Thread.currentThread().getContextClassLoader());
+						try {
 							Class<?> pluginClass = myClassLoader1.loadClass(pluginConf.pluginClass);
 							RukkitPlugin plugin = (RukkitPlugin) pluginClass.newInstance();
 							plugin.config = pluginConf;
 							loadPlugin(plugin);
-						}
-						catch (IllegalAccessException e1)
-						{
-							log.error("Plugin could not be loaded.",e1);
-						}
-						catch (InstantiationException e2)
-						{
+						} catch (IllegalAccessException e1) {
+							log.error("Plugin could not be loaded.", e1);
+						} catch (InstantiationException e2) {
 							log.error("Plugin could not be loaded.", e2);
-						}
-						catch (ClassNotFoundException e3)
-						{
+						} catch (ClassNotFoundException e3) {
 							log.error("Plugin could not be loaded.Class not found.", e3);
 						}
+						myClassLoader1.close();
 					}
 				}
+				jar.close();
 			}
 		}
 
@@ -114,15 +102,14 @@ public class PluginManager
 			throw new RuntimeException("Server already started.");
 		} else {
 			isServerDone = true;
-			for(RukkitPlugin p : pluginMap.values()) {
+			for (RukkitPlugin p : pluginMap.values()) {
 				p.onDone();
 			}
 		}
 	}
 
-	//加载单个插件类
-	public void loadPlugin(RukkitPlugin plugin)
-	{
+	// 加载单个插件类
+	public void loadPlugin(RukkitPlugin plugin) {
 		if (plugin.getPluginId() == null) {
 			log.warn(MessageFormat.format(LangUtil.getString("rukkit.plugin.invalid"), "<Dynamic Plugin>"));
 		}
@@ -152,40 +139,39 @@ public class PluginManager
 		}
 
 		if (pluginConf.apiVersion == null) {
-			log.error("Plugin {} not have a apiVersion!This will cause incompatible problems!Plugin will not be loaded!", pluginConf.id);
+			log.error(
+					"Plugin {} not have a apiVersion!This will cause incompatible problems!Plugin will not be loaded!",
+					pluginConf.id);
 			return;
 		}
 
 		if (!pluginConf.apiVersion.equals(Rukkit.PLUGIN_API_VERSION)) {
-			log.warn("Plugin {} have a incompatible apiVersion:{}, This may cause incompatible problem in current API Version:{}!",
+			log.warn(
+					"Plugin {} have a incompatible apiVersion:{}, This may cause incompatible problem in current API Version:{}!",
 					plugin.getPluginId(), pluginConf.apiVersion, Rukkit.PLUGIN_API_VERSION);
 		}
 
-		if (pluginMap.getOrDefault(plugin.config.id, null) == null)
-		{
+		if (pluginMap.getOrDefault(plugin.config.id, null) == null) {
 			plugin.onLoad();
 			pluginMap.put(plugin.config.id, plugin);
-		}
-		else
-		{
+		} else {
 			log.warn("Plugin " + plugin.config.name + " had already added.");
 		}
 
 	}
 
-	private void enablePluginDirectly(RukkitPlugin plugin)
-	{
+	@SuppressWarnings("unused")
+	private void enablePluginDirectly(RukkitPlugin plugin) {
 		plugin.setEnabled(true);
 	}
 
-	private void disablePluginDirectly(RukkitPlugin plugin)
-	{
+	@SuppressWarnings("unused")
+	private void disablePluginDirectly(RukkitPlugin plugin) {
 		plugin.setEnabled(false);
 	}
 
-	//启用已加载的插件
-	public void enablePlugin(RukkitPlugin plugin)
-	{
+	// 启用已加载的插件
+	public void enablePlugin(RukkitPlugin plugin) {
 		RukkitPlugin pluginToEnable = pluginMap.getOrDefault(plugin.config.id, null);
 		if (pluginToEnable == null) {
 			log.warn("Cannot enable plugin {} because this plugin didn't load!", plugin.getPluginId());
@@ -194,78 +180,103 @@ public class PluginManager
 		}
 	}
 
-	//禁用已加载的插件
-	public void disablePlugin(RukkitPlugin plugin)
-	{
+	// 禁用已加载的插件
+	public void disablePlugin(RukkitPlugin plugin) {
 		RukkitPlugin pluginToDisable = pluginMap.getOrDefault(plugin.config.id, null);
 		if (pluginToDisable == null) {
 			log.warn("Cannot enable plugin {} because this plugin didn't load!", plugin.getPluginId());
 		} else {
 			pluginToDisable.setEnabled(false);
-			for (EventListener listener: pluginToDisable.listeners) {
+			for (EventListener listener : pluginToDisable.listeners) {
 				unregisterEventListener(listener);
 			}
 		}
 	}
 
-	//禁用所有插件
-	public void disableAllPlugins()
-	{
-		for (RukkitPlugin plugin: pluginMap.values())
-		{
+	// 禁用所有插件
+	public void disableAllPlugins() {
+		for (RukkitPlugin plugin : pluginMap.values()) {
 			disablePlugin(plugin);
 		}
 	}
 
-	//启用所有插件
-	void enableAllPlugins()
-	{
-		for (RukkitPlugin plugin: pluginMap.values())
-		{
+	// 启用所有插件
+	void enableAllPlugins() {
+		for (RukkitPlugin plugin : pluginMap.values()) {
 			enablePlugin(plugin);
 		}
 	}
 
 	/**
 	 * 注册一个EventListener内所有的事件监听
+	 * 
 	 * @param listener 注册的EventListener
-	 * @param plugin 注册插件
+	 * @param plugin   注册插件
 	 */
-	public void registerEventListener(EventListener listener, RukkitPlugin plugin)
-	{
-		//获取公开方法
+	public void registerEventListener(EventListener listener, RukkitPlugin plugin) {
+		// 获取公开方法
 		Method methods[] = listener.getClass().getMethods();
 		log.debug(" ");
-		for (Method method: methods)
-		{
+		for (Method method : methods) {
 			log.debug("get:" + method.getName());
-			//判断方法是否进行注解
-			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic())
-			{
-				//log.d("isAnno");
-				//判断方法第一个参数是否为Event
-				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0]))
-				{
+			// 判断方法是否进行注解
+			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic()) {
+				// log.d("isAnno");
+				// 判断方法第一个参数是否为Event
+				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0])) {
 					method.setAccessible(true);
 					log.trace("Got Event was: " + method.getParameters()[0].getType());
-					try
-					{
+					try {
 						log.trace("got called");
-						ListenerList list = ((ListenerList) method.getParameters()[0].getType().getMethod("getListenerList").invoke(null));
-						EventListenerContainer container = new EventListenerContainer(plugin, method, listener);
+						ListenerList list = ((ListenerList) method.getParameters()[0].getType()
+								.getMethod("getListenerList").invoke(null));
+						EventListenerContainer container = new EventListenerContainer(method, listener);
 						plugin.listeners.add(listener);
 						list.registerListener(container);
-						//method.invoke(listener, new PlayerJoinEvent());
-						//list.callListeners(new PlayerJoinEvent());
-					}
-					catch (Exception e)
-					{
+						// method.invoke(listener, new PlayerJoinEvent());
+						// list.callListeners(new PlayerJoinEvent());
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
+			} else {
+				continue;
 			}
-			else
-			{
+		}
+	}
+
+	/**
+	 * 注册一个EventListener内所有的事件监听
+	 * WARN: Core版 非核心Rukkit组件禁止使用 !!!
+	 * 
+	 * @param listener 注册的EventListener
+	 */
+	public void registerEventListener(EventListener listener) {
+		// 获取公开方法
+		Method methods[] = listener.getClass().getMethods();
+		log.debug(" ");
+		for (Method method : methods) {
+			log.debug("get:" + method.getName());
+			// 判断方法是否进行注解
+			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic()) {
+				// log.d("isAnno");
+				// 判断方法第一个参数是否为Event
+				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0])) {
+					method.setAccessible(true);
+					log.trace("Got Event was: " + method.getParameters()[0].getType());
+					try {
+						log.trace("got called");
+						ListenerList list = ((ListenerList) method.getParameters()[0].getType()
+								.getMethod("getListenerList").invoke(null));
+						EventListenerContainer container = new EventListenerContainer(method, listener);
+						list.registerListener(container);
+						// method.invoke(listener, new PlayerJoinEvent());
+						// list.callListeners(new PlayerJoinEvent());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			} else {
 				continue;
 			}
 		}
@@ -273,38 +284,31 @@ public class PluginManager
 
 	/**
 	 * 取消注册一个EventListener里面所有的事件监听。
+	 * 
 	 * @param listener
 	 */
-	public void unregisterEventListener(EventListener listener)
-	{
+	public void unregisterEventListener(EventListener listener) {
 		Method methods[] = listener.getClass().getMethods();
 		log.debug(" ");
-		for (Method method: methods)
-		{
+		for (Method method : methods) {
 			log.trace("get");
-			//判断方法是否进行注解
-			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic())
-			{
-				//log.d("isAnno");
-				//判断方法第一个参数是否为Event
-				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0]))
-				{
+			// 判断方法是否进行注解
+			if (method.isAnnotationPresent(EventHandler.class) && !method.isSynthetic()) {
+				// log.d("isAnno");
+				// 判断方法第一个参数是否为Event
+				if (method.getParameterCount() != 0 && Event.class.isAssignableFrom(method.getParameterTypes()[0])) {
 					method.setAccessible(true);
 					log.trace("Got Event was: " + method.getParameters()[0].getType());
-					try
-					{
+					try {
 						log.trace("got called");
-						ListenerList list = ((ListenerList) method.getParameters()[0].getType().getMethod("getListenerList").invoke(null));
+						ListenerList list = ((ListenerList) method.getParameters()[0].getType()
+								.getMethod("getListenerList").invoke(null));
 						list.removePluginListener(listener);
-					}
-					catch (Exception e)
-					{
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
-			}
-			else
-			{
+			} else {
 				continue;
 			}
 		}

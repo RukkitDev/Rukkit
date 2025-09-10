@@ -59,7 +59,7 @@ public class OfficialMap
 		"[z;p10]Crossing Large (10p)",
 		"[z;p10]Enclosed Island (10p)",
 		"[z;p10]Two_Large_Islands_(10p)",
-		"[z;p10]Wetlands (10p)"};
+	"[z;p10]Wetlands (10p)"};
 
 	public static String[] mapsName = {
 		"Beach landing (2p) [by hxyy]",

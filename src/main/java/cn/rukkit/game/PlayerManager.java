@@ -8,22 +8,20 @@
  */
 
 package cn.rukkit.game;
-import cn.rukkit.*;
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.ServerRoom;
 
-import java.util.Arrays;
 //import sun.nio.ch.Net;
 
 public class PlayerManager
 {
 	private int max;
-	private NetworkRoom currentRoom;
+	private ServerRoom currentRoom;
 	
 	/**
 	* Init player manager.
 	* @params maxPlayer set up maxPlayer
 	*/
-	public PlayerManager(NetworkRoom room, int maxPlayer) {
+	public PlayerManager(ServerRoom room, int maxPlayer) {
 		this.max = maxPlayer;
 		currentRoom = room;
 		reset();
@@ -67,7 +65,10 @@ public class PlayerManager
 	*/
 	public void remove(NetworkPlayer p){
 		int index = getIndex(p);
-		remove(index);
+		if (index != -1) {
+			//说明已经不存在了 不用移除?
+			remove(index);
+		}
 	}
 
 	/**

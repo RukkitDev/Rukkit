@@ -17,6 +17,7 @@ public class RukkitConfig extends BaseConfig
 	public String welcomeMsg = "Welcome to Rukkit server, {playerName}!";
 	public String serverMotd = "My Rukkit server";
 	public int serverPort = 5123;
+	public boolean relayMode = false;
 	public int maxPlayer = 10;
 	public int maxRoom = 5;
 	public int minStartPlayer = 4;
@@ -44,7 +45,7 @@ public class RukkitConfig extends BaseConfig
 	//Using commandQuere to manage game commands
 	public boolean useCommandQuere = false;
 
-	public boolean checksumSync = false;
+	public boolean checksumSync = true;
 	
 	public RukkitConfig() {
 		this.configName = "rukkit.yml";

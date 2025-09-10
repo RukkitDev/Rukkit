@@ -1,0 +1,9 @@
+configName: round.yml
+credits: 4000
+disableNuke: true
+fogType: 2
+income: 1.0
+mapName: '[z;p10]Crossing Large (10p)'
+mapType: 0
+sharedControl: false
+startingUnits: 1

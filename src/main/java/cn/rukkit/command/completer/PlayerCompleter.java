@@ -22,6 +22,6 @@ public class PlayerCompleter extends StringsCompleter {
 
     @Override
     public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
-        StringsCompleter stringsCompleter = new StringsCompleter();
+        //StringsCompleter stringsCompleter = new StringsCompleter();
     }
 }

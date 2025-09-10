@@ -1,10 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?><classpath>
-<classpathentry kind="src" path="src/java/main"/>
-<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_45"/>
-<classpathentry kind="output" path="bin"/>
-<classpathentry kind="lib" path="libs/netty-all-4.0.56.Final.jar"/>
-<classpathentry kind="lib" path="libs/snakeyaml-1.25.1.jar"/>
-<classpathentry kind="lib" path="libs/fastjson-1.2.37.jar"/>
-<classpathentry kind="lib" path="libs/logback-classic-1.2.3.jar"/>
-<classpathentry kind="lib" path="libs/slf4j-api-1.7.30.jar"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" output="bin/main" path="src/main/resources">
+		<attributes>
+			<attribute name="gradle_scope" value="main"/>
+			<attribute name="gradle_used_by_scope" value="main,test"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" output="bin/main" path="src/main/java">
+		<attributes>
+			<attribute name="gradle_scope" value="main"/>
+			<attribute name="gradle_used_by_scope" value="main,test"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21/"/>
+	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
+	<classpathentry kind="output" path="bin/default"/>
 </classpath>

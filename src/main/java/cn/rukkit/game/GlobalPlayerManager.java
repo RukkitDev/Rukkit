@@ -8,9 +8,6 @@
  */
 
 package cn.rukkit.game;
-import cn.rukkit.*;
-
-import java.util.Arrays;
 //import sun.nio.ch.Net;
 
 public class GlobalPlayerManager

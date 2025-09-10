@@ -81,6 +81,7 @@ public class ModManager
 		Mod mod = new Mod(li);
         //mod.setEnabled(true);
 		loadedMods.put(modname, mod);
+		reader.close();
 	}
 
 	public void loadModInDir(String modname) throws IOException {
@@ -108,13 +109,13 @@ public class ModManager
 	}
 
 	public void disableAllMods() {
-		for (Map.Entry mod: loadedMods.entrySet()) {
+		for (Map.Entry<String, Mod> mod: loadedMods.entrySet()) {
 			((Mod) mod.getValue()).setEnabled(false);
 		}
 	}
 
 	public void enableAllMods() {
-		for (Map.Entry mod: loadedMods.entrySet()) {
+		for (Map.Entry<String, Mod> mod: loadedMods.entrySet()) {
 			((Mod) mod.getValue()).setEnabled(true);
 		}
 	}
@@ -129,7 +130,7 @@ public class ModManager
 
 	public ArrayList<ModUnit> fetchAllEnabledModUnits() {
 		ArrayList<ModUnit> list = new ArrayList<ModUnit>();
-		for (Map.Entry entry: loadedMods.entrySet()) {
+		for (Map.Entry<String, Mod> entry: loadedMods.entrySet()) {
 			if (((Mod)entry.getValue()).isEnabled()) {
 				list.addAll(((Mod)entry.getValue()).getUnitList());
 			}

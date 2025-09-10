@@ -12,7 +12,6 @@ package cn.rukkit.service;
 import cn.rukkit.plugin.Plugin;
 
 import java.util.HashMap;
-import java.util.List;
 
 public class ServiceManager
 {

@@ -16,8 +16,8 @@ import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
 import cn.rukkit.event.action.PingEvent;
 import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.ServerRoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 
 import java.io.File;
@@ -27,17 +27,30 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 
     TestPluginConfig testConfig = new TestPluginConfig();
 
+    class JumpMenuCallback implements ChatCommandListener {
+        @Override
+        public boolean onSend(ServerRoomConnection con, String[] args) {
+            try {
+                con.sendServerMessage("jmp ing...");
+                con.sendPacket(UniversalPacket.fromRelayJumpsToAnotherServerInternalPacket("micro.xin:5123/menu"));
+            } catch (IOException e) {
+            }
+            return false;
+        }
+    }
+
     class TestSyncCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
-            con.currectRoom.syncGame();
+        public boolean onSend(ServerRoomConnection con, String[] args) {
+            // con.currectRoom.syncGame();
+            //TODO: unfinish
             return false;
         }
     }
 
     class SummonCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             if (!con.currectRoom.isGaming()) {
                 con.sendServerMessage("游戏未开始！");
                 return false;
@@ -70,7 +83,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
                 }
             }
             try {
-                player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
+                player.getRoom().broadcast(UniversalPacket.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
             } catch (IOException ignored) {}
             player.putTempData("isSpawnTriggered", false);
         }
@@ -78,7 +91,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
 
     public class StopCallback implements ChatCommandListener {
         @Override
-        public boolean onSend(RoomConnection con, String[] args) {
+        public boolean onSend(ServerRoomConnection con, String[] args) {
             con.currectRoom.stopGame(true);
             return false;
         }
@@ -101,6 +114,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
         Rukkit.getCommandManager().registerCommand(new ChatCommand("summon", "Summon a unit.", 1, new SummonCallback(), this));
         Rukkit.getCommandManager().registerCommand(new ChatCommand("gamestop", "Stop a game immidately and return to the battleroom", 0, new StopCallback(), this));
         Rukkit.getCommandManager().registerCommand(new ChatCommand("testsync", "Sync", 0, new TestSyncCallback(), this));
+        Rukkit.getCommandManager().registerCommand(new ChatCommand("menu", "jump to menu", 0, new JumpMenuCallback(), this));
     }
 
     @Override

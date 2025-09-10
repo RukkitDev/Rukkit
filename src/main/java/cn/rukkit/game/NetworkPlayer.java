@@ -8,10 +8,20 @@
  */
 
 package cn.rukkit.game;
-import cn.rukkit.*;
-import cn.rukkit.network.*;
-import cn.rukkit.network.packet.Packet;
-import cn.rukkit.util.LangUtil;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
@@ -20,10 +30,11 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.Tag;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
+import cn.rukkit.Rukkit;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.ServerRoom;
+import cn.rukkit.network.room.ServerRoomConnection;
+import cn.rukkit.util.LangUtil;
 
 public class NetworkPlayer
 {
@@ -40,7 +51,7 @@ public class NetworkPlayer
 	// Preparing for 1.15
 	public int startingUnit;
 
-	private RoomConnection connection = null;
+	private ServerRoomConnection connection = null;
 
 	public int ping = -1;
 	public boolean isAdmin = false;
@@ -55,9 +66,9 @@ public class NetworkPlayer
 	public boolean isAfk = false;
 
 	public CheckSumList checkList = new CheckSumList();
-	private NetworkRoom room;
+	private ServerRoom room;
 
-	public NetworkPlayer(RoomConnection connection) {
+	public NetworkPlayer(ServerRoomConnection connection) {
 		this.connection = connection;
 		this.room = connection.currectRoom;
 		this.isEmpty = false;
@@ -68,11 +79,11 @@ public class NetworkPlayer
 		this.isEmpty = true;
 	}
 	
-	public RoomConnection getConnection() {
+	public ServerRoomConnection getConnection() {
 		return this.connection;
 	}
 	
-	public NetworkRoom getRoom() {
+	public ServerRoom getRoom() {
 		return this.room;
 	}
 
@@ -85,7 +96,8 @@ public class NetworkPlayer
 	 * @param <T>
 	 */
 	public <T> T getExtraDataAs(String key, T defaultValue, Class<T> tClass) {
-		return (T) data.extraData.getOrDefault(key, defaultValue);
+    	Object value = data.extraData.getOrDefault(key, defaultValue);
+    	return tClass.isInstance(value) ? tClass.cast(value) : defaultValue;
 	}
 
 	/**
@@ -164,7 +176,7 @@ public class NetworkPlayer
 			stream.writeBoolean(true);
 
 			if(isAdmin){
-				stream.writeUTF("[[[" + name + "]]]");
+				stream.writeUTF("[HOST]"+name);
 			}else{
 				stream.writeUTF(name);
 			}
@@ -242,12 +254,12 @@ public class NetworkPlayer
 
 	public void updateServerInfo() {
 		try {
-			connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+			connection.sendPacket(UniversalPacket.serverInfo(room.config, isAdmin));
 		} catch (IOException e) {}
 	}
 
 	public void sendTeamMessage(String message) {
-		for (RoomConnection conn: room.connectionManager.getConnections()) {
+		for (ServerRoomConnection conn: room.connectionManager.getConnections()) {
 			if (team == conn.player.team) {
 				conn.sendMessage(name,
 						LangUtil.getString("chat.teamMsg") + " " + message,

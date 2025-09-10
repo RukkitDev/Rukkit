@@ -1,7 +1,9 @@
 package cn.rukkit.game;
 
 import java.util.HashMap;
-
+/*
+ * 用于保存玩家的数据
+ */
 public class NetworkPlayerData {
     public String lastUsedName;
     public String uuid;

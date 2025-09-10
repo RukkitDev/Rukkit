@@ -10,7 +10,6 @@
 package cn.rukkit.event.action;
 
 import cn.rukkit.event.*;
-import cn.rukkit.event.action.*;
 import cn.rukkit.game.*;
 
 public class TaskEvent extends ActionEvent implements Cancellable 

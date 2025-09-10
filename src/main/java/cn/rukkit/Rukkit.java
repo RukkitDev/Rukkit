@@ -14,6 +14,10 @@ import cn.rukkit.config.*;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
+import cn.rukkit.network.core.GlobalConnectionManager;
+import cn.rukkit.network.room.ServerRoomConnection;
+import cn.rukkit.network.room.ServerRoomManager;
+
 import java.io.*;
 
 import cn.rukkit.util.LangUtil;
@@ -31,7 +35,7 @@ import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.9.4-dev";
+	public static final String RUKKIT_VERSION = "0.9.5-dev";
 	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
@@ -52,18 +56,17 @@ public class Rukkit {
     private static SaveManager saveManager;
 
 	public final static String PLUGIN_API_VERSION = "0.8.0";
-	private static RoomManager roomManager;
+	private static ServerRoomManager roomManager;
 	private static SaveData defaultSave;
 
 	public static void shutdown(String message) {
-		// TODO: Implement this method
 		log.info("Server will shutdown...");
 		log.info("Disconnect current players...");
 		getGlobalConnectionManager().broadcastGlobalServerMessage("Server is stopped!");
 		log.info("Disabling all plugins...");
 		pluginManager.disableAllPlugins();
 		log.info("Saving player data...");
-		for (RoomConnection connection: getGlobalConnectionManager().getConnections()) {
+		for (ServerRoomConnection connection: getGlobalConnectionManager().getConnections()) {
 			connection.player.savePlayerData();
 		}
 		log.info("Stop ThreadManager...");
@@ -220,7 +223,7 @@ public class Rukkit {
 	public static final ModManager getModManager() {
 		return modManager;
 	}
-	public static RoomManager getRoomManager() {
+	public static ServerRoomManager getRoomManager() {
 		return roomManager;
 	}
 
@@ -257,7 +260,7 @@ public class Rukkit {
 		loadRoundConfig();
 		log.info("load::Language..."); // 加载语言文件
 		String[] lang_format = getConfig().lang.split("_");
-		if (lang_format.length > 2) {
+		if (lang_format.length == 2) {
 			LangUtil.lc = new Locale(lang_format[0], lang_format[1]);
 		} else if (lang_format.length == 1) {
 			LangUtil.lc = new Locale(lang_format[0]);
@@ -282,6 +285,7 @@ public class Rukkit {
 		/**
 		 * ATTENTION!!!这里仅限dubug进行注释，正式使用请去掉！！！
 		 */
+		//加载模块
 		modManager.loadInternalMod();
 		modManager.loadAllModsInDir();
 		log.info("init::CommandManager");
@@ -291,13 +295,14 @@ public class Rukkit {
 		log.info("init::ConnectionManager");
 		connectionManager = new GlobalConnectionManager(server);
 		log.info("init::RoomManager");
-		roomManager = new RoomManager(round, config.maxRoom);
+		roomManager = new ServerRoomManager(round, config.maxRoom);
 		log.info("init::PluginManager");
 		pluginManager = new PluginManager();
 		pluginManager.loadPlugin(new BasePlugin());
 		pluginManager.loadPlugin(new CommandPlugin());
 		pluginManager.loadPlugin(new TestPlugin());
 		pluginManager.loadPlugin(new ServerCommandPlugin());
+		//pluginManager.loadPlugin(new UplistCommandPlugin());
 		pluginManager.loadPluginInDir();
 		
 		log.info("start::game server on port:" + config.serverPort);

@@ -10,7 +10,8 @@
 package cn.rukkit;
 
 import cn.rukkit.game.unit.InternalUnit;
-import cn.rukkit.network.GameInputStream;
+import cn.rukkit.network.io.GameInputStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -9,8 +9,9 @@
 
 package cn.rukkit.event.action;
 
+import java.util.List;
+
 import cn.rukkit.event.*;
-import cn.rukkit.event.action.*;
 import cn.rukkit.game.*;
 
 public class BuildEvent extends ActionEvent implements Cancellable
@@ -21,14 +22,11 @@ public class BuildEvent extends ActionEvent implements Cancellable
 		return list;
 	}
 
-	private float targetX;
-
-	private float targetY;
-
-	private String targetUnitName;
-
-	private long fromUnitId;
 	private NetworkPlayer player;
+	private float targetX;
+	private float targetY;
+	private String targetUnitName;//要建造的目标单位名称
+	private List<Long> actionUnitIds;
 
 	public float getTargetX()
 	{
@@ -45,28 +43,20 @@ public class BuildEvent extends ActionEvent implements Cancellable
 		return targetUnitName;
 	}
 
-	public long getFromUnitId()
+	public List<Long> getActionUnitIds()
 	{
-		return fromUnitId;
+		return actionUnitIds;
 	}
 
 	public NetworkPlayer getPlayer() {
 		return this.player;
 	}
 
-	public BuildEvent (NetworkPlayer p, float targetX, float targetY, long fromUnitId, String targetUnitName) {
+	public BuildEvent (NetworkPlayer p, float targetX, float targetY, List<Long> actionUnitIds, String targetUnitName) {
 		this.player = p;
 		this.targetX  = targetX;
 		this.targetY  = targetY;
-		this.fromUnitId  = fromUnitId;
-		this.targetUnitName  = targetUnitName;
-	}
-
-	public BuildEvent (NetworkPlayer p, float targetX, float targetY, String targetUnitName) {
-		this.player = p;
-		this.targetX  = targetX;
-		this.targetY  = targetY;
-		this.fromUnitId  = 0;
+		this.actionUnitIds  = actionUnitIds;
 		this.targetUnitName  = targetUnitName;
 	}
 }

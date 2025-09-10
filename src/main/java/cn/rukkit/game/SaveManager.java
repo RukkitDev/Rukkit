@@ -16,19 +16,19 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.ServerRoom;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cn.rukkit.network.packet.Packet;
-import java.io.InputStream;
 
 public class SaveManager {
 
     public SaveData lastSave;
-    public NetworkRoom currentRoom;
+    public ServerRoom currentRoom;
     private Logger log;
     
-    public SaveManager(NetworkRoom room) {
+    public SaveManager(ServerRoom room) {
         currentRoom = room;
         log = LoggerFactory.getLogger("SaveManager Room #" + currentRoom.roomId);
     }
@@ -42,12 +42,12 @@ public class SaveManager {
     }
     
     public void sendDefaultSaveToAll(boolean isPullSave) throws IOException {
-        currentRoom.broadcast(Packet.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
+        currentRoom.broadcast(UniversalPacket.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
     }
     
     public void sendLastSaveToAll(boolean isPullSave) throws IOException {
         if (lastSave != null) {
-            currentRoom.broadcast(Packet.sendSave(currentRoom, lastSave.arr,isPullSave));
+            currentRoom.broadcast(UniversalPacket.sendSave(currentRoom, lastSave.arr,isPullSave));
         } else {
             log.error("lastSave is NULL!Ignoring sendLastSaveToAll.");
         }

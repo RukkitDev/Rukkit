@@ -14,7 +14,7 @@ plugins {
 }
 
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF8'
-final def RUKKIT_VERSION = "0.9.4-dev"
+final def RUKKIT_VERSION = "0.9.5-dev"
 mainClassName = 'cn.rukkit.RukkitLauncher'
 
 // In this section you declare where to find the dependencies of your project
@@ -23,6 +23,11 @@ repositories {
     // You can declare any Maven/Ivy/file repository here.
     mavenCentral()
 }
+
+def lwjglVersion = "3.3.3"
+//新版lwjgl win和linux不分家
+def platform = System.getProperty("os.name").toLowerCase().contains("windows") ? "" : 
+               System.getProperty("os.name").toLowerCase().contains("mac") ? "natives-macos" : ""
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
@@ -42,6 +47,16 @@ dependencies {
     implementation 'org.yaml:snakeyaml:2.0'
 
 
+    //用来玩的 : )
+    implementation "org.lwjgl:lwjgl:$lwjglVersion"
+    implementation "org.lwjgl:lwjgl-vulkan:$lwjglVersion"
+    implementation "org.lwjgl:lwjgl-glfw:$lwjglVersion"
+    // implementation "org.lwjgl:lwjgl-shaderc:$platform"
+    runtimeOnly "org.lwjgl:lwjgl::$platform"
+    runtimeOnly "org.lwjgl:lwjgl-vulkan::$platform"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::$platform"
+    // runtimeOnly "org.lwjgl:lwjgl-shaderc::$platform"
+
     //compile 'netty'
     // Declare the dependency for your favourite test framework you want to use in your tests.
     // TestNG is also supported by the Gradle Test task. Just change the
@@ -59,11 +74,11 @@ tasks.register('buildRukkit') {
     doLast {
         println("Okay.Doing last step...")
         mkdir("./build/outputs")
-        /*copy() {
+        copy() {
             CopySpec copySpec ->
-                from file("${rootDir}/libs")
-                into "${rootDir}/build/outputs/libs"
-        }*/
+                from file("${rootDir}/maps")
+                into "${rootDir}/build/outputs/maps"
+        }
         copy() {
             CopySpec copySpec ->
                 from file("${rootDir}/build/libs/Rukkit-all.jar")

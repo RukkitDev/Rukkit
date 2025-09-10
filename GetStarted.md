@@ -3,9 +3,7 @@ Rukkit now support gradle.Just using gradle to compile this project.
 
 For example:
 1. clone this project.
-```shell
-git clone https://github.com/RukkitDev/Rukkit
-```
+
 2. using gradle to run a Rukkit server:
 ```shell
 gradle run

@@ -12,7 +12,7 @@ package cn.rukkit.config;
 public class RoundConfig extends BaseConfig
 {
 	/*Dynamic Properties*/
-	public String mapName = "[z;p10]Crossing Large (10p)";
+	public String mapName = "[p8]Two Sides (8p)";
 	public int mapType = 0;
 	public float income = 1.0f;
 	public int credits = 4000;

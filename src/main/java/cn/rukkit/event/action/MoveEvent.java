@@ -1,20 +1,36 @@
 /*
  * Copyright 2020-2022 RukkitDev Team and contributors.
+ * 
+ * 基于 Rukkit 项目的衍生作品
+ * Derived work based on Rukkit project
  *
- * This project uses GNU Affero General Public License v3.0.You can find this license in the following link.
- * 本项目使用 GNU Affero General Public License v3.0 许可证，你可以在下方链接查看:
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/*
+ * Copyright 2025 Micro(MCLDY@outlook.com) and contributors.
+ * 
+ * 本衍生作品基于 AGPLv3 许可证
+ * This derivative work is licensed under AGPLv3
  */
 
 package cn.rukkit.event.action;
 
 import cn.rukkit.event.*;
-import cn.rukkit.event.action.*;
 import cn.rukkit.game.*;
+import java.util.List;
 
-public class MoveEvent extends ActionEvent implements Cancellable
-{
+public class MoveEvent extends ActionEvent implements Cancellable {
 	private static ListenerList list = new ListenerList(MoveEvent.class);
 
 	public static ListenerList getListenerList() {
@@ -24,34 +40,29 @@ public class MoveEvent extends ActionEvent implements Cancellable
 	private NetworkPlayer player;
 	private float targetX;
 	private float targetY;
-	private long actionUnitId;
+	private List<Long> actionUnitIds;
 
-	public MoveEvent(NetworkPlayer p, float x, float y, long id){
+	public MoveEvent(NetworkPlayer p, float x, float y, List<Long> unitIds) {
 		this.player = p;
 		this.targetX = x;
 		this.targetY = y;
-		this.actionUnitId = id;
+		this.actionUnitIds = unitIds;
 	}
 
-	public MoveEvent(NetworkPlayer p, float x, float y) {
-		this.player = p;
-		this.targetX = x;
-		this.targetY = y;
-		this.actionUnitId = 0;
-	}
-
-	public float getTargetX()
-	{
+	public float getTargetX() {
 		return targetX;
 	}
 
-	public float getTargetY()
-	{
+	public float getTargetY() {
 		return targetY;
 	}
 
-	public long getActionUnitId() {
-		return this.actionUnitId;
+	public List<Long> getActionUnitIds() {
+		return this.actionUnitIds;
+	}
+
+	public int getUnitCount() {
+		return this.actionUnitIds.size();
 	}
 
 	public NetworkPlayer getPlayer() {

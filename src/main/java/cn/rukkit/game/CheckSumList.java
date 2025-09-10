@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 
 public class CheckSumList {
-    private ArrayList<ChecksumItem> checksumItems = new ArrayList<>();
+    private ArrayList<ChecksumItem> checksumItems = new ArrayList<>();//理论上size严格等于15
     public class ChecksumItem {
         String description;
         public long checkData = 0;

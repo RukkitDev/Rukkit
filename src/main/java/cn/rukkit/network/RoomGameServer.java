@@ -6,12 +6,19 @@
  *
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
+/*
+ * Copyright 2025 Micro(MCLDY@outlook.com) and contributors.
+ * 
+ * 本衍生作品基于 AGPLv3 许可证
+ * This derivative work is licensed under AGPLv3
+ */
 
 package cn.rukkit.network;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.network.packet.PacketDecoder;
-import cn.rukkit.network.packet.PacketEncoder;
+import cn.rukkit.network.core.ConnectionHandler;
+import cn.rukkit.network.core.packet.PacketDecoder;
+import cn.rukkit.network.core.packet.PacketEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -21,6 +28,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +60,9 @@ public class RoomGameServer {
                         @Override
                         protected void initChannel(SocketChannel p1) throws Exception {
                             // TODO: Implement this method
+                            //p1.pipeline().addLast(new IdleStateHandler(10, 10, 10, TimeUnit.SECONDS));
                             p1.pipeline().addLast(new PacketDecoder());
-                            p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler());
+                            p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler(Rukkit.getConfig().relayMode));
                         }
                     });
             //System.out.println("-Server started!");

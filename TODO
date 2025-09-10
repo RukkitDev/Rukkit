@@ -1,0 +1,13 @@
+
+Exception in thread "main" java.lang.NoClassDefFoundError: org/jline/terminal/Terminal$MouseTracking
+        at org.jline.reader.impl.LineReaderImpl.doCleanup(LineReaderImpl.java:2599)
+        at org.jline.reader.impl.LineReaderImpl.cleanup(LineReaderImpl.java:2585)
+        at org.jline.reader.impl.LineReaderImpl.readLine(LineReaderImpl.java:772)
+        at org.jline.reader.impl.LineReaderImpl.readLine(LineReaderImpl.java:512)
+        at cn.rukkit.RukkitLauncher.main(RukkitLauncher.java:57)
+Caused by: java.lang.ClassNotFoundException: org.jline.terminal.Terminal$MouseTracking
+        at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641)
+        at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188)
+        at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
+        ... 5 more
+

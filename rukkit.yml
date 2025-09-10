@@ -1,0 +1,23 @@
+UUID: ec5e3c4f-923e-4e59-b64f-d3428f76dbfe
+checksumSync: false
+configName: rukkit.yml
+isDebug: true
+lang: zh_CN
+relayMode: false
+logPath: /sdcard/rukkit-error.log
+maxPacketFrame: 8192
+maxPlayer: 10
+maxRoom: 5
+maxUnitsPerPlayer: 250
+minStartPlayer: 4
+onlineMode: false
+pingTimeout: 8000
+registerTimeout: 5
+serverMotd: My Rukkit server
+serverPort: 5123
+serverUser: RUKKIT
+singlePlayerMode: false
+syncEnabled: true
+threadPoolCount: 8
+useCommandQuere: false #降低同步错误 但提高操作延迟
+welcomeMsg: Welcome to Rukkit server, {playerName}!

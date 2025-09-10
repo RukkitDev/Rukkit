@@ -1,1 +1,3 @@
-java -Dfile.encoding=UTF-8 -Djava.library.path=. -cp Rukkit-{version}.jar:libs/* cn.rukkit.RukkitLauncher
+#!/bin/bash
+JAR_FILE=$(ls Rukkit-*.jar | head -n 1)
+java -Dfile.encoding=UTF-8 -Djava.library.path=./data/native -cp "$JAR_FILE;libs/*" cn.rukkit.RukkitLauncher

@@ -9,10 +9,6 @@
 
 package cn.rukkit.plugin;
 
-import cn.rukkit.event.EventListenerContainer;
-
-import java.util.ArrayList;
-
 public interface Plugin
 {
 	public void onLoad();

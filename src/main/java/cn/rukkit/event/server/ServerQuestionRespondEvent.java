@@ -1,7 +1,6 @@
 package cn.rukkit.event.server;
 
 import cn.rukkit.event.ListenerList;
-import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.game.NetworkPlayer;
 
 public class ServerQuestionRespondEvent extends ServerEvent{
