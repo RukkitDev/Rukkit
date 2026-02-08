@@ -14,7 +14,14 @@ include 'shared'
 include 'api'
 include 'services:webservice'
 */
-
+pluginManagement {
+    repositories {
+        //插件镜像
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 rootProject.name = 'Rukkit'
 ext {
     rukkitVersion = '1.0'//无意义
