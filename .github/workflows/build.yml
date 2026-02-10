@@ -14,115 +14,128 @@ jobs:
         java-version: [ 17 ]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # 获取完整历史以获取git信息
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史以获取git信息
 
-    - name: Set up JDK ${{ matrix.java-version }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ matrix.java-version }}
-        distribution: 'temurin'
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-    - name: Get version from gradle.properties
-      id: get_version
-      run: |
-        VERSION=$(grep "rukkitVersion=" gradle.properties | cut -d'=' -f2)
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Detected version: $VERSION"
+      - name: Get version and git info
+        id: get_version
+        run: |
+          VERSION=$(grep "rukkitVersion=" gradle.properties | cut -d'=' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          echo "GIT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
 
-    - name: Build with Gradle
-      run: ./gradlew buildRukkit --info
-      env:
-        buildType: dev
+      - name: Build with Gradle
+        run: ./gradlew buildRukkit --info
+        env:
+          BUILD_TYPE: dev
 
-    - name: Create distribution package
-      run: |
-        # 创建分发目录结构
-        mkdir -p dist/rukkit-${{ steps.get_version.outputs.VERSION }}
-        
-        # 复制主JAR文件（Shadow JAR已包含所有依赖）
-        cp build/outputs/Rukkit-${{ steps.get_version.outputs.VERSION }}*.jar dist/rukkit-${{ steps.get_version.outputs.VERSION }}/
-        
-        # 复制启动脚本
-        cp start.sh start.bat dist/rukkit-${{ steps.get_version.outputs.VERSION }}/
-        
-        # 复制文档文件
-        cp README.md README_zh.md LICENSE dist/rukkit-${{ steps.get_version.outputs.VERSION }}/ 2>/dev/null || true
-        
-        # 创建README文件
-        cat > dist/rukkit-${{ steps.get_version.outputs.VERSION }}/README.txt << EOF
-Rukkit Server Distribution
-==========================
-
-版本: ${{ steps.get_version.outputs.VERSION }}
-构建时间: $(date '+%Y-%m-%d %H:%M:%S')
-Git提交: $(git rev-parse --short HEAD)
-
-使用说明:
-1. 确保已安装Java 11或更高版本
-2. Windows系统运行: start.bat
-3. Linux/macOS系统运行: chmod +x start.sh && ./start.sh
-
-目录结构:
-- Rukkit-${{ steps.get_version.outputs.VERSION }}*.jar: 主程序文件（包含所有依赖）
-- start.bat: Windows启动脚本
-- start.sh: Linux/macOS启动脚本
-- data/: 数据存储目录
-- README.md: 英文文档
-- README_zh.md: 中文文档
-- LICENSE: 许可证文件
-
-注意：此JAR文件是Shadow JAR，已包含所有必要依赖，无需额外的libs目录。
-
-EOF
-        
-        # 显示生成的文件列表
-        echo "Generated distribution structure:"
-        find dist -type f | sort
-
-    - name: Create ZIP archive
-      run: |
-        cd dist
-        zip -r ../Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip rukkit-${{ steps.get_version.outputs.VERSION }}
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: rukkit-distribution-${{ steps.get_version.outputs.VERSION }}
-        path: Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
-        retention-days: 30
-
-    - name: Create Nightly Release (on master branch)
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v${{ steps.get_version.outputs.VERSION }}
-        name: Rukkit ${{ steps.get_version.outputs.VERSION }}
-        body: |
-          ## Rukkit ${{ steps.get_version.outputs.VERSION }} 发布
+      - name: Create distribution package
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
+          GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
           
-          自动构建的服务器分发包，包含：
+          # 创建分发目录结构
+          mkdir -p dist/rukkit-${VERSION}/libs
+          mkdir -p dist/rukkit-${VERSION}/data
+          
+          # 复制主JAR文件
+          cp build/outputs/Rukkit-${VERSION}.jar dist/rukkit-${VERSION}/
+          
+          # 复制启动脚本
+          cp start.sh start.bat dist/rukkit-${VERSION}/
+          
+          # 如果有libs目录，复制依赖库（Shadow jar已包含所有依赖）
+          # 如果需要分离的libs，可以取消下面的注释
+          # cp -r libs/* dist/rukkit-${VERSION}/libs/ 2>/dev/null || true
+          
+          # 复制数据目录
+          cp -r data/* dist/rukkit-${VERSION}/data/ 2>/dev/null || true
+          
+          # 创建README文件
+          cat > dist/rukkit-${VERSION}/README.txt << 
+          Rukkit Server Distribution
+          ==========================
+          
+          版本: ${VERSION}
+          构建时间: ${BUILD_TIME}
+          Git提交: ${GIT_COMMIT}
+          
+          使用说明:
+            1. 确保已安装Java 11或更高版本
+          2. Windows系统运行: start.bat
+          3. Linux/macOS系统运行: chmod +x start.sh && ./start.sh
+          
+          目录结构:
+            - Rukkit-${VERSION}.jar: 主程序文件
+            - start.bat: Windows启动脚本
+            - start.sh: Linux/macOS启动脚本
+            - data/: 数据存储目录
+            - libs/: 依赖库目录（如果存在）
+          
+          EOF
+      - name: Create ZIP archive
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          cd dist
+          zip -r ../Rukkit-${VERSION}-distribution.zip rukkit-${VERSION}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rukkit-distribution-${{ steps.get_version.outputs.VERSION }}
+          path: Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
+          retention-days: 30
+
+      - name: Generate release notes
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
+          GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
+          
+          cat > release_notes.md << EOF
+          ## Rukkit ${VERSION} 发布
+      
+            自动构建的服务器分发包，包含：
           - 可执行的JAR文件
           - 启动脚本 (Windows/Linux)
           - 所有必要的依赖
           - 配置和数据目录
-          
+      
           ### 使用方法
-          1. 下载ZIP文件并解压
-          2. 运行对应的启动脚本
-          3. 享受游戏！
-          
-          构建信息：
-          - 构建时间: $(date '+%Y-%m-%d %H:%M:%S')
-          - Git提交: $(git rev-parse --short HEAD)
-        draft: false
-        prerelease: true
-        files: |
-          Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            1. 下载ZIP文件并解压
+            2. 运行对应的启动脚本
+            3. 享受游戏！
+            
+            构建信息：
+          - 构建时间: ${BUILD_TIME}
+          - Git提交: ${GIT_COMMIT}
+            EOF
+
+      - name: Create Release (on master branch)
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Rukkit ${{ steps.get_version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
