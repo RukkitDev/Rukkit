@@ -57,25 +57,8 @@ jobs:
           BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
           GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
           
-          # 创建分发目录结构
-          mkdir -p dist/rukkit-${VERSION}/libs
-          mkdir -p dist/rukkit-${VERSION}/data
-          
-          # 复制主JAR文件
-          cp build/outputs/Rukkit-${VERSION}.jar dist/rukkit-${VERSION}/
-          
-          # 复制启动脚本
-          cp start.sh start.bat dist/rukkit-${VERSION}/
-          
-          # 如果有libs目录，复制依赖库（Shadow jar已包含所有依赖）
-          # 如果需要分离的libs，可以取消下面的注释
-          # cp -r libs/* dist/rukkit-${VERSION}/libs/ 2>/dev/null || true
-          
-          # 复制数据目录
-          cp -r data/* dist/rukkit-${VERSION}/data/ 2>/dev/null || true
-          
           # 创建README文件
-          cat > dist/rukkit-${VERSION}/README.txt << 
+          cat > build/outputs/README.txt << 
           Rukkit Server Distribution
           ==========================
           
@@ -84,7 +67,7 @@ jobs:
           Git提交: ${GIT_COMMIT}
           
           使用说明:
-            1. 确保已安装Java 11或更高版本
+          1. 确保已安装Java 17或更高版本
           2. Windows系统运行: start.bat
           3. Linux/macOS系统运行: chmod +x start.sh && ./start.sh
           
@@ -99,14 +82,13 @@ jobs:
       - name: Create ZIP archive
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          cd dist
-          zip -r ../Rukkit-${VERSION}-distribution.zip rukkit-${VERSION}
+          zip -r Rukkit-${VERSION}-dev.zip build/outputs/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rukkit-distribution-${{ steps.get_version.outputs.VERSION }}
-          path: Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
+          name: rukkit-${{ steps.get_version.outputs.VERSION }}-dev
+          path: Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
           retention-days: 30
 
       - name: Generate release notes
@@ -117,7 +99,7 @@ jobs:
           GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
           
           cat > release_notes.md << EOF
-          ## Rukkit ${VERSION} 发布
+          ## Rukkit ${VERSION} Development Build
       
             自动构建的服务器分发包，包含：
           - 可执行的JAR文件
@@ -139,12 +121,12 @@ jobs:
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          tag_name: v${{ steps.get_version.outputs.VERSION }}_{{ steps.get_version.outputs.BUILD_TIME }}
           name: Rukkit ${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
           draft: false
           prerelease: false
           files: |
-            Rukkit-${{ steps.get_version.outputs.VERSION }}-distribution.zip
+            Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
