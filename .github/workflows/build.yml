@@ -63,22 +63,22 @@ jobs:
           path: Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
           retention-days: 30
 
-      - name: Generate release notes
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
-          BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
-          GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
-
-      - name: Create Release (on master branch)
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}_${{ steps.get_version.outputs.BUILD_TIME }}
-          name: Rukkit ${{ steps.get_version.outputs.VERSION }}
-          draft: true
-          prerelease: false
-          files: |
-            Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Generate release notes
+#        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+#        run: |
+#          VERSION="${{ steps.get_version.outputs.VERSION }}"
+#          BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
+#          GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
+#
+#      - name: Create Release (on master branch)
+#        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          tag_name: v${{ steps.get_version.outputs.VERSION }}_${{ steps.get_version.outputs.BUILD_TIME }}
+#          name: Rukkit ${{ steps.get_version.outputs.VERSION }}
+#          draft: true
+#          prerelease: false
+#          files: |
+#            Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
