@@ -45,7 +45,9 @@ jobs:
           echo "Detected version: $VERSION"
 
       - name: Build with Gradle
-        run: ./gradlew buildRukkit --info
+        run: |
+          chmod 777 ./gradlew
+          ./gradlew buildRukkit --info
         env:
           BUILD_TYPE: dev
 
