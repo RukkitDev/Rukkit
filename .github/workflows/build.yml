@@ -51,34 +51,6 @@ jobs:
         env:
           BUILD_TYPE: dev
 
-      - name: Create distribution package
-        run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
-          BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
-          GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
-          
-          # 创建README文件
-          cat > build/outputs/README.txt << 
-          Rukkit Server Distribution
-          ==========================
-          
-          版本: ${VERSION}
-          构建时间: ${BUILD_TIME}
-          Git提交: ${GIT_COMMIT}
-          
-          使用说明:
-          1. 确保已安装Java 17或更高版本
-          2. Windows系统运行: start.bat
-          3. Linux/macOS系统运行: chmod +x start.sh && ./start.sh
-          
-          目录结构:
-            - Rukkit-${VERSION}.jar: 主程序文件
-            - start.bat: Windows启动脚本
-            - start.sh: Linux/macOS启动脚本
-            - data/: 数据存储目录
-            - libs/: 依赖库目录（如果存在）
-          
-          EOF
       - name: Create ZIP archive
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
@@ -97,25 +69,6 @@ jobs:
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           BUILD_TIME="${{ steps.get_version.outputs.BUILD_TIME }}"
           GIT_COMMIT="${{ steps.get_version.outputs.GIT_COMMIT }}"
-          
-          cat > release_notes.md << EOF
-          ## Rukkit ${VERSION} Development Build
-      
-            自动构建的服务器分发包，包含：
-          - 可执行的JAR文件
-          - 启动脚本 (Windows/Linux)
-          - 所有必要的依赖
-          - 配置和数据目录
-      
-          ### 使用方法
-            1. 下载ZIP文件并解压
-            2. 运行对应的启动脚本
-            3. 享受游戏！
-            
-            构建信息：
-          - 构建时间: ${BUILD_TIME}
-          - Git提交: ${GIT_COMMIT}
-            EOF
 
       - name: Create Release (on master branch)
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
@@ -123,8 +76,7 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}_{{ steps.get_version.outputs.BUILD_TIME }}
           name: Rukkit ${{ steps.get_version.outputs.VERSION }}
-          body_path: release_notes.md
-          draft: false
+          draft: true
           prerelease: false
           files: |
             Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
