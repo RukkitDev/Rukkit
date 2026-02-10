@@ -19,11 +19,16 @@ jobs:
         with:
           fetch-depth: 0  # 获取完整历史以获取git信息
 
+      - name: Gradle Vaildation
+        uses: gradle/actions/wrapper-validation@v5
+
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
+
+            
 
       # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
       # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
