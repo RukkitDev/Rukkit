@@ -17,6 +17,7 @@ import cn.rukkit.network.*;
 import java.io.*;
 
 import cn.rukkit.util.LangUtil;
+import cn.rukkit.util.VersionUtil;
 import org.slf4j.*;
 import org.yaml.snakeyaml.*;
 import cn.rukkit.plugin.*;
@@ -31,7 +32,7 @@ import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.9.4-dev";
+	public static final String RUKKIT_VERSION = VersionUtil.getVersion();
 	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
@@ -265,6 +266,12 @@ public class Rukkit {
 			log.warn("Invalid Language configuration {} detected, we will use system default language. Please check your rukkit.yml.", getConfig().lang);
 		}
 		log.info("Current Language: {}", LangUtil.lc);
+		log.info("  ____        _    _    _ _   ");
+		log.info(" |  _ \\ _   _| | _| | _(_) |_ ");
+		log.info(" | |_) | | | | |/ / |/ / | __|");
+		log.info(" |  _ <| |_| |   <|   <| | |_ ");
+		log.info(" |_| \\_\\\\__,_|_|\\_\\_|\\_\\_|\\__|");
+		log.info("Rukkit v{}", VersionUtil.getVersion());
 		//init SaveManager.
 		log.info("load::DefaultSaveData..."); // 加载保存文件
 		try {

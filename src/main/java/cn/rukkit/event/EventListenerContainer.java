@@ -12,9 +12,12 @@ package cn.rukkit.event;
 import cn.rukkit.plugin.*;
 import java.lang.reflect.*;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EventListenerContainer
 {
+	private static final Logger log = LoggerFactory.getLogger(EventListenerContainer.class);
 	public Method method;
 	public RukkitPlugin plugin;
 	public EventListener listener;
@@ -33,15 +36,15 @@ public class EventListenerContainer
 		}
 		catch (IllegalAccessException e)
 		{
-			e.printStackTrace();
+			log.error("Illegal access in event method invocation", e);
 		}
 		catch (IllegalArgumentException e)
 		{
-			e.printStackTrace();
+			log.error("Illegal argument in event method invocation", e);
 		}
 		catch (InvocationTargetException e)
 		{
-			e.printStackTrace();
+			log.error("Invocation target error in event method", e);
 		}
 		return event;
 	}

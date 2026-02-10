@@ -84,7 +84,7 @@ public class CommandManager
 		String[] cmds = cmd.split("\\s+", 2);
 		ServerCommand cmdObj = fetchServerCommand(cmds[0]);
 		if (cmdObj == null) {
-			System.out.println("Command not exist.Try 'help' to list all commands.");
+			log.info("Command '{}' not found. Try 'help' to list all commands.", cmds[0]);
 			return;
 		}
 		log.trace("cmd is:" + cmds[0]);

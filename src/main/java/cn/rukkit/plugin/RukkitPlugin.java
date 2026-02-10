@@ -68,7 +68,7 @@ public abstract class RukkitPlugin implements Plugin
 			}
 			catch (IOException e)
 			{
-				e.printStackTrace();
+				getLogger().error("Error creating config file", e);
 			}
 		}
 

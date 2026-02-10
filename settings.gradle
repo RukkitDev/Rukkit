@@ -16,7 +16,17 @@ include 'services:webservice'
 */
 
 rootProject.name = 'Rukkit'
+
+// 项目版本信息
 ext {
-    rukkitVersion = '0.8.0'
-    supportGameVersion = '151'
+    rukkitVersion = '0.9.4'
+    supportGameVersion = '176'
+}
+
+// 构建缓存配置
+buildCache {
+    local {
+        enabled = true
+        directory = new File(rootDir, 'build-cache')
+    }
 }

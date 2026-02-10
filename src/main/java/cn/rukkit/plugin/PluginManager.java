@@ -260,7 +260,7 @@ public class PluginManager
 					}
 					catch (Exception e)
 					{
-						e.printStackTrace();
+						log.error("Error registering event listener", e);
 					}
 				}
 			}
@@ -299,7 +299,7 @@ public class PluginManager
 					}
 					catch (Exception e)
 					{
-						e.printStackTrace();
+						log.error("Error unregistering event listener", e);
 					}
 				}
 			}

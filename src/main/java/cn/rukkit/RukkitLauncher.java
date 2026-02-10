@@ -72,14 +72,13 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 					break;
 				}
 				catch (Exception e) {
-					System.out.println("Oops.A exception occurred.");
-					e.printStackTrace();
+					log.error("An unexpected error occurred in main loop", e);
 				}
 			}
 		} catch (IOException e) {
-			//e.printStackTrace();
+			log.error("IO Exception during startup", e);
 		} catch (InterruptedException e) {
-			//e.printStackTrace();
+			log.error("Interrupted during startup", e);
 		}
 	}
 

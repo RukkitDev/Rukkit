@@ -23,6 +23,7 @@ import cn.rukkit.event.player.PlayerReconnectEvent;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
+import cn.rukkit.util.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,7 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
         config = new PluginConfig();
         config.name = "Basic Game Plugin";
         config.author = "rukkit";
-        config.version = Rukkit.RUKKIT_VERSION;
+        config.version = VersionUtil.getVersion();
         config.id = "base-plugin";
         config.pluginClass = "cn.rukkit.plugin.internal.BasePlugin";
         config.apiVersion = Rukkit.PLUGIN_API_VERSION;

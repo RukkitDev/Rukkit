@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
+import cn.rukkit.util.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public boolean onSend(RoomConnection con, String[] args) {
 		// TODO: Implement this method
 		StringBuilder build = new StringBuilder();
-		build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
+		build.append("Rukkit Server v" + VersionUtil.getVersion() + "\n");
 		build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
 		con.sendServerMessage(build.toString());
 		return false;
@@ -70,7 +71,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
 			StringBuilder build = new StringBuilder();
-			build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
+			build.append("Rukkit Server v" + VersionUtil.getVersion() + "\n");
 			build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
 			con.sendServerMessage(build.toString());
 			return false;
@@ -83,7 +84,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		config = new PluginConfig();
 		config.name = "Basic Chat Command Plugin";
 		config.author = "rukkit";
-		config.version = Rukkit.RUKKIT_VERSION;
+		config.version = VersionUtil.getVersion();
 		config.id = "command-plugin";
 		config.pluginClass = "cn.rukkit.plugin.internal.CommandPlugin";
 		config.apiVersion = Rukkit.PLUGIN_API_VERSION;
@@ -627,7 +628,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				try {
 					con.currectRoom.broadcast(Packet.gamePing(con.currectRoom, con.player.playerIndex, PingType.happy, x, y));
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error("Error sending ping packet", e);
 				}
 			}
 			return false;
@@ -672,7 +673,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					con.currectRoom.connectionManager.broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
 					con.player.isSurrounded = true;
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error("Error sending surrender packet", e);
 				}
 			}
 			return false;

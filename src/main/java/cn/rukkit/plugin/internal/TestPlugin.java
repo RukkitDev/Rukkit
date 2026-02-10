@@ -69,9 +69,10 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
                     player.getConnection().sendServerMessage("只有管理才可以生成该单位！");
                 }
             }
-            try {
-                player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
-            } catch (IOException ignored) {}
+            //try {
+                player.getRoom().summonUnit(unit, event.getTargetX(), event.getTargetY(), player.playerIndex);
+                // player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
+            // } catch (IOException ignored) {}
             player.putTempData("isSpawnTriggered", false);
         }
     }

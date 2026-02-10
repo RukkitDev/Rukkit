@@ -23,6 +23,7 @@ import cn.rukkit.network.RoomManager;
 import cn.rukkit.network.packet.Packet;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
+import cn.rukkit.util.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,7 +317,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         config.name = "Internal Server Command Plugin";
         config.author = "rukkit";
         config.id = "server-command-plugin";
-        config.version = Rukkit.RUKKIT_VERSION;
+        config.version = VersionUtil.getVersion();
         config.pluginClass = "cn.rukkit.plugin.internal.ServerCommandPlugin";
         config.apiVersion = Rukkit.PLUGIN_API_VERSION;
     }
