@@ -21,6 +21,16 @@ mainClassName = 'cn.rukkit.RukkitLauncher'
 repositories {
     // Use 'jcenter' for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
+    //优先查本地maven仓库
+    mavenLocal()
+    //maven国内镜像
+    maven { url 'https://maven.aliyun.com/repository/central/' }
+    maven { url 'https://maven.aliyun.com/repository/jcenter/' }
+    maven { url 'https://maven.aliyun.com/repository/public/' }
+    maven { url 'https://maven.aliyun.com/repository/google/' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+    maven { url 'https://mirrors.cloud.tencent.com/gradle/' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
     mavenCentral()
 }
 
