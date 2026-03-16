@@ -16,6 +16,7 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
 import java.io.*;
 
+import cn.rukkit.network.packet.handler.PacketHandlerManager;
 import cn.rukkit.util.LangUtil;
 import cn.rukkit.util.VersionUtil;
 import org.slf4j.*;
@@ -55,6 +56,7 @@ public class Rukkit {
 	public final static String PLUGIN_API_VERSION = "0.8.0";
 	private static RoomManager roomManager;
 	private static SaveData defaultSave;
+	private static PacketHandlerManager packetHandlerManager;
 
 	public static void shutdown(String message) {
 		// TODO: Implement this method
@@ -224,6 +226,10 @@ public class Rukkit {
 	public static RoomManager getRoomManager() {
 		return roomManager;
 	}
+	
+	public static PacketHandlerManager getPacketHandlerManager() {
+		return packetHandlerManager;
+	}
 
 	public static void loadDefaultSave() throws IOException {
 		InputStream in = Rukkit.class.getClassLoader().getResourceAsStream("defaultSave");
@@ -258,7 +264,7 @@ public class Rukkit {
 		loadRoundConfig();
 		log.info("load::Language..."); // 加载语言文件
 		String[] lang_format = getConfig().lang.split("_");
-		if (lang_format.length > 2) {
+		if (lang_format.length >= 2) {
 			LangUtil.lc = new Locale(lang_format[0], lang_format[1]);
 		} else if (lang_format.length == 1) {
 			LangUtil.lc = new Locale(lang_format[0]);
@@ -293,6 +299,9 @@ public class Rukkit {
 		modManager.loadAllModsInDir();
 		log.info("init::CommandManager");
 		commandManager = new CommandManager();
+		log.info("init::PacketHandlerManager");
+		packetHandlerManager = new PacketHandlerManager();
+		packetHandlerManager.registerInternalHandler();
 		log.info("init::RoomGameServer");
 		server = new RoomGameServer();
 		log.info("init::ConnectionManager");

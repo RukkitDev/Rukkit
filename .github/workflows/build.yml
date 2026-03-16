@@ -60,6 +60,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rukkit-${{ steps.get_version.outputs.VERSION }}-dev
+
+
           path: Rukkit-${{ steps.get_version.outputs.VERSION }}-dev.zip
           retention-days: 30
 

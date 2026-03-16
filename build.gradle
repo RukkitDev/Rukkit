@@ -52,7 +52,8 @@ dependencies {
     // TestNG is also supported by the Gradle Test task. Just change the
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
-    //testCompile 'junit:junit:4.12'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }
 
 tasks.withType(Javadoc).configureEach {
@@ -177,6 +178,10 @@ Files Generated:
 // 清理任务
 clean {
     // delete 'build/outputs'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 // 默认任务

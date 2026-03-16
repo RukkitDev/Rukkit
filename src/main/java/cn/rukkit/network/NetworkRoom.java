@@ -394,6 +394,7 @@ public class NetworkRoom {
             connectionManager.broadcast(Packet.serverInfo(config));
             for(RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList();
+                conn.handler.setState(ConnectionState.IN_GAME);
             }
             gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), stepRate, stepRate);
             //connectionManager.broadcast()

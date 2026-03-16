@@ -56,7 +56,7 @@ public class PacketDecoder extends ByteToMessageDecoder
 			return;
 		}
 
-		byte bytes[] = new byte[length];
+		byte[] bytes = new byte[length];
 		p2.readBytes(bytes);
 
 		Packet p = new Packet(type);
