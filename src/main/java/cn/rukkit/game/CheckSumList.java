@@ -15,10 +15,12 @@ import java.util.ArrayList;
 
 public class CheckSumList {
     private ArrayList<ChecksumItem> checksumItems = new ArrayList<>();
+
     public class ChecksumItem {
         String description;
         public long checkData = 0;
         public long prefix = 0;
+
         public ChecksumItem(String description) {
             this.description = description;
         }
@@ -43,8 +45,7 @@ public class CheckSumList {
         @Override
         public boolean equals(Object obj) {
             if (obj instanceof ChecksumItem item) {
-                if (Math.abs(item.getCheckData() - getCheckData()) <= prefix) return true;
-                else return false;
+                return Math.abs(item.getCheckData() - getCheckData()) <= prefix;
             } else {
                 return false;
             }
@@ -83,8 +84,8 @@ public class CheckSumList {
 
     public boolean checkData(CheckSumList list) {
         int desyncCount = 0;
-        for (int i = 0;i < checksumItems.size();i++) {
-            if(!(checksumItems.get(i).equals(list.get(i)))) {
+        for (int i = 0; i < checksumItems.size(); i++) {
+            if (!(checksumItems.get(i).equals(list.get(i)))) {
                 LoggerFactory.getLogger("Checksum").warn("{} {} != {}", checksumItems.get(i).getDescription(),
                         checksumItems.get(i).getCheckData(), list.get(i).getCheckData());
                 desyncCount++;
