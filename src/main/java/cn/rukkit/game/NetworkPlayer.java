@@ -69,9 +69,7 @@ public class NetworkPlayer
 	}
 
 	public NetworkPlayer(ServerRoomConnection connection) {
-		this.serverConnection = connection;
-		this.serverRoom = connection.currectRoom;
-		this.isEmpty = false;
+		bindServerConnection(connection);
 	}
 
 	public NetworkPlayer() {
@@ -85,6 +83,12 @@ public class NetworkPlayer
 
 	public ServerRoomConnection getServerConnection() {
 		return this.serverConnection;
+	}
+
+	public void bindServerConnection(ServerRoomConnection connection) {
+		this.serverConnection = connection;
+		this.serverRoom = connection == null ? null : connection.currectRoom;
+		this.isEmpty = connection == null;
 	}
 	
 	public NetworkRoom getRoom() {
@@ -329,10 +333,10 @@ public class NetworkPlayer
 		try {
 			if (dataFile.exists()) {
 				log.debug("Player exists.Loading...");
-				data = yaml.load(new FileInputStream(dataFile));
-				data.lastUsedName = name;
-				data.lastConnectedTime = new Date().toString();
-				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
+					data = yaml.load(new FileInputStream(dataFile));
+					data.lastUsedName = name;
+					data.lastConnectedTime = new Date().toString();
+					data.lastConnectedAddress = getConnectionAddress();
 				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 				writer.write(yaml.dumpAs(data, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
@@ -340,11 +344,11 @@ public class NetworkPlayer
 			} else {
 				log.info("New player.Creating data file...");
 				dataFile.createNewFile();
-				data = new NetworkPlayerData();
-				data.uuid = uuid;
-				data.lastUsedName = name;
-				data.lastConnectedTime = new Date().toString();
-				data.lastConnectedAddress = connection.handler.ctx.channel().remoteAddress().toString();
+					data = new NetworkPlayerData();
+					data.uuid = uuid;
+					data.lastUsedName = name;
+					data.lastConnectedTime = new Date().toString();
+					data.lastConnectedAddress = getConnectionAddress();
 				Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 				writer.write(yaml.dumpAs(data, Tag.MAP, DumperOptions.FlowStyle.BLOCK));
 				writer.flush();
@@ -355,5 +359,16 @@ public class NetworkPlayer
 		} catch (IOException e) {
 
 		}
+	}
+
+	private String getConnectionAddress() {
+		if (serverConnection != null && serverConnection.handler != null
+				&& serverConnection.handler.ctx != null) {
+			return String.valueOf(serverConnection.handler.ctx.channel().remoteAddress());
+		}
+		if (connection != null && connection.handler != null && connection.handler.ctx != null) {
+			return String.valueOf(connection.handler.ctx.channel().remoteAddress());
+		}
+		return "Unknown";
 	}
 }

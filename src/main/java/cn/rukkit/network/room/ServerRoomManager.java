@@ -30,18 +30,19 @@ public class ServerRoomManager {
         resetAllRooms();
     }
 
-    /**
-     * Kept as a compatibility placeholder because the master implementation
-     * does not register connections through the room manager yet.
-     */
     public void addConnection(ServerRoomConnection connection, int roomId) {
+        getRoom(roomId).connectionManager.add(connection);
     }
 
-    /**
-     * Kept as a compatibility placeholder because the master implementation
-     * does not register connections through the room manager yet.
-     */
     public void addConnection(ServerRoomConnection connection) {
+        if (connection.currectRoom != null) {
+            connection.currectRoom.connectionManager.add(connection);
+            return;
+        }
+        ServerRoom room = getAvailableRoom();
+        if (room != null) {
+            room.connectionManager.add(connection);
+        }
     }
 
     public ServerRoom getDefaultRoom() {
