@@ -12,6 +12,7 @@ package cn.rukkit.util;
 import cn.rukkit.Rukkit;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnectionManager;
+import cn.rukkit.network.room.ServerRoom;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ public class Vote{
     public String voteId = "null";
     // 房间实例
     NetworkRoom room;
+    ServerRoom serverRoom;
     private int agree = 0;
     private int disagree = 0;
     private int timeRemain = 15;
@@ -37,8 +39,11 @@ public class Vote{
         if (isVoting) {
             return false;
         }
-        RoomConnectionManager con = room.connectionManager;
-        con.broadcastServerMessage(reason);
+        if (room != null) {
+            room.connectionManager.broadcastServerMessage(reason);
+        } else {
+            serverRoom.connectionManager.broadcastServerMessage(reason);
+        }
         timeRemain = timeRem;
         voteId = id;
         voteDesc = reason;
@@ -47,22 +52,22 @@ public class Vote{
                     @Override
                     public void run() {
                         // No player exists.Stop vote.
-                        if (room.connectionManager.size() <= 0) {
+                        if (connectionCount() <= 0) {
                             stopVote();
                         }
                         if (timeRemain == 0) {
                             if (agree >= disagree) {
-                                con.broadcastServerMessage(
+                                broadcastServerMessage(
                                         MessageFormat.format(LangUtil.getString("nostop.vote.success"), agree, disagree));
                                 runnable.run();
                             } else {
-                                con.broadcastServerMessage(
+                                broadcastServerMessage(
                                         MessageFormat.format(LangUtil.getString("nostop.vote.failure"), agree, disagree));
                             }
                             stopVote();
                         }
                         if (timeRemain % 10 == 0) {
-                            con.broadcastServerMessage(MessageFormat.format(LangUtil.getString("nostop.vote.timeRemain"), timeRemain));
+                            broadcastServerMessage(MessageFormat.format(LangUtil.getString("nostop.vote.timeRemain"), timeRemain));
                         }
                         timeRemain --;
                     }
@@ -73,6 +78,11 @@ public class Vote{
 
     public Vote(NetworkRoom room) {
         this.room = room;
+        voteState = new boolean[room.playerManager.getMaxPlayer()];
+    }
+
+    public Vote(ServerRoom room) {
+        this.serverRoom = room;
         voteState = new boolean[room.playerManager.getMaxPlayer()];
     }
 
@@ -100,5 +110,17 @@ public class Vote{
         disabledVote = false;
         Arrays.fill(voteState, false);
         if (voteFuture != null) Rukkit.getThreadManager().shutdownTask(voteFuture);
+    }
+
+    private int connectionCount() {
+        return room != null ? room.connectionManager.size() : serverRoom.connectionManager.size();
+    }
+
+    private void broadcastServerMessage(String message) {
+        if (room != null) {
+            room.connectionManager.broadcastServerMessage(message);
+        } else {
+            serverRoom.connectionManager.broadcastServerMessage(message);
+        }
     }
 }

@@ -17,6 +17,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.ServerRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cn.rukkit.network.packet.Packet;
@@ -26,11 +28,17 @@ public class SaveManager {
 
     public SaveData lastSave;
     public NetworkRoom currentRoom;
+    public ServerRoom serverRoom;
     private Logger log;
     
     public SaveManager(NetworkRoom room) {
         currentRoom = room;
         log = LoggerFactory.getLogger("SaveManager Room #" + currentRoom.roomId);
+    }
+
+    public SaveManager(ServerRoom room) {
+        serverRoom = room;
+        log = LoggerFactory.getLogger("SaveManager Room #" + serverRoom.roomId);
     }
     
     public SaveData getDeafultSave() {
@@ -42,12 +50,20 @@ public class SaveManager {
     }
     
     public void sendDefaultSaveToAll(boolean isPullSave) throws IOException {
-        currentRoom.broadcast(Packet.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
+        if (serverRoom != null) {
+            serverRoom.broadcast(UniversalPacket.sendSave(serverRoom, getDeafultSave().arr, isPullSave));
+        } else {
+            currentRoom.broadcast(Packet.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
+        }
     }
     
     public void sendLastSaveToAll(boolean isPullSave) throws IOException {
         if (lastSave != null) {
-            currentRoom.broadcast(Packet.sendSave(currentRoom, lastSave.arr,isPullSave));
+            if (serverRoom != null) {
+                serverRoom.broadcast(UniversalPacket.sendSave(serverRoom, lastSave.arr, isPullSave));
+            } else {
+                currentRoom.broadcast(Packet.sendSave(currentRoom, lastSave.arr,isPullSave));
+            }
         } else {
             log.error("lastSave is NULL!Ignoring sendLastSaveToAll.");
         }

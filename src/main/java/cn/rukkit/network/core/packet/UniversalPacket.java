@@ -21,6 +21,7 @@ import cn.rukkit.game.unit.InternalUnit;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.io.GameOutputStream;
+import cn.rukkit.network.room.ServerRoom;
 import cn.rukkit.util.GameUtils;
 
 import java.io.IOException;
@@ -211,6 +212,10 @@ public final class UniversalPacket {
         return sendSave(room.getCurrentStep(), save, isPullSave);
     }
 
+    public static Packet sendSave(ServerRoom room, byte[] save, boolean isPullSave) throws IOException {
+        return sendSave(room.getCurrentStep(), save, isPullSave);
+    }
+
     public static Packet sendPullSave(int step) throws IOException {
         GameOutputStream output = new GameOutputStream();
         output.writeByte(0);
@@ -245,6 +250,10 @@ public final class UniversalPacket {
         return sendPullSave(room.getCurrentStep());
     }
 
+    public static Packet sendPullSave(ServerRoom room) throws IOException {
+        return sendPullSave(room.getCurrentStep());
+    }
+
     public static Packet syncCheckSum(int step) throws IOException {
         GameOutputStream output = new GameOutputStream();
         output.writeInt(step);
@@ -268,6 +277,10 @@ public final class UniversalPacket {
     }
 
     public static Packet syncCheckSum(NetworkRoom room) throws IOException {
+        return syncCheckSum(room.getCurrentStep());
+    }
+
+    public static Packet syncCheckSum(ServerRoom room) throws IOException {
         return syncCheckSum(room.getCurrentStep());
     }
 
@@ -302,6 +315,11 @@ public final class UniversalPacket {
     }
 
     public static Packet gamePing(NetworkRoom room, int index, PingType type, float x, float y)
+            throws IOException {
+        return gamePing(room.getCurrentStep(), index, type, x, y);
+    }
+
+    public static Packet gamePing(ServerRoom room, int index, PingType type, float x, float y)
             throws IOException {
         return gamePing(room.getCurrentStep(), index, type, x, y);
     }
@@ -367,7 +385,16 @@ public final class UniversalPacket {
         return gameSummon(room.getCurrentStep(), unit, x, y, -1);
     }
 
+    public static Packet gameSummon(ServerRoom room, String unit, float x, float y) throws IOException {
+        return gameSummon(room.getCurrentStep(), unit, x, y, -1);
+    }
+
     public static Packet gameSummon(NetworkRoom room, String unit, float x, float y, int team)
+            throws IOException {
+        return gameSummon(room.getCurrentStep(), unit, x, y, team);
+    }
+
+    public static Packet gameSummon(ServerRoom room, String unit, float x, float y, int team)
             throws IOException {
         return gameSummon(room.getCurrentStep(), unit, x, y, team);
     }
@@ -404,6 +431,10 @@ public final class UniversalPacket {
     }
 
     public static Packet gameSurrounder(NetworkRoom room, int index) throws IOException {
+        return gameSurrounder(room.getCurrentStep(), index);
+    }
+
+    public static Packet gameSurrounder(ServerRoom room, int index) throws IOException {
         return gameSurrounder(room.getCurrentStep(), index);
     }
 

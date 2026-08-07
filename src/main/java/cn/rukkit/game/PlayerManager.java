@@ -10,6 +10,7 @@
 package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.ServerRoom;
 
 import java.util.Arrays;
 //import sun.nio.ch.Net;
@@ -18,6 +19,7 @@ public class PlayerManager
 {
 	private int max;
 	private NetworkRoom currentRoom;
+	private ServerRoom serverRoom;
 	
 	/**
 	* Init player manager.
@@ -26,6 +28,12 @@ public class PlayerManager
 	public PlayerManager(NetworkRoom room, int maxPlayer) {
 		this.max = maxPlayer;
 		currentRoom = room;
+		reset();
+	}
+
+	public PlayerManager(ServerRoom room, int maxPlayer) {
+		this.max = maxPlayer;
+		serverRoom = room;
 		reset();
 	}
 	
@@ -67,18 +75,25 @@ public class PlayerManager
 	*/
 	public void remove(NetworkPlayer p){
 		int index = getIndex(p);
-		remove(index);
+		if (currentRoom != null) {
+			remove(index);
+		} else if (index != -1) {
+			remove(index);
+		}
 	}
 
 	/**
 	* Remove player by index.
 	*/
 	public void remove(int index){
+		if (serverRoom != null && (index < 0 || index >= players.length)) {
+			return;
+		}
 //		if(Rukkit.getConfig().nonStopMode) {
 //			players[index] = new NetworkPlayer();
 //			return;
 //		}
-		if(currentRoom.isGaming()){
+		if (isGaming()) {
 			players[index].ping = -1;
 			players[index].isDisconnected = true;
 			return;
@@ -197,5 +212,12 @@ public class PlayerManager
 
 	public int getMaxPlayer() {
 		return max;
+	}
+
+	private boolean isGaming() {
+		if (currentRoom != null) {
+			return currentRoom.isGaming();
+		}
+		return serverRoom != null && serverRoom.isGaming();
 	}
 }

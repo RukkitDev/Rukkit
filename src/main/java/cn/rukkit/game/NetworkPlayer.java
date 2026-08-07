@@ -10,7 +10,10 @@
 package cn.rukkit.game;
 import cn.rukkit.*;
 import cn.rukkit.network.*;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.room.ServerRoom;
+import cn.rukkit.network.room.ServerRoomConnection;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +44,7 @@ public class NetworkPlayer
 	public int startingUnit;
 
 	private RoomConnection connection = null;
+	private ServerRoomConnection serverConnection = null;
 
 	public int ping = -1;
 	public boolean isAdmin = false;
@@ -56,10 +60,17 @@ public class NetworkPlayer
 
 	public CheckSumList checkList = new CheckSumList();
 	private NetworkRoom room;
+	private ServerRoom serverRoom;
 
 	public NetworkPlayer(RoomConnection connection) {
 		this.connection = connection;
 		this.room = connection.currectRoom;
+		this.isEmpty = false;
+	}
+
+	public NetworkPlayer(ServerRoomConnection connection) {
+		this.serverConnection = connection;
+		this.serverRoom = connection.currectRoom;
 		this.isEmpty = false;
 	}
 
@@ -71,9 +82,17 @@ public class NetworkPlayer
 	public RoomConnection getConnection() {
 		return this.connection;
 	}
+
+	public ServerRoomConnection getServerConnection() {
+		return this.serverConnection;
+	}
 	
 	public NetworkRoom getRoom() {
 		return this.room;
+	}
+
+	public ServerRoom getServerRoom() {
+		return this.serverRoom;
 	}
 
 	/**
@@ -211,7 +230,7 @@ public class NetworkPlayer
 	public boolean movePlayer(int index){
 		//If index larger then maxPlayer
 		if (index > Rukkit.getConfig().maxPlayer) return false;
-		PlayerManager playerGroup = room.playerManager;
+		PlayerManager playerGroup = room != null ? room.playerManager : serverRoom.playerManager;
 		if (!playerGroup.get(index).isEmpty) {
 			return false;
 		}
@@ -231,7 +250,8 @@ public class NetworkPlayer
 	}
 
 	public boolean giveAdmin(int index){
-		NetworkPlayer player = room.playerManager.get(index);
+		PlayerManager playerManager = room != null ? room.playerManager : serverRoom.playerManager;
+		NetworkPlayer player = playerManager.get(index);
 		if(index < Rukkit.getConfig().maxPlayer && index >= 0 && !player.isEmpty && this.isAdmin){
 			player.isAdmin = true;
 			this.isAdmin = false;
@@ -242,16 +262,30 @@ public class NetworkPlayer
 
 	public void updateServerInfo() {
 		try {
-			connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+			if (serverConnection != null) {
+				serverConnection.sendPacket(UniversalPacket.serverInfo(serverRoom.config, isAdmin));
+			} else {
+				connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+			}
 		} catch (IOException e) {}
 	}
 
 	public void sendTeamMessage(String message) {
-		for (RoomConnection conn: room.connectionManager.getConnections()) {
-			if (team == conn.player.team) {
-				conn.sendMessage(name,
-						LangUtil.getString("chat.teamMsg") + " " + message,
-						playerIndex);
+		if (serverConnection != null) {
+			for (ServerRoomConnection conn : serverRoom.connectionManager.getConnections()) {
+				if (team == conn.player.team) {
+					conn.sendMessage(name,
+							LangUtil.getString("chat.teamMsg") + " " + message,
+							playerIndex);
+				}
+			}
+		} else {
+			for (RoomConnection conn: room.connectionManager.getConnections()) {
+				if (team == conn.player.team) {
+					conn.sendMessage(name,
+							LangUtil.getString("chat.teamMsg") + " " + message,
+							playerIndex);
+				}
 			}
 		}
 	}
