@@ -19,6 +19,7 @@ import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
+import cn.rukkit.network.ConnectionState;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
@@ -351,7 +352,7 @@ public class ServerRoom {
     public void startGame() {
         try {
             connectionManager.broadcast(UniversalPacket.gameStart());
-            if (config.sharedControl) {
+            if (Rukkit.getRoundConfig().sharedControl) {
                 for (NetworkPlayer player : playerManager.getPlayerArray()) {
                     try {
                         player.isNull();
@@ -365,6 +366,7 @@ public class ServerRoom {
             connectionManager.broadcast(UniversalPacket.serverInfo(config));
             for (ServerRoomConnection connection : connectionManager.getConnections()) {
                 connection.updateTeamList();
+                connection.handler.setState(ConnectionState.IN_GAME);
             }
             gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), stepRate, stepRate);
             isGaming = true;
