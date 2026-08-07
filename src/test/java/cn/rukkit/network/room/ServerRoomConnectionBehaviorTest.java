@@ -14,6 +14,8 @@ import cn.rukkit.config.RoundConfig;
 import cn.rukkit.config.RukkitConfig;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.network.ConnectionHandler;
+import cn.rukkit.network.core.handler.ServerConnectionHandler;
+import cn.rukkit.network.core.handler.ServerPacketHandlerManager;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.network.command.GameCommand;
@@ -37,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ServerRoomConnectionBehaviorTest {
     private final List<EmbeddedChannel> channels = new ArrayList<>();
-    private final List<ConnectionHandler> handlers = new ArrayList<>();
+    private final List<ServerConnectionHandler> handlers = new ArrayList<>();
+    private final List<ConnectionHandler> legacyHandlers = new ArrayList<>();
     private Object previousConfig;
     private Object previousRound;
     private Object previousThreadManager;
@@ -56,7 +59,10 @@ class ServerRoomConnectionBehaviorTest {
 
     @AfterEach
     void restoreConfiguration() throws ReflectiveOperationException {
-        for (ConnectionHandler handler : handlers) {
+        for (ServerConnectionHandler handler : handlers) {
+            handler.stopTimeout();
+        }
+        for (ConnectionHandler handler : legacyHandlers) {
             handler.stopTimeout();
         }
         for (EmbeddedChannel channel : channels) {
@@ -155,11 +161,20 @@ class ServerRoomConnectionBehaviorTest {
         assertArrayEquals(legacyPacket.bytes, migratedPacket.bytes);
     }
 
-    private ConnectionHandler newHandler() {
-        ConnectionHandler handler = new ConnectionHandler();
+    private ServerConnectionHandler newHandler() {
+        ServerConnectionHandler handler = new ServerConnectionHandler(
+                new ServerPacketHandlerManager());
         EmbeddedChannel channel = new EmbeddedChannel(handler);
         channels.add(channel);
         handlers.add(handler);
+        return handler;
+    }
+
+    private ConnectionHandler newLegacyHandler() {
+        ConnectionHandler handler = new ConnectionHandler();
+        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        channels.add(channel);
+        legacyHandlers.add(handler);
         return handler;
     }
 
@@ -177,7 +192,7 @@ class ServerRoomConnectionBehaviorTest {
 
         private LegacyFixture() {
             NetworkRoom room = new NetworkRoom(1);
-            ConnectionHandler handler = newHandler();
+            ConnectionHandler handler = newLegacyHandler();
             channel = channels.get(channels.size() - 1);
             connection = new RoomConnection(handler, room);
             connection.player = new NetworkPlayer(connection);
@@ -191,7 +206,7 @@ class ServerRoomConnectionBehaviorTest {
 
         private MigratedFixture() {
             ServerRoom room = new ServerRoom(1);
-            ConnectionHandler handler = newHandler();
+            ServerConnectionHandler handler = newHandler();
             channel = channels.get(channels.size() - 1);
             connection = new ServerRoomConnection(handler, room);
             connection.player = new NetworkPlayer(connection);

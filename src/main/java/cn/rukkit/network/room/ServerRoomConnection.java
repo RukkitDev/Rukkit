@@ -13,7 +13,7 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.command.GameCommand;
-import cn.rukkit.network.ConnectionHandler;
+import cn.rukkit.network.core.handler.ServerConnectionHandler;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
 import cn.rukkit.network.core.packet.UniversalPacket;
@@ -32,7 +32,7 @@ import java.util.concurrent.ScheduledFuture;
  */
 public class ServerRoomConnection {
     public NetworkPlayer player;
-    public ConnectionHandler handler;
+    public ServerConnectionHandler handler;
     public ServerRoom currectRoom;
     public long pingTime;
     public int lastSyncTick = 0;
@@ -43,7 +43,7 @@ public class ServerRoomConnection {
     private ScheduledFuture<?> pingFuture;
     private ScheduledFuture<?> teamFuture;
 
-    public ServerRoomConnection(ConnectionHandler handler, ServerRoom currectRoom) {
+    public ServerRoomConnection(ServerConnectionHandler handler, ServerRoom currectRoom) {
         this.handler = handler;
         this.currectRoom = currectRoom;
     }
