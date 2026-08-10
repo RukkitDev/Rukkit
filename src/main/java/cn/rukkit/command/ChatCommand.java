@@ -18,6 +18,7 @@ public class ChatCommand
 	public boolean adminRequired = false;
 	private boolean isEnabled = false;
 	private ChatCommandListener chatListener;
+	private ChatCommandContextListener contextListener;
 	private RukkitPlugin fromPlugin;
 
 
@@ -38,6 +39,28 @@ public class ChatCommand
 		this.adminRequired = adminRequired;
 	}
 
+	/**
+	 * Creates a command owned by the migrated network stack.
+	 *
+	 * <p>This is a factory instead of an overloaded constructor so existing
+	 * lambda calls targeting {@link ChatCommandListener} remain source
+	 * compatible.</p>
+	 */
+	public static ChatCommand contextCommand(String msg, String helpMessage, int args,
+			ChatCommandContextListener contextListener, RukkitPlugin fromPlugin) {
+		return contextCommand(msg, helpMessage, args, contextListener, fromPlugin, false);
+	}
+
+	/** Creates a migrated command with an explicit administrator requirement. */
+	public static ChatCommand contextCommand(String msg, String helpMessage, int args,
+			ChatCommandContextListener contextListener, RukkitPlugin fromPlugin,
+			boolean adminRequired) {
+		ChatCommand command = new ChatCommand(msg, helpMessage, args,
+				(ChatCommandListener) null, fromPlugin, adminRequired);
+		command.setContextListener(contextListener);
+		return command;
+	}
+
 	public RukkitPlugin getFromPlugin() {
 		return fromPlugin;
 	}
@@ -56,5 +79,13 @@ public class ChatCommand
 
 	public ChatCommandListener getListener() {
 		return chatListener;
+	}
+
+	public void setContextListener(ChatCommandContextListener listener) {
+		this.contextListener = listener;
+	}
+
+	public ChatCommandContextListener getContextListener() {
+		return contextListener;
 	}
 }

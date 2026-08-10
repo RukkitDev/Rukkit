@@ -44,6 +44,16 @@ public class ThreadManager
 		ScheduledFuture t = executorService.scheduleWithFixedDelay(runnable, initialDelay, delay,TimeUnit.MILLISECONDS);
 		return t;
 	}
+
+	/**
+	 * Schedule a periodic task against the executor's monotonic fixed-rate
+	 * clock. Unlike {@link #schedule(Runnable, int, int)}, the task period is
+	 * measured from scheduled deadlines rather than from task completion.
+	 */
+	public ScheduledFuture<?> scheduleAtFixedRate(Runnable runnable,
+			long initialDelay, long period, TimeUnit unit) {
+		return executorService.scheduleAtFixedRate(runnable, initialDelay, period, unit);
+	}
 	
 	/**
 	 * Schedule a task without schedule.

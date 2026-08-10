@@ -8,6 +8,7 @@ import cn.rukkit.event.room.RoomStopGameEvent;
 import cn.rukkit.game.*;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.room.RoomCommandQueue;
 import cn.rukkit.util.Vote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,22 +16,25 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NetworkRoom {
+    private static final Logger commandLog = LoggerFactory.getLogger(NetworkRoom.class);
     public PlayerManager playerManager;
     public RoomConnectionManager connectionManager;
     /**
      * 命令列表。在采用更稳定的同步(useCommandQuere)时会启用，减少同步错误但是会提高操作延迟。
      */
-    private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+    private final RoomCommandQueue commandQuere = new RoomCommandQueue();
+    private final Object commandDispatchLock = new Object();
 
     public RoundConfig config;
-    public int stepRate = 200;
-    public int currentStep = 0;
+    /** Approximate network window in milliseconds; scheduling uses nanoseconds. */
+    public int stepRate = NetworkTick.WINDOW_PERIOD_MILLIS;
+    public volatile int currentStep = 0;
     public int checkSumFrame = 0;
     public final AtomicInteger checkSumReceived = new AtomicInteger();
     public int syncCount = 0;
@@ -43,7 +47,7 @@ public class NetworkRoom {
      */
     public SaveData lastNoStopSave;
     private boolean isGaming = false;
-    private boolean isPaused = false;
+    private volatile boolean isPaused = false;
     private ScheduledFuture gameTaskFuture;
     private SaveManager saveManager;
 
@@ -151,7 +155,7 @@ public class NetworkRoom {
             RukkitConfig cfg = Rukkit.getConfig();
             if (!isPaused) {
                 // Add step
-                currentStep += 10;
+                currentStep += NetworkTick.FRAMES_PER_WINDOW;
                 if (Rukkit.getConfig().checksumSync) {
                     if (currentStep % 300 == 0) {
                         if (!checkRequested) {
@@ -180,19 +184,7 @@ public class NetworkRoom {
                 return;
             }
 
-            synchronized (commandQuere) {
-                //log.debug("tick:" + tickTime);
-                try {
-                    if (commandQuere.isEmpty() && !isPaused) {
-                        connectionManager.broadcast(Packet.emptyCommand(currentStep));
-                    } else {
-                        while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
-                            connectionManager.broadcast(Packet.gameCommand(currentStep, cmd));
-                        }
-                    }
-                } catch (IOException ignored) {}
-            }
+            dispatchQueuedCommands();
         }
     }
 
@@ -202,7 +194,7 @@ public class NetworkRoom {
             RukkitConfig cfg = Rukkit.getConfig();
             if (!isPaused) {
                 // Add tickTime
-                currentStep += 10;
+                currentStep += NetworkTick.FRAMES_PER_WINDOW;
             }
 
             // If playercount == 1 then have a sync and pauseGame;
@@ -235,19 +227,7 @@ public class NetworkRoom {
             }
 
             // If using query mode:
-            synchronized (commandQuere) {
-                //log.debug("tick:" + tickTime);
-                try {
-                    if (commandQuere.isEmpty() && !isPaused) {
-                        connectionManager.broadcast(Packet.emptyCommand(currentStep));
-                    } else {
-                        while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
-                            connectionManager.broadcast(new Packet().gameCommand(currentStep, cmd));
-                        }
-                    }
-                } catch (IOException ignored) {}
-            }
+            dispatchQueuedCommands();
         }
     }
 
@@ -264,6 +244,7 @@ public class NetworkRoom {
             try {
                 //Rukkit.getSaveManager().sendDefaultSaveToAll();
                 //Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
+                flushQueuedCommandsForSync();
                 connectionManager.broadcast(Packet.sendPullSave(NetworkRoom.this));
                 SaveData save;
                 long time = System.currentTimeMillis();
@@ -299,6 +280,47 @@ public class NetworkRoom {
         isPaused = paused;
     }
 
+    /**
+     * Sends one room tick containing all commands currently pending. The
+     * dispatch lock prevents a normal tick and a resync boundary from
+     * overtaking each other, while the queue itself remains producer-safe.
+     */
+    private void dispatchQueuedCommands() {
+        synchronized (commandDispatchLock) {
+            if (isPaused) {
+                return;
+            }
+
+            List<GameCommand> commands = commandQuere.drain();
+            try {
+                if (commands.isEmpty()) {
+                    connectionManager.broadcast(Packet.emptyCommand(currentStep));
+                } else {
+                    connectionManager.broadcast(Packet.gameCommands(currentStep, commands));
+                }
+            } catch (IOException e) {
+                commandQuere.prepend(commands);
+                commandLog.warn("Failed to build command tick for room {}", roomId, e);
+            }
+        }
+    }
+
+    /** Completes the pending command boundary before requesting a resync save. */
+    private void flushQueuedCommandsForSync() throws IOException {
+        synchronized (commandDispatchLock) {
+            List<GameCommand> commands = commandQuere.drain();
+            if (commands.isEmpty()) {
+                return;
+            }
+            try {
+                connectionManager.broadcast(Packet.gameCommands(currentStep, commands));
+            } catch (IOException e) {
+                commandQuere.prepend(commands);
+                throw e;
+            }
+        }
+    }
+
     public void stopGame() {
         stopGame(false);
     }
@@ -315,11 +337,20 @@ public class NetworkRoom {
      * Stop a round game.
      */
     public void stopGame(boolean isRuturn) {
+        setPaused(true);
+        synchronized (commandDispatchLock) {
+            commandQuere.clear();
+        }
 
         // Reset ticktime and checksum
         currentStep = 0;
         checkSumFrame = 0;
         syncCount = 0;
+        for (NetworkPlayer player : playerManager.getPlayerArray()) {
+            if (player != null && !player.isEmpty) {
+                player.endGameActivityTracking();
+            }
+        }
         // End all connections
         if (isRuturn) {
             try {
@@ -333,7 +364,10 @@ public class NetworkRoom {
             playerManager.reset();
             connectionManager.disconnect();
         }
-        gameTaskFuture.cancel(true);
+        if (gameTaskFuture != null) {
+            gameTaskFuture.cancel(true);
+            gameTaskFuture = null;
+        }
         isGaming = false;
         RoomStopGameEvent.getListenerList().callListeners(new RoomStopGameEvent(this));
         //Rukkit.getThreadManager().shutdown();
@@ -350,6 +384,10 @@ public class NetworkRoom {
     }
 
     public void discard() {
+        setPaused(true);
+        synchronized (commandDispatchLock) {
+            commandQuere.clear();
+        }
         playerManager.reset();
         connectionManager.disconnect();
         connectionManager.clearAllSaveData();
@@ -376,11 +414,24 @@ public class NetworkRoom {
     /**
      * starts a round game.
      */
-    public void startGame() {
+    public synchronized void startGame() {
+        if (isGaming || currentStep > 0
+                || (gameTaskFuture != null && !gameTaskFuture.isDone())) {
+            return;
+        }
         try {
+            synchronized (commandDispatchLock) {
+                commandQuere.clear();
+            }
+            setPaused(false);
             connectionManager.broadcast(Packet.gameStart());
+            for (NetworkPlayer player : playerManager.getPlayerArray()) {
+                if (player != null && !player.isEmpty) {
+                    player.beginGameActivityTracking();
+                }
+            }
             // Set shared control.
-            if (Rukkit.getRoundConfig().sharedControl) {
+			if (config.sharedControl) {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
@@ -396,7 +447,11 @@ public class NetworkRoom {
                 conn.updateTeamList();
                 conn.handler.setState(ConnectionState.IN_GAME);
             }
-            gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), stepRate, stepRate);
+            gameTaskFuture = Rukkit.getThreadManager().scheduleAtFixedRate(
+                    new GameTask(),
+                    NetworkTick.WINDOW_PERIOD_NANOS,
+                    NetworkTick.WINDOW_PERIOD_NANOS,
+                    java.util.concurrent.TimeUnit.NANOSECONDS);
             //connectionManager.broadcast()
             isGaming = true;
             RoomStartGameEvent.getListenerList().callListeners(new RoomStartGameEvent(this));
@@ -414,12 +469,15 @@ public class NetworkRoom {
 //    }
 
     public void changeMapWhileRunning(String mapName, int type) {
+        synchronized (commandDispatchLock) {
+            commandQuere.clear();
+        }
         Rukkit.getRoundConfig().mapName = mapName;
         Rukkit.getRoundConfig().mapType = type;
         try {
             connectionManager.broadcast(Packet.gameStart());
             // Set shared control.
-            if (Rukkit.getRoundConfig().sharedControl) {
+			if (config.sharedControl) {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
@@ -452,8 +510,16 @@ public class NetworkRoom {
 
     public void addCommand(GameCommand cmd) {
         if (Rukkit.getConfig().useCommandQuere) {
-            commandQuere.addLast(cmd);
+            synchronized (commandDispatchLock) {
+                if (isPaused()) {
+                    return;
+                }
+                commandQuere.addLast(cmd);
+            }
         } else {
+            if (isPaused()) {
+                return;
+            }
             try {
                 broadcast(Packet.gameCommand(this.currentStep, cmd));
             } catch (IOException ignored) {}

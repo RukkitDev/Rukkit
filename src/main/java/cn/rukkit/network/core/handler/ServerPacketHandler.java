@@ -1,0 +1,34 @@
+/*
+ * Copyright 2020-2022 RukkitDev Team and contributors.
+ *
+ * This project uses GNU Affero General Public License v3.0.You can find this license in the following link.
+ * 本项目使用 GNU Affero General Public License v3.0 许可证，你可以在下方链接查看:
+ *
+ * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
+ */
+
+package cn.rukkit.network.core.handler;
+
+import cn.rukkit.network.ConnectionState;
+import cn.rukkit.network.core.packet.Packet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+/** Base contract for handlers that consume core-layer packets. */
+public abstract class ServerPacketHandler {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    public abstract int getType();
+
+    public List<ConnectionState> getAllowedStates() {
+        return List.of(ConnectionState.values());
+    }
+
+    public abstract void handle(ServerPacketContext context, Packet packet) throws Exception;
+
+    protected Logger getLogger() {
+        return logger;
+    }
+}

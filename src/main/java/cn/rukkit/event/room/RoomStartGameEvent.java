@@ -12,6 +12,7 @@ package cn.rukkit.event.room;
 import cn.rukkit.event.Event;
 import cn.rukkit.event.ListenerList;
 import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.ServerRoom;
 
 public class RoomStartGameEvent extends Event {
     private static ListenerList list = new ListenerList(RoomStartGameEvent.class);
@@ -21,12 +22,21 @@ public class RoomStartGameEvent extends Event {
     }
 
     private NetworkRoom room;
+    private ServerRoom serverRoom;
 
     public NetworkRoom getRoom() {
         return room;
     }
 
+    public ServerRoom getServerRoom() {
+        return serverRoom;
+    }
+
     public RoomStartGameEvent(NetworkRoom room) {
         this.room = room;
+    }
+
+    public RoomStartGameEvent(ServerRoom room) {
+        this.serverRoom = room;
     }
 }

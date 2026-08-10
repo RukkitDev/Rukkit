@@ -20,6 +20,7 @@ public class GameOutputStream
 	public DataOutputStream stream = new DataOutputStream(buffer);
 	public DataOutputStream currentStream = new DataOutputStream(buffer);
 	public LinkedList<GzipEncoder> blockQuere = new LinkedList<GzipEncoder>();
+	private LinkedList<DataOutputStream> parentStreams = new LinkedList<DataOutputStream>();
 
 	private GZIPOutputStream gzipStream;
 
@@ -116,39 +117,29 @@ public class GameOutputStream
 	*/
 	public void startBlock(String blockName, boolean isGzip) throws IOException {
 		GzipEncoder enc = getEncodeStream(blockName, isGzip);
+		parentStreams.addLast(stream);
+		blockQuere.addLast(enc);
 		currentStream = stream;
 		stream = enc.stream;
-		blockQuere.addLast(enc);
-		OutputStream outputStream;
-		if (isGzip) {
-			this.gzipStream = new GZIPOutputStream(this.buff);
-			this.bufferedStream = new BufferedOutputStream(this.gzipStream);
-			outputStream = this.bufferedStream;
-		} else {
-			outputStream = this.buff;
-		}
-		stream = new DataOutputStream(outputStream);
 	}
 	
 	/*
 	* End a content block.
 	*/
 	public void endBlock() throws IOException {
-		if (blockQuere.size() != 0) {
-			GzipEncoder enc = blockQuere.removeLast();
-			//enc.stream = stream;
-			//enc.stream.write(stream.
-			currentStream.writeUTF(enc.str);
-			currentStream.writeInt(stream.size());
-			buff.writeTo((OutputStream)this.currentStream);
-			buff.flush();
-			//detect next block
-			if (blockQuere.size() == 0) {
-				stream = currentStream;
-			} else {
-				stream = blockQuere.getLast().stream;
-			}
+		if (blockQuere.isEmpty() || parentStreams.isEmpty()) {
+			throw new IllegalStateException("no open block");
 		}
+
+		GzipEncoder enc = blockQuere.removeLast();
+		DataOutputStream parent = parentStreams.removeLast();
+		enc.flush();
+		parent.writeUTF(enc.str);
+		parent.writeInt(enc.buffer.size());
+		enc.buffer.writeTo(parent);
+		parent.flush();
+		stream = parent;
+		currentStream = parent;
 		
 	}
 }

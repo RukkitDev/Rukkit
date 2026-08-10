@@ -237,6 +237,8 @@ public class RoomConnection {
 	 * 心跳包返回
 	 */
 	public void pong() {
+		if (player == null) return;
 		player.ping = (int) (System.currentTimeMillis() - pingTime);
+		player.recordHeartbeat();
 	}
 }

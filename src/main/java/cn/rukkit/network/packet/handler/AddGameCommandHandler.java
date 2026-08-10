@@ -153,13 +153,15 @@ public class AddGameCommandHandler extends PacketHandler {
             out.writeLong(str.readLong());
         }
 
-        if (str.readBoolean()) {
-            out.writeBoolean(true);
-            byte byte2 = str.readByte();
-            out.writeByte(byte2);
-        } else {
-            out.writeBoolean(false);
+        // The field is the pre-command player. The original server binds it
+        // to the connection that submitted the command instead of trusting
+        // the player index supplied by the client.
+        boolean hasCommandPlayer = str.readBoolean();
+        if (hasCommandPlayer) {
+            str.readByte();
         }
+        out.writeBoolean(true);
+        out.writeByte(connection.player.playerIndex);
 
         float pingX = 0;
         float pingY = 0;
@@ -190,21 +192,18 @@ public class AddGameCommandHandler extends PacketHandler {
         out.writeBoolean(bool7);
 
         str.readShort();
-        out.stream.writeShort(32767);
+        out.writeShort(connection.currectRoom.playerManager.getSharedControlMask());
 
+        // The original server never forwards a system action supplied by a
+        // client. Consume its payload to keep the stream aligned, then clear
+        // the flag before broadcasting the normal command.
         if (str.readBoolean()) {
-            out.writeBoolean(true);
             str.readByte();
-            out.writeByte(0);
-            float f1 = str.readFloat();
-            float f2 = str.readFloat();
-            int i1 = str.readInt();
-            out.writeFloat(f1);
-            out.writeFloat(f2);
-            out.writeInt(i1);
-        } else {
-            out.writeBoolean(false);
+            str.readFloat();
+            str.readFloat();
+            str.readInt();
         }
+        out.writeBoolean(false);
 
         int movementUnitCount = str.readInt();
         out.writeInt(movementUnitCount);
@@ -278,13 +277,14 @@ public class AddGameCommandHandler extends PacketHandler {
         if (act != null) {
             ListenerList list = (ListenerList) act.getClass().getMethod("getListenerList").invoke(null);
             if (list.callListeners(act)) {
+                connection.player.markCommandActivity();
                 connection.sendGameCommand(cmd);
             } else {
                 getLogger().debug("Event {} cancelled!", act);
             }
         } else {
+            connection.player.markCommandActivity();
             connection.sendGameCommand(cmd);
         }
     }
 }
-

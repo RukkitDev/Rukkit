@@ -37,8 +37,7 @@ public class SyncHandler extends PacketHandler {
         int frame = in.readInt();
         int time = in.readInt() / 15;
         getLogger().trace("sync frame={} payload: {}, {}, {}, {}", frame, in.readFloat(), in.readFloat(), in.readBoolean(), in.readBoolean());
-        byte[] save = new byte[in.stream.available()];
-        in.stream.read(save);
+        byte[] save = in.getBlockRaw("gameSave");
         if (save.length > 20) {
             SaveData data = new SaveData();
             data.arr = save;
@@ -47,4 +46,3 @@ public class SyncHandler extends PacketHandler {
         }
     }
 }
-

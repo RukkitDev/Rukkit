@@ -14,6 +14,11 @@ import cn.rukkit.config.*;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
+import cn.rukkit.network.core.CoreRoomGameServer;
+import cn.rukkit.network.core.handler.ServerPacketHandlerManager;
+import cn.rukkit.network.room.ServerGlobalConnectionManager;
+import cn.rukkit.network.room.ServerRoomConnection;
+import cn.rukkit.network.room.ServerRoomManager;
 import java.io.*;
 
 import cn.rukkit.network.packet.handler.PacketHandlerManager;
@@ -57,22 +62,44 @@ public class Rukkit {
 	private static RoomManager roomManager;
 	private static SaveData defaultSave;
 	private static PacketHandlerManager packetHandlerManager;
+	private static CoreRoomGameServer coreServer;
+	private static ServerGlobalConnectionManager coreConnectionManager;
+	private static ServerRoomManager coreRoomManager;
+	private static ServerPacketHandlerManager corePacketHandlerManager;
 
 	public static void shutdown(String message) {
 		// TODO: Implement this method
 		log.info("Server will shutdown...");
 		log.info("Disconnect current players...");
-		getGlobalConnectionManager().broadcastGlobalServerMessage("Server is stopped!");
+		if (isCoreNetworkEnabled() && coreConnectionManager != null) {
+			coreConnectionManager.broadcastGlobalServerMessage("Server is stopped!");
+		} else if (connectionManager != null) {
+			connectionManager.broadcastGlobalServerMessage("Server is stopped!");
+		}
 		log.info("Disabling all plugins...");
-		pluginManager.disableAllPlugins();
+		if (pluginManager != null) {
+			pluginManager.disableAllPlugins();
+		}
 		log.info("Saving player data...");
-		for (RoomConnection connection: getGlobalConnectionManager().getConnections()) {
-			connection.player.savePlayerData();
+		if (isCoreNetworkEnabled() && coreConnectionManager != null) {
+			for (ServerRoomConnection connection : coreConnectionManager.getConnections()) {
+				connection.player.savePlayerData();
+			}
+		} else if (connectionManager != null) {
+			for (RoomConnection connection: connectionManager.getConnections()) {
+				connection.player.savePlayerData();
+			}
 		}
 		log.info("Stop ThreadManager...");
-		getThreadManager().shutdown();
+		if (threadManager != null) {
+			threadManager.shutdown();
+		}
 		log.info("Shutdown server...");
-		getGameServer().stopServer();
+		if (isCoreNetworkEnabled() && coreServer != null) {
+			coreServer.stopServer();
+		} else if (server != null) {
+			server.stopServer();
+		}
 		log.info("Stop terminal...");
 		RukkitLauncher.isTerminalRunning = false;
 		// RukkitLauncher.terminalThread.interrupt();
@@ -109,6 +136,11 @@ public class Rukkit {
 		return isStarted;
 	}
 
+	/** Returns whether the migrated network runtime has been selected. */
+	public static boolean isCoreNetworkEnabled() {
+		return config != null && config.isCoreNetworkEnabled();
+	}
+
 	/**
 	 * Get a rukkit config.
 	 * {@link RukkitConfig}
@@ -143,6 +175,10 @@ public class Rukkit {
 
 	public static RoomGameServer getGameServer() {
 		return server;
+	}
+
+	public static CoreRoomGameServer getCoreGameServer() {
+		return coreServer;
 	}
 
 	public static PluginManager getPluginManager() {
@@ -226,9 +262,21 @@ public class Rukkit {
 	public static RoomManager getRoomManager() {
 		return roomManager;
 	}
+
+	public static ServerRoomManager getCoreRoomManager() {
+		return coreRoomManager;
+	}
+
+	public static ServerGlobalConnectionManager getCoreGlobalConnectionManager() {
+		return coreConnectionManager;
+	}
 	
 	public static PacketHandlerManager getPacketHandlerManager() {
 		return packetHandlerManager;
+	}
+
+	public static ServerPacketHandlerManager getCorePacketHandlerManager() {
+		return corePacketHandlerManager;
 	}
 
 	public static void loadDefaultSave() throws IOException {
@@ -299,6 +347,43 @@ public class Rukkit {
 		modManager.loadAllModsInDir();
 		log.info("init::CommandManager");
 		commandManager = new CommandManager();
+		if (isCoreNetworkEnabled()) {
+			log.info("init::CoreRoomManager");
+			coreRoomManager = new ServerRoomManager(round, config.maxRoom);
+			log.info("init::CoreConnectionManager");
+			coreConnectionManager = new ServerGlobalConnectionManager(coreRoomManager);
+			log.info("init::CorePacketHandlerManager");
+			corePacketHandlerManager = new ServerPacketHandlerManager();
+			corePacketHandlerManager.registerInternalHandler(
+					coreRoomManager,
+					coreConnectionManager,
+					(connection, command) -> commandManager.executeChatCommand(
+							connection, coreConnectionManager, command));
+			log.info("init::CoreRoomGameServer");
+			coreServer = new CoreRoomGameServer(
+					config.serverPort, corePacketHandlerManager, coreConnectionManager);
+
+			/* Core startup uses adapters that only depend on the migrated room model.
+			 * Legacy plugins remain on the legacy startup path below. */
+			log.info("init::PluginManager (core-compatible plugins only)");
+			pluginManager = new PluginManager();
+			pluginManager.loadPlugin(new BasePlugin());
+			pluginManager.loadPlugin(new CoreCommandPlugin());
+			pluginManager.loadPlugin(new CoreTestCommandPlugin());
+			pluginManager.loadPlugin(new ServerCommandPlugin());
+			pluginManager.enableAllPlugins();
+
+			log.info("start::core game server on port:" + config.serverPort);
+			threadManager.submit(() -> {
+				try {
+					coreServer.action(time);
+				} catch (InterruptedException e) {
+					log.error("A error occurred:", e);
+					Thread.currentThread().interrupt();
+				}
+			});
+			return;
+		}
 		log.info("init::PacketHandlerManager");
 		packetHandlerManager = new PacketHandlerManager();
 		packetHandlerManager.registerInternalHandler();

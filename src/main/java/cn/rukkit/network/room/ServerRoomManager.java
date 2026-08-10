@@ -1,0 +1,98 @@
+/*
+ * Copyright 2020-2022 RukkitDev Team and contributors.
+ *
+ * This project uses GNU Affero General Public License v3.0.You can find this license in the following link.
+ * 本项目使用 GNU Affero General Public License v3.0 许可证，你可以在下方链接查看:
+ *
+ * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
+ */
+
+package cn.rukkit.network.room;
+
+import cn.rukkit.Rukkit;
+import cn.rukkit.config.RoundConfig;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Master-compatible room registry for the migrated room model.
+ *
+ * <p>The registry is intentionally not installed into {@link Rukkit} yet.
+ * The existing runtime still uses the legacy {@code RoomManager} until the
+ * network entry point is migrated.</p>
+ */
+public class ServerRoomManager {
+    public List<ServerRoom> roomList;
+    private final RoundConfig defaultConfig;
+    private final int maxRoom;
+
+    public ServerRoomManager(RoundConfig defaultConfig, int maxRoom) {
+        roomList = new ArrayList<>(maxRoom);
+        this.defaultConfig = new RoundConfig(defaultConfig);
+        this.maxRoom = maxRoom;
+        resetAllRooms();
+    }
+
+    public synchronized void addConnection(ServerRoomConnection connection, int roomId) {
+        getRoom(roomId).connectionManager.add(connection);
+    }
+
+    public synchronized void addConnection(ServerRoomConnection connection) {
+        if (connection.currectRoom != null) {
+            connection.currectRoom.connectionManager.add(connection);
+            return;
+        }
+        ServerRoom room = getAvailableRoom();
+        if (room != null) {
+            room.connectionManager.add(connection);
+        }
+    }
+
+    public ServerRoom getDefaultRoom() {
+        return roomList.get(0);
+    }
+
+    public ServerRoom getRoom(int index) {
+        return roomList.get(index);
+    }
+
+    public synchronized ServerRoom getAvailableRoom() {
+        for (ServerRoom room : roomList) {
+            synchronized (room) {
+                if (room.playerManager.getPlayerCount() < room.playerManager.getMaxPlayer()
+                        && !room.isGaming()) {
+                    return room;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Reset all rooms while preserving the master lifecycle intent.
+     *
+     * <p>The legacy implementation removes entries from {@code roomList}
+     * while iterating the same list, which fails as soon as the list contains
+     * a room. The migrated registry performs the same broadcast/disconnect/
+     * discard sequence on a snapshot and then rebuilds the list.</p>
+     */
+    public synchronized void resetAllRooms() {
+        for (ServerRoom room : new ArrayList<>(roomList)) {
+            if (room == null) {
+                continue;
+            }
+            if (room.connectionManager != null) {
+                room.connectionManager.broadcastServerMessage("Room reset.");
+                room.connectionManager.disconnect();
+            }
+            if (room.playerManager != null && room.connectionManager != null) {
+                room.discard();
+            }
+        }
+        roomList.clear();
+        for (int id = 0; id < maxRoom; id++) {
+            roomList.add(new ServerRoom(id, defaultConfig));
+        }
+    }
+}

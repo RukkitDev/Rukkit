@@ -218,7 +218,7 @@ public class PluginManager
 	}
 
 	//启用所有插件
-	void enableAllPlugins()
+	public void enableAllPlugins()
 	{
 		for (RukkitPlugin plugin: pluginMap.values())
 		{

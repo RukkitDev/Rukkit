@@ -129,11 +129,12 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			// Maps
 			if (type == 0) {
 				StringBuilder build = new StringBuilder();
+				int page = MapCommandSupport.pageIndex(args);
+				if (page < 0) return false;
 				if (args.length > 0) {
 					build.append("- Maps -  Page ").append(args[0]).append(" \n");
-					int page = Integer.parseInt(args[0]) - 1;
-					for (int i = page * 10;i < OfficialMap.maps.length;i++) {
-						if (i > page * 10 + 10) break;
+					for (int i = page * MapCommandSupport.PAGE_SIZE;
+						 i < MapCommandSupport.pageEnd(page, OfficialMap.maps.length); i++) {
 						build.append(String.format("[%d] %s", i, OfficialMap.maps[i])).append("\n");
 					}
 				} else {
@@ -145,25 +146,17 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				con.sendServerMessage(build.toString());
 			} else {
 				if (con.player.isAdmin && args.length > 0) {
-					if (args[0].startsWith("'")) {
-						String mapString = args[0].split("'")[1];
-						for (int i=0;i < OfficialMap.mapsName.length;i++) {
-							if (OfficialMap.mapsName[i].contains(mapString)) {
-								Rukkit.getRoundConfig().mapName = OfficialMap.maps[i];
-								Rukkit.getRoundConfig().mapType = 0;
-								try {
-									con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-									con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
-								} catch (IOException ignored) {}
-								break;
-							}
-						}
-						//ChannelGroups.broadcast(new Packet().chat(p.playerName, "-map " + cmd[1], p.playerIndex));
-						return false;
-					}
-					int id = Integer.parseInt(args[0]);
+					String mapString = MapCommandSupport.quotedValue(args[0]);
+					int id = mapString == null
+							? MapCommandSupport.mapIndex(args[0], OfficialMap.maps.length)
+							: MapCommandSupport.officialMapIndex(mapString);
+					if (id < 0) return false;
 					Rukkit.getRoundConfig().mapName = OfficialMap.maps[id];
 					Rukkit.getRoundConfig().mapType = 0;
+					try {
+						con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+						con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					} catch (IOException ignored) {}
 				}
 			}
 			return false;
@@ -182,11 +175,12 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			if (type == 0) {
 				StringBuilder build = new StringBuilder();
 				List<String> li = CustomMapLoader.getMapNameList();
+					int page = MapCommandSupport.pageIndex(args);
+					if (page < 0) return false;
 					if (args.length > 0) {
 						build.append("- CustomMaps -  Page ").append(args[0]).append(" \n");
-						int page = Integer.parseInt(args[0]) - 1;
-						for (int i = page * 10;i < li.size();i++) {
-							if (i > page * 10 + 10) break;
+						for (int i = page * MapCommandSupport.PAGE_SIZE;
+							 i < MapCommandSupport.pageEnd(page, li.size()); i++) {
 							build.append(String.format("[%d] %s", i, li.get(i))).append("\n");
 						}
 					} else {
@@ -199,8 +193,9 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			} else {
 				if (con.player.isAdmin && args.length > 0) {
 					ArrayList<String> mapList = CustomMapLoader.getMapNameList();
-					int id = Integer.parseInt(args[0]);
-					Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
+					int id = MapCommandSupport.mapIndex(args[0], mapList.size());
+					if (id < 0) return false;
+					Rukkit.getRoundConfig().mapName = mapList.get(id);
 					Rukkit.getRoundConfig().mapType = 1;
 					try {
 						con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
@@ -303,7 +298,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		public boolean onSend(RoomConnection con, String[] args) {
 			if (args.length <= 0) return false;
 			getLogger().info("Player {} issued command: {}", con.player.name, args[0]);
-			Rukkit.getCommandManager().executeChatCommand(con, args[0].substring(1));
+			Rukkit.getCommandManager().executeChatCommand(con,
+					CommandManager.normalizeNestedCommand(args[0]));
 			return false;
 		}
 	}
@@ -455,24 +451,39 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	class ShareCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
-			if (con.currectRoom.isGaming() || args.length < 1) {
-				// Do nothing.
-			} else {
-				RoomConnectionManager ChannelGroups = con.currectRoom.connectionManager;
-				switch (args[0]) {
-					case "on":
-						con.player.isSharingControl = true;
-						ChannelGroups.broadcastServerMessage(con.player.name + "stopped Shared control!");
-						break;
-					case "off":
-						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control.");
-						break;
-					default:
-						con.player.isSharingControl = false;
-						ChannelGroups.broadcastServerMessage(con.player.name + "started Shared control!");
-				}
+			if (con == null || con.player == null || con.currectRoom == null) {
+				return false;
 			}
+			if (!con.currectRoom.config.sharedControl) {
+				con.sendServerMessage("[Shared control is not enabled in this game]");
+				return false;
+			}
+
+			String value = args != null && args.length > 0 ? args[0] : "";
+			RoomConnectionManager channelGroups = con.currectRoom.connectionManager;
+			if ("true".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value)) {
+				if (!con.player.isSharingControl) {
+					con.player.isSharingControl = true;
+					channelGroups.broadcastServerMessage(
+							"[shared control now on for " + con.player.name + "]");
+				} else {
+					channelGroups.broadcastServerMessage(
+							"[shared control already on for " + con.player.name + "]");
+				}
+				return false;
+			}
+			if ("false".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value)) {
+				if (con.player.isSharingControl) {
+					con.player.isSharingControl = false;
+					channelGroups.broadcastServerMessage(
+							"[shared control now off for " + con.player.name + "]");
+				} else {
+					channelGroups.broadcastServerMessage(
+							"[shared control already off for " + con.player.name + "]");
+				}
+				return false;
+			}
+			con.sendServerMessage("[Expected true or false]");
 			return false;
 		}
 	}
@@ -483,7 +494,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			if (con.currectRoom.isGaming() || !con.player.isAdmin || args.length < 1) {
 				// Do nothing.
 			} else {
-				Rukkit.getRoundConfig().sharedControl = Boolean.parseBoolean(args[0]);
+				con.currectRoom.config.sharedControl = Boolean.parseBoolean(args[0]);
 				try {
 					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
 					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
