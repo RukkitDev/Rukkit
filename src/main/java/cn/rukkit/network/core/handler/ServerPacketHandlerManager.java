@@ -9,6 +9,8 @@
 
 package cn.rukkit.network.core.handler;
 
+import cn.rukkit.network.room.ServerGlobalConnectionManager;
+import cn.rukkit.network.room.ServerRoomManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,40 @@ public class ServerPacketHandlerManager {
 
     public void unregister(ServerPacketHandler handler) {
         unregister(handler.getType());
+    }
+
+    /**
+     * Register the core handlers that have already been migrated from master.
+     *
+     * <p>This registry is intentionally separate from the legacy packet
+     * handler manager while both network runtimes coexist.</p>
+     */
+    public void registerInternalHandler(ServerRoomManager roomManager,
+                                         ServerGlobalConnectionManager globalConnectionManager) {
+        registerInternalHandler(roomManager, globalConnectionManager, null);
+    }
+
+    /**
+     * Register migrated handlers with an optional new-stack chat command
+     * dispatcher. The legacy command manager remains outside this registry.
+     */
+    public void registerInternalHandler(ServerRoomManager roomManager,
+                                         ServerGlobalConnectionManager globalConnectionManager,
+                                         ServerChatCommandDispatcher commandDispatcher) {
+        register(new ServerPreRegisterHandler());
+        register(new ServerPlayerInfoHandler(roomManager, globalConnectionManager));
+        register(new ServerHeartbeatResponseHandler());
+        register(new ServerDisconnectHandler());
+        register(new ServerQuestionResponseHandler());
+        register(new ServerRandyHandler());
+        register(new ServerAddGameCommandHandler());
+        register(new ServerSyncHandler());
+        register(new ServerSyncChecksumResponseHandler());
+        if (commandDispatcher == null) {
+            register(new ServerAddChatHandler());
+        } else {
+            register(new ServerAddChatHandler(commandDispatcher));
+        }
     }
 
     public boolean dispatch(ServerPacketContext context,

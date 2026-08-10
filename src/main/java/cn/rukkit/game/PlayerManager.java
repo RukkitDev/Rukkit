@@ -43,7 +43,7 @@ public class PlayerManager
 	/**
 	* Add a player into Array.
 	*/
-	public int add(NetworkPlayer p) {
+	public synchronized int add(NetworkPlayer p) {
 		for(int i=0;i<players.length;i++){
 			if (players[i].isEmpty) {
 				p.playerIndex = i;
@@ -51,17 +51,22 @@ public class PlayerManager
 				return i;
 			}
 		}
-		return p.playerIndex;
+		return -1;
 	}
 	
 	/**
 	* Add a player with auto team.
 	* team changed by index.
 	*/
-	public void addWithTeam(NetworkPlayer p){
-		if (add(p) % 2 == 1) {
+	public synchronized boolean addWithTeam(NetworkPlayer p){
+		int index = add(p);
+		if (index < 0) {
+			return false;
+		}
+		if (index % 2 == 1) {
 			p.team = 1;
 		}
+		return true;
 	}
 
 	/**
@@ -73,11 +78,14 @@ public class PlayerManager
 	/**
 	* Remove a player.
 	*/
-	public void remove(NetworkPlayer p){
+	public synchronized void remove(NetworkPlayer p){
 		int index = getIndex(p);
+		if (index < 0) {
+			return;
+		}
 		if (currentRoom != null) {
 			remove(index);
-		} else if (index != -1) {
+		} else {
 			remove(index);
 		}
 	}
@@ -85,8 +93,11 @@ public class PlayerManager
 	/**
 	* Remove player by index.
 	*/
-	public void remove(int index){
+	public synchronized void remove(int index){
 		if (serverRoom != null && (index < 0 || index >= players.length)) {
+			return;
+		}
+		if (index < 0 || index >= players.length) {
 			return;
 		}
 //		if(Rukkit.getConfig().nonStopMode) {
@@ -104,14 +115,14 @@ public class PlayerManager
 	/**
 	* Get player by index.
 	*/
-	public NetworkPlayer get(int index){
-		if (index > players.length - 1) return null;
+	public synchronized NetworkPlayer get(int index){
+		if (index < 0 || index > players.length - 1) return null;
 		return players[index];
 	}
 
-	public NetworkPlayer getPlayerByUUID(String uuid) {
+	public synchronized NetworkPlayer getPlayerByUUID(String uuid) {
 		for (NetworkPlayer p: players) {
-			if (p.uuid.equals(uuid)) {
+			if (p.uuid != null && p.uuid.equals(uuid)) {
 				return p;
 			}
 		}
@@ -121,7 +132,7 @@ public class PlayerManager
 	/**
 	* get a player index.
 	*/
-	public int getIndex(NetworkPlayer p){
+	public synchronized int getIndex(NetworkPlayer p){
 		for(int i=0;i<players.length;i++){
 			if(players[i] == p) {
 				return i;
@@ -133,7 +144,7 @@ public class PlayerManager
 	/**
 	* get admin player.
 	*/
-	public NetworkPlayer getAdmin(){
+	public synchronized NetworkPlayer getAdmin(){
 		for (NetworkPlayer p: players) {
 			if (p.isAdmin && !p.isEmpty) {
 				return p;
@@ -145,7 +156,7 @@ public class PlayerManager
 	/**
 	* get player amount.
 	*/
-	public int getPlayerCount(){
+	public synchronized int getPlayerCount(){
 		int size = 0;
 		for (NetworkPlayer p: players) {
 			if (!p.isEmpty) {
@@ -173,21 +184,40 @@ public class PlayerManager
 	* returns a player array INCLUDING null.
 	* @return @nullable NetworkPlayer[] array
 	*/
-	public NetworkPlayer[] getPlayerArray(){
-		return players;
+	public synchronized NetworkPlayer[] getPlayerArray(){
+		return players.clone();
+	}
+
+	/**
+	 * Builds the short shared-control mask used inside a game command.
+	 * The original server rebuilds this mask for every command.
+	 */
+	public synchronized short getSharedControlMask() {
+		int mask = 0;
+		int limit = Math.min(players.length, Short.SIZE);
+		for (int i = 0; i < limit; i++) {
+			NetworkPlayer player = players[i];
+			if (player != null && !player.isEmpty && player.isSharingControlForCommands()) {
+				mask |= 1 << i;
+			}
+		}
+		return (short) mask;
 	}
 	
 	/**
 	* set player in a index
 	*/
-	public void set(int index, NetworkPlayer p){
+	public synchronized void set(int index, NetworkPlayer p){
+		if (index < 0 || index >= players.length) {
+			return;
+		}
 		players[index] =  p;
 	}
 	
 	/**
 	* reset array.useful for reseting a game.
 	*/
-	public void reset(){
+	public synchronized void reset(){
 		players = new NetworkPlayer[max];
 		for (int i = 0;i < players.length;i++) {
 			NetworkPlayer emptyPlayer = new NetworkPlayer();
@@ -197,7 +227,7 @@ public class PlayerManager
 		}
 	}
 
-	public void clearDisconnectedPlayers() {
+	public synchronized void clearDisconnectedPlayers() {
 		for (int i=0;i<players.length;i++) {
 			if (!players[i].isEmpty) {
 				if (players[i].ping == -1) {

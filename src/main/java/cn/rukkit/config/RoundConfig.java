@@ -25,4 +25,20 @@ public class RoundConfig extends BaseConfig
 	public RoundConfig() {
 		this.configName = "round.yml";
 	}
+
+	/** Creates an independent room configuration from the loaded defaults. */
+	public RoundConfig(RoundConfig source) {
+		this();
+		if (source == null) {
+			return;
+		}
+		this.mapName = source.mapName;
+		this.mapType = source.mapType;
+		this.income = source.income;
+		this.credits = source.credits;
+		this.disableNuke = source.disableNuke;
+		this.sharedControl = source.sharedControl;
+		this.fogType = source.fogType;
+		this.startingUnits = source.startingUnits;
+	}
 }

@@ -12,6 +12,7 @@ package cn.rukkit.network.room;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
+import cn.rukkit.network.ConnectionState;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import io.netty.channel.group.ChannelGroup;
@@ -23,13 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Master-compatible connection manager for {@link ServerRoom}. */
 public class RoomConnectionManager {
     private final ServerRoom room;
-    public volatile List<ServerRoomConnection> connections = new ArrayList<>();
+    public final List<ServerRoomConnection> connections = new CopyOnWriteArrayList<>();
     private final ChannelGroup channelGroup;
     private final PlayerManager playerManager;
     private final Logger log;
@@ -42,16 +43,57 @@ public class RoomConnectionManager {
                 "ChannelGroups" + room.roomId, GlobalEventExecutor.INSTANCE);
     }
 
-    public void add(ServerRoomConnection connection) {
-        connections.add(connection);
-        playerManager.addWithTeam(connection.player);
-        channelGroup.add(connection.handler.ctx.channel());
+    /**
+     * Retains the master API surface while the player-list representation is
+     * still owned by {@link PlayerManager}.
+     */
+    public void getPlayerAsList() {
+        // Kept for source compatibility with master callers.
     }
 
-    public void set(ServerRoomConnection connection, int index) {
+    public synchronized boolean add(ServerRoomConnection connection) {
+        if (connection == null || connection.player == null || connection.handler == null
+                || connection.handler.ctx == null) {
+            return false;
+        }
+        if (connections.contains(connection)) {
+            return true;
+        }
+        if (!playerManager.addWithTeam(connection.player)) {
+            return false;
+        }
         connections.add(connection);
-        playerManager.set(index, connection.player);
         channelGroup.add(connection.handler.ctx.channel());
+        return true;
+    }
+
+    public synchronized boolean set(ServerRoomConnection connection, int index) {
+        if (connection == null || connection.player == null || connection.handler == null
+                || connection.handler.ctx == null) {
+            return false;
+        }
+        NetworkPlayer currentPlayer = playerManager.get(index);
+        if (currentPlayer == null || (!currentPlayer.isEmpty && currentPlayer != connection.player)) {
+            return false;
+        }
+        connection.player.playerIndex = index;
+        playerManager.set(index, connection.player);
+        for (ServerRoomConnection existing : connections) {
+            if (existing != connection && existing.player == connection.player) {
+                connections.remove(existing);
+                existing.stopPingTask();
+                existing.stopTeamTask();
+                if (existing.handler != null && existing.handler.ctx != null) {
+                    channelGroup.remove(existing.handler.ctx.channel());
+                }
+            }
+        }
+        if (connections.contains(connection)) {
+            return true;
+        }
+        connections.add(connection);
+        channelGroup.add(connection.handler.ctx.channel());
+        return true;
     }
 
     public ChannelGroupFuture broadcast(Packet packet) {
@@ -66,24 +108,52 @@ public class RoomConnectionManager {
         return channelGroup.flush();
     }
 
-    public boolean discard(ServerRoomConnection connection) {
-        connection.handler.ctx.disconnect();
-        connections.remove(connection);
-        playerManager.remove(connection.player);
-        if (connection.player.isAdmin && playerManager.getPlayerCount() > 0) {
-            for (NetworkPlayer player : playerManager.getPlayerArray()) {
-                if (!player.isEmpty && player.getServerConnection() != null) {
-                    player.isAdmin = true;
-                    try {
-                        player.getServerConnection().sendPacket(
-                                UniversalPacket.serverInfo(room.config, true));
-                    } catch (IOException ignored) {
-                    }
-                    break;
-                }
+    public synchronized boolean discard(ServerRoomConnection connection) {
+        if (connection == null) {
+            return false;
+        }
+        boolean wasRegistered = connections.remove(connection);
+        boolean currentConnection = connection.player != null
+                && connection.player.getServerConnection() == connection;
+        if (wasRegistered && currentConnection) {
+            boolean wasAdmin = connection.player.isAdmin;
+            playerManager.remove(connection.player);
+            if (wasAdmin) {
+                connection.player.isAdmin = false;
+                transferAdminToLiveConnection();
             }
         }
-        return channelGroup.remove(connection.handler.ctx.channel());
+        if (connection.handler != null && connection.handler.ctx != null) {
+            connection.handler.ctx.disconnect();
+            return channelGroup.remove(connection.handler.ctx.channel());
+        }
+        return false;
+    }
+
+    private void transferAdminToLiveConnection() {
+        for (ServerRoomConnection candidate : connections) {
+            if (!isLive(candidate)) {
+                continue;
+            }
+            candidate.player.isAdmin = true;
+            try {
+                candidate.sendPacket(UniversalPacket.serverInfo(room.config, true));
+            } catch (IOException ignored) {
+            }
+            return;
+        }
+    }
+
+    private boolean isLive(ServerRoomConnection connection) {
+        return connection != null
+                && connection.player != null
+                && !connection.player.isEmpty
+                && !connection.player.isDisconnected
+                && connection.player.getServerConnection() == connection
+                && connection.handler != null
+                && connection.handler.getState() != ConnectionState.DISCONNECTED
+                && connection.handler.ctx != null
+                && connection.handler.ctx.channel().isOpen();
     }
 
     public ChannelGroupFuture disconnect() {
@@ -95,11 +165,11 @@ public class RoomConnectionManager {
     }
 
     public boolean contains(ServerRoomConnection connection) {
-        return channelGroup.contains(connection.handler.ctx.channel());
+        return connections.contains(connection);
     }
 
     public int size() {
-        return channelGroup.size();
+        return connections.size();
     }
 
     public List<ServerRoomConnection> getConnections() {

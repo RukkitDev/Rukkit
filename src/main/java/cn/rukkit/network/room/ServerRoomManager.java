@@ -24,17 +24,21 @@ import java.util.List;
  */
 public class ServerRoomManager {
     public List<ServerRoom> roomList;
+    private final RoundConfig defaultConfig;
+    private final int maxRoom;
 
     public ServerRoomManager(RoundConfig defaultConfig, int maxRoom) {
         roomList = new ArrayList<>(maxRoom);
+        this.defaultConfig = new RoundConfig(defaultConfig);
+        this.maxRoom = maxRoom;
         resetAllRooms();
     }
 
-    public void addConnection(ServerRoomConnection connection, int roomId) {
+    public synchronized void addConnection(ServerRoomConnection connection, int roomId) {
         getRoom(roomId).connectionManager.add(connection);
     }
 
-    public void addConnection(ServerRoomConnection connection) {
+    public synchronized void addConnection(ServerRoomConnection connection) {
         if (connection.currectRoom != null) {
             connection.currectRoom.connectionManager.add(connection);
             return;
@@ -53,11 +57,13 @@ public class ServerRoomManager {
         return roomList.get(index);
     }
 
-    public ServerRoom getAvailableRoom() {
+    public synchronized ServerRoom getAvailableRoom() {
         for (ServerRoom room : roomList) {
-            if (room.playerManager.getPlayerCount() < room.playerManager.getMaxPlayer()
-                    && !room.isGaming()) {
-                return room;
+            synchronized (room) {
+                if (room.playerManager.getPlayerCount() < room.playerManager.getMaxPlayer()
+                        && !room.isGaming()) {
+                    return room;
+                }
             }
         }
         return null;
@@ -71,7 +77,7 @@ public class ServerRoomManager {
      * a room. The migrated registry performs the same broadcast/disconnect/
      * discard sequence on a snapshot and then rebuilds the list.</p>
      */
-    public void resetAllRooms() {
+    public synchronized void resetAllRooms() {
         for (ServerRoom room : new ArrayList<>(roomList)) {
             if (room == null) {
                 continue;
@@ -85,8 +91,8 @@ public class ServerRoomManager {
             }
         }
         roomList.clear();
-        for (int id = 0; id < Rukkit.getConfig().maxRoom; id++) {
-            roomList.add(new ServerRoom(id));
+        for (int id = 0; id < maxRoom; id++) {
+            roomList.add(new ServerRoom(id, defaultConfig));
         }
     }
 }

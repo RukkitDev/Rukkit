@@ -13,6 +13,8 @@ import java.util.Locale;
 
 public class RukkitConfig extends BaseConfig
 {
+	/** Network runtime selection. Legacy remains the compatibility default. */
+	public NetworkConfig network = new NetworkConfig();
 	public String serverUser = "RUKKIT";
 	public String welcomeMsg = "Welcome to Rukkit server, {playerName}!";
 	public String serverMotd = "My Rukkit server";
@@ -45,6 +47,23 @@ public class RukkitConfig extends BaseConfig
 	public boolean useCommandQuere = false;
 
 	public boolean checksumSync = false;
+
+	public String getNetworkMode() {
+		if (network == null || network.mode == null) {
+			return "legacy";
+		}
+		String mode = network.mode.trim().toLowerCase(Locale.ROOT);
+		return "core".equals(mode) ? "core" : "legacy";
+	}
+
+	public boolean isCoreNetworkEnabled() {
+		return "core".equals(getNetworkMode());
+	}
+
+	public static class NetworkConfig {
+		/** Supported values are legacy and core. Unknown values fall back to legacy. */
+		public String mode = "legacy";
+	}
 	
 	public RukkitConfig() {
 		this.configName = "rukkit.yml";

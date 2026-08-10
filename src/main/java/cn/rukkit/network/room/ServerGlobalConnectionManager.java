@@ -23,10 +23,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Global connection registry for the migrated room runtime. */
 public class ServerGlobalConnectionManager {
-    private final List<ServerRoomConnection> connections = new ArrayList<>();
+    private final List<ServerRoomConnection> connections = new CopyOnWriteArrayList<>();
     private final ChannelGroup channelGroup;
     private final ServerRoomManager roomManager;
     private final Logger log = LoggerFactory.getLogger(ServerGlobalConnectionManager.class);
@@ -36,7 +37,19 @@ public class ServerGlobalConnectionManager {
         this.channelGroup = new DefaultChannelGroup("ServerChannelGroups", GlobalEventExecutor.INSTANCE);
     }
 
-    public void add(ServerRoomConnection connection) {
+    public synchronized void add(ServerRoomConnection connection) {
+        if (connection == null || connection.handler == null || connection.handler.ctx == null
+                || connections.contains(connection)) {
+            return;
+        }
+        for (ServerRoomConnection existing : connections) {
+            if (existing != connection && existing.player == connection.player) {
+                connections.remove(existing);
+                if (existing.handler != null && existing.handler.ctx != null) {
+                    channelGroup.remove(existing.handler.ctx.channel());
+                }
+            }
+        }
         connections.add(connection);
         channelGroup.add(connection.handler.ctx.channel());
     }
@@ -53,10 +66,16 @@ public class ServerGlobalConnectionManager {
         return channelGroup.flush();
     }
 
-    public boolean discard(ServerRoomConnection connection) {
-        connection.handler.ctx.disconnect();
+    public synchronized boolean discard(ServerRoomConnection connection) {
+        if (connection == null) {
+            return false;
+        }
         connections.remove(connection);
-        return channelGroup.remove(connection.handler.ctx.channel());
+        if (connection.handler != null && connection.handler.ctx != null) {
+            connection.handler.ctx.disconnect();
+            return channelGroup.remove(connection.handler.ctx.channel());
+        }
+        return false;
     }
 
     public ChannelGroupFuture disconnect() {
@@ -68,11 +87,11 @@ public class ServerGlobalConnectionManager {
     }
 
     public boolean contains(ServerRoomConnection connection) {
-        return channelGroup.contains(connection.handler.ctx.channel());
+        return connections.contains(connection);
     }
 
     public int size() {
-        return channelGroup.size();
+        return connections.size();
     }
 
     public List<ServerRoomConnection> getConnections() {
@@ -81,7 +100,8 @@ public class ServerGlobalConnectionManager {
 
     public NetworkPlayer getPlayerByName(String name) {
         for (ServerRoomConnection connection : connections) {
-            if (connection.player.name.equals(name)) {
+            if (connection.player != null && connection.player.name != null
+                    && connection.player.name.equals(name)) {
                 return connection.player;
             }
         }
@@ -90,7 +110,8 @@ public class ServerGlobalConnectionManager {
 
     public NetworkPlayer getPlayerByUUID(String uuid) {
         for (ServerRoomConnection connection : connections) {
-            if (connection.player.uuid.equals(uuid)) {
+            if (connection.player != null && connection.player.uuid != null
+                    && connection.player.uuid.equals(uuid)) {
                 return connection.player;
             }
         }
@@ -98,10 +119,15 @@ public class ServerGlobalConnectionManager {
     }
 
     public NetworkPlayer getAllPlayerByUUID(String uuid) {
-        for (ServerRoom room : roomManager.roomList) {
-            NetworkPlayer player = room.playerManager.getPlayerByUUID(uuid);
-            if (player != null && !player.isEmpty) {
-                return player;
+        if (uuid == null) {
+            return null;
+        }
+        synchronized (roomManager) {
+            for (ServerRoom room : new ArrayList<>(roomManager.roomList)) {
+                NetworkPlayer player = room.playerManager.getPlayerByUUID(uuid);
+                if (player != null && !player.isEmpty) {
+                    return player;
+                }
             }
         }
         return null;

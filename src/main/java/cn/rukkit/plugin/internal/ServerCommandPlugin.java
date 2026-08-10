@@ -20,7 +20,10 @@ import cn.rukkit.game.map.OfficialMap;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.network.RoomManager;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.room.ServerRoom;
+import cn.rukkit.network.room.ServerRoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import cn.rukkit.util.VersionUtil;
@@ -49,6 +52,19 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
             if (args.length >= 2) {
                 int roomid = Integer.parseInt(args[0]);
                 int slot = Integer.parseInt(args[1]);
+                if (Rukkit.isCoreNetworkEnabled()) {
+                    ServerRoom room = Rukkit.getCoreRoomManager().getRoom(roomid);
+                    if (room == null) return;
+                    NetworkPlayer player = room.playerManager.get(slot);
+                    if (player != null && !player.isSurrounded) {
+                        try {
+                            room.broadcast(UniversalPacket.gameSurrounder(room, slot));
+                        } catch (IOException e) {
+                            getLogger().error("An error occurred:", e);
+                        }
+                    }
+                    return;
+                }
                 NetworkRoom room = Rukkit.getRoomManager().getRoom(roomid);
                 if (room == null) return;
                 NetworkPlayer player = room.playerManager.get(slot);
@@ -70,7 +86,10 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
             StringBuilder build = new StringBuilder();
             build.append("- State - \n");
             build.append("RAM Usage: " +  (Runtime.getRuntime().freeMemory() / 10240) + "M/" + (Runtime.getRuntime().totalMemory()) / 10240 + "M\n");
-            build.append("Connections: " + Rukkit.getGlobalConnectionManager().size() + "\n");
+            int connections = Rukkit.isCoreNetworkEnabled()
+                    ? Rukkit.getCoreGlobalConnectionManager().size()
+                    : Rukkit.getGlobalConnectionManager().size();
+            build.append("Connections: " + connections + "\n");
             build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
             System.out.println(build);
         }
@@ -80,6 +99,21 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         @Override
         public void onSend(String[] args) {
             StringBuffer buffer = new StringBuffer("- Players -\n");
+            if (Rukkit.isCoreNetworkEnabled()) {
+                for (ServerRoom room : Rukkit.getCoreRoomManager().roomList) {
+                    buffer.append(MessageFormat.format(
+                            "- Room #{0} (gaming={1})（step={2}) -\n",
+                            room.roomId, room.isGaming(), room.getCurrentStep()));
+                    for (ServerRoomConnection connection : room.connectionManager.getConnections()) {
+                        buffer.append(MessageFormat.format("[{0}] {1} ping={2}\n",
+                                connection.player.playerIndex,
+                                connection.player.name,
+                                connection.player.ping));
+                    }
+                }
+                System.out.println(buffer);
+                return;
+            }
             for (NetworkRoom networkRoom: Rukkit.getRoomManager().roomList) {
                 buffer.append(MessageFormat.format("- Room #{0} (gaming={1})（step={2}) -\n", networkRoom.roomId, networkRoom.isGaming(), networkRoom.getCurrentStep()));
                 for (RoomConnection connection: networkRoom.connectionManager.getConnections()) {
@@ -97,6 +131,20 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
             if (args.length >= 2) {
                 int roomid = Integer.parseInt(args[0]);
                 int playerid = Integer.parseInt(args[1]);
+                if (Rukkit.isCoreNetworkEnabled()) {
+                    ServerRoom room = Rukkit.getCoreRoomManager().getRoom(roomid);
+                    if (room == null) return;
+                    if (room.isGaming()) {
+                        System.out.println("Failed: this room is in game!");
+                    }
+                    NetworkPlayer player = room.playerManager.get(playerid);
+                    if (player != null && !player.isEmpty && player.getServerConnection() != null) {
+                        player.getServerConnection().kick(LangUtil.getString("chat.kicked"));
+                    } else {
+                        System.out.println(LangUtil.getString("chat.playerEmpty"));
+                    }
+                    return;
+                }
                 if (Rukkit.getRoomManager().getRoom(roomid).isGaming()) {
                     System.out.println("Failed: this room is in game!");
                 }
@@ -140,6 +188,16 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         @Override
         public void onSend(String[] args) {
             if (args.length >= 2) {
+                if (Rukkit.isCoreNetworkEnabled()) {
+                    ServerRoom room = Rukkit.getCoreRoomManager().getRoom(
+                            Integer.parseInt(args[0]));
+                    if (room != null) {
+                        room.connectionManager.broadcastServerMessage(args[1]);
+                        LoggerFactory.getLogger("Room #" + room.roomId)
+                                .info("[Server] {}", args[1]);
+                    }
+                    return;
+                }
                 Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0])).connectionManager.broadcastServerMessage(args[1]);
                 LoggerFactory.getLogger("Room #" + Integer.parseInt(args[0])).info("[Server] {}", args[1]);
             }
@@ -156,6 +214,11 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
     class KickAllCallback implements ServerCommandListener {
         @Override
         public void onSend(String[] args) {
+            if (Rukkit.isCoreNetworkEnabled()) {
+                Rukkit.getCoreGlobalConnectionManager().broadcastGlobalServerMessage("Server kicked you.");
+                Rukkit.getCoreGlobalConnectionManager().disconnect();
+                return;
+            }
             Rukkit.getGlobalConnectionManager().broadcastGlobalServerMessage("Server kicked you.");
             Rukkit.getGlobalConnectionManager().disconnect();
         }
@@ -189,6 +252,28 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                 System.out.println(build);
             } else {
                 if (args.length > 1) {
+                    if (Rukkit.isCoreNetworkEnabled()) {
+                        ServerRoom room = Rukkit.getCoreRoomManager().getRoom(
+                                Integer.parseInt(args[0]));
+                        if (room == null) return;
+                        if (args[1].startsWith("'")) {
+                            String mapString = args[1].split("'")[1];
+                            for (int i = 0; i < OfficialMap.mapsName.length; i++) {
+                                if (OfficialMap.mapsName[i].contains(mapString)) {
+                                    room.config.mapName = OfficialMap.maps[i];
+                                    room.config.mapType = 0;
+                                    try {
+                                        room.broadcast(UniversalPacket.serverInfo(room.config));
+                                    } catch (IOException ignored) {
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                        room.config.mapName = OfficialMap.maps[Integer.parseInt(args[1])];
+                        room.config.mapType = 0;
+                        return;
+                    }
                     NetworkRoom room = Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0]));
                     if (room == null) return;
                     if (args[1].startsWith("'")) {

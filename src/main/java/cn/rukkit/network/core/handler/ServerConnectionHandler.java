@@ -85,8 +85,12 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         super.channelInactive(ctx);
         setState(ConnectionState.DISCONNECTED);
         if (conn != null) {
-            PlayerLeftEvent.getListenerList().callListeners(
-                    new PlayerLeftEvent(conn.player, disconnectReason));
+            boolean currentConnection = conn.player == null
+                    || conn.player.getServerConnection() == conn;
+            if (currentConnection) {
+                PlayerLeftEvent.getListenerList().callListeners(
+                        new PlayerLeftEvent(conn.player, disconnectReason));
+            }
             if (currentRoom != null && currentRoom.connectionManager != null) {
                 currentRoom.connectionManager.discard(conn);
             }

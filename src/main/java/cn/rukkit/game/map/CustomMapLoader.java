@@ -41,9 +41,12 @@ public class CustomMapLoader {
     public static ArrayList<String> getMapList(){
         File folder = new File(MAP_FOLDER);
         ArrayList<String> list = new ArrayList<String>();
-        for(String f: folder.list()){
-            String[] n = f.split("\\.");
-            if(n[n.length - 1].equals("tmx")){
+        String[] files = folder.list();
+        if (files == null) {
+            return list;
+        }
+        for(String f: files){
+            if(f.endsWith(".tmx")){
                 list.add(f);
             }
         }
@@ -53,14 +56,13 @@ public class CustomMapLoader {
     public static ArrayList<String> getMapNameList(){
         File folder = new File(MAP_FOLDER);
         ArrayList<String> list = new ArrayList<String>();
-        for(String f: folder.list()){
-            String[] n = f.split("\\.");
-            if(n[n.length - 1].equals("tmx")){
-                StringBuffer sbf = new StringBuffer();
-                for(int i = 0;i < n.length -1;i++){
-                    sbf.append(n[i]);
-                }
-                list.add(sbf.toString());
+        String[] files = folder.list();
+        if (files == null) {
+            return list;
+        }
+        for(String f: files){
+            if(f.endsWith(".tmx")){
+                list.add(f.substring(0, f.length() - ".tmx".length()));
             }
         }
         return list;

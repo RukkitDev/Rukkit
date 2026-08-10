@@ -38,7 +38,7 @@ public class ServerRoomConnection {
     public int lastSyncTick = 0;
     public boolean checkSumSent = false;
     public int numberOfDesyncError = 0;
-    public SaveData save;
+    public volatile SaveData save;
 
     private ScheduledFuture<?> pingFuture;
     private ScheduledFuture<?> teamFuture;
@@ -194,6 +194,10 @@ public class ServerRoomConnection {
     }
 
     public void pong() {
+        if (player == null) {
+            return;
+        }
         player.ping = (int) (System.currentTimeMillis() - pingTime);
+        player.recordHeartbeat();
     }
 }

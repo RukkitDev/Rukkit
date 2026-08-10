@@ -20,7 +20,8 @@ import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
 import cn.rukkit.event.player.PlayerReconnectEvent;
-import cn.rukkit.network.RoomConnection;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import cn.rukkit.util.VersionUtil;
@@ -36,29 +37,61 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
-        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} joined!", event.getPlayer().name);
+        NetworkPlayer player = event.getPlayer();
+        broadcastServerMessage(player,
+                MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), player.name));
+        LoggerFactory.getLogger("Room #" + roomId(player)).info("Player {} joined!", player.name);
     }
 
     @EventHandler
     public void onPlayerLeaveTip(PlayerLeftEvent event) {
-        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerLeft"), event.getPlayer().name, event.getReason()));
-        if (event.getPlayer().getRoom().isGaming()) {
-            event.getPlayer().sendTeamMessage(LangUtil.getString("rukkit.playerSharingControlDueDisconnected"));
+        NetworkPlayer player = event.getPlayer();
+        broadcastServerMessage(player,
+                MessageFormat.format(LangUtil.getString("rukkit.playerLeft"),
+                        player.name, event.getReason()));
+        if (isGaming(player)) {
+            player.sendTeamMessage(LangUtil.getString("rukkit.playerSharingControlDueDisconnected"));
         }
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} left!({})", event.getPlayer().name, event.getReason());
-        event.getPlayer().savePlayerData();
+        LoggerFactory.getLogger("Room #" + roomId(player)).info("Player {} left!({})",
+                player.name, event.getReason());
+        player.savePlayerData();
     }
 
     @EventHandler
     public void onPlayerChatInfo(PlayerChatEvent event) {
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("[{}] {}", event.getPlayer().name, event.getMessage());
+        LoggerFactory.getLogger("Room #" + roomId(event.getPlayer())).info("[{}] {}",
+                event.getPlayer().name, event.getMessage());
     }
 
     @EventHandler
     public void onPlayerReconnected(PlayerReconnectEvent event) {
-        event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerReconnect"), event.getPlayer().name));
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} reconnected!", event.getPlayer().name);
+        NetworkPlayer player = event.getPlayer();
+        broadcastServerMessage(player,
+                MessageFormat.format(LangUtil.getString("rukkit.playerReconnect"), player.name));
+        LoggerFactory.getLogger("Room #" + roomId(player)).info("Player {} reconnected!", player.name);
+    }
+
+    private static void broadcastServerMessage(NetworkPlayer player, String message) {
+        if (player.getServerRoom() != null) {
+            player.getServerRoom().connectionManager.broadcastServerMessage(message);
+        } else if (player.getRoom() != null) {
+            player.getRoom().connectionManager.broadcastServerMessage(message);
+        }
+    }
+
+    private static boolean isGaming(NetworkPlayer player) {
+        if (player.getServerRoom() != null) {
+            return player.getServerRoom().isGaming();
+        }
+        return player.getRoom() != null && player.getRoom().isGaming();
+    }
+
+    private static int roomId(NetworkPlayer player) {
+        if (player.getServerRoom() != null) {
+            return player.getServerRoom().roomId;
+        }
+        NetworkRoom room = player.getRoom();
+        return room == null ? -1 : room.roomId;
     }
 
     @Override

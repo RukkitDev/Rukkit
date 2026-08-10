@@ -17,6 +17,7 @@ import cn.rukkit.game.mod.ModManager;
 import cn.rukkit.network.ConnectionState;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.room.ServerGlobalConnectionManager;
 import cn.rukkit.network.room.ServerRoom;
@@ -29,11 +30,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -113,6 +116,84 @@ class ServerPlayerInfoHandlerBehaviorTest {
     }
 
     @Test
+    void completesPreRegistrationBeforePlayerInfo() throws Exception {
+        ConnectionFixture fixture = newConnection();
+
+        fixture.channel.writeInbound(new Packet(PacketType.PREREGISTER_CONNECTION, new byte[0]));
+
+        assertEquals(ConnectionState.PRE_REGISTERED, fixture.handler.getState());
+        Packet registrationPacket = fixture.channel.readOutbound();
+        Packet promptPacket = fixture.channel.readOutbound();
+        assertEquals(PacketType.REGISTER_CONNECTION, registrationPacket.type);
+        assertEquals(PacketType.SEND_CHAT, promptPacket.type);
+
+        fixture.channel.writeInbound(playerInfoPacket("Alice", "uuid-handshake"));
+
+        assertEquals(ConnectionState.IN_ROOM, fixture.handler.getState());
+        assertNotNull(fixture.handler.getConn());
+    }
+
+    @Test
+    void updatesPlayerPingInRoomAndGameStates() throws Exception {
+        ConnectionFixture fixture = registerPlayer("Alice", "uuid-heartbeat");
+        ServerRoomConnection connection = fixture.handler.getConn();
+
+        for (ConnectionState state : List.of(ConnectionState.IN_ROOM, ConnectionState.IN_GAME)) {
+            fixture.handler.setState(state);
+            connection.pingTime = System.currentTimeMillis() - 25;
+
+            fixture.channel.writeInbound(new Packet(PacketType.HEART_BEAT_RESPONSE, new byte[0]));
+
+            assertTrue(connection.player.ping >= 0);
+            assertTrue(connection.player.ping < 1000);
+            assertEquals(state, fixture.handler.getState());
+        }
+    }
+
+    @Test
+    void broadcastsOrdinaryChatThroughMigratedRoom() throws Exception {
+        ConnectionFixture fixture = registerPlayer("Alice", "uuid-chat");
+        drainPacketTypes(fixture.channel);
+
+        fixture.channel.writeInbound(chatPacket("hello"));
+
+        Packet actual = fixture.channel.readOutbound();
+        Packet expected = UniversalPacket.chat("Alice", "hello", fixture.handler.getConn().player.playerIndex);
+        assertNotNull(actual);
+        assertEquals(PacketType.SEND_CHAT, actual.type);
+        assertArrayEquals(expected.bytes, actual.bytes);
+    }
+
+    @Test
+    void forwardsChatCommandToInjectedCoreDispatcher() throws Exception {
+        AtomicReference<ServerRoomConnection> receivedConnection = new AtomicReference<>();
+        AtomicReference<String> receivedCommand = new AtomicReference<>();
+        ConnectionFixture fixture = newConnection((connection, command) -> {
+            receivedConnection.set(connection);
+            receivedCommand.set(command);
+        });
+        fixture.handler.setState(ConnectionState.PRE_REGISTERED);
+        fixture.channel.writeInbound(playerInfoPacket("Alice", "uuid-command"));
+        drainPacketTypes(fixture.channel);
+
+        fixture.channel.writeInbound(chatPacket(".version now"));
+
+        assertSame(fixture.handler.getConn(), receivedConnection.get());
+        assertEquals("version now", receivedCommand.get());
+    }
+
+    @Test
+    void ignoresHeartbeatWithoutARegisteredConnection() {
+        ConnectionFixture fixture = newConnection();
+        fixture.handler.setState(ConnectionState.IN_ROOM);
+
+        fixture.channel.writeInbound(new Packet(PacketType.HEART_BEAT_RESPONSE, new byte[0]));
+
+        assertTrue(fixture.channel.isOpen());
+        assertEquals(ConnectionState.IN_ROOM, fixture.handler.getState());
+    }
+
+    @Test
     void rejectsDuplicatePlayerWhileRoomIsNotGaming() throws Exception {
         ConnectionFixture first = registerPlayer("Alice", "uuid-duplicate");
         drainPacketTypes(first.channel);
@@ -125,6 +206,44 @@ class ServerPlayerInfoHandlerBehaviorTest {
         assertEquals(1, globalConnectionManager.size());
         assertEquals(1, duplicate.room.playerManager.getPlayerCount());
         assertTrue(drainPacketTypes(duplicate.channel).contains(PacketType.KICK));
+    }
+
+    @Test
+    void rejectsNewPlayerWhenSelectedRoomIsAlreadyGaming() throws Exception {
+        TestServerRoom room = new TestServerRoom(0);
+        room.currentStep = 10;
+        roomManager = new FixedRoomManager(room);
+        globalConnectionManager = new ServerGlobalConnectionManager(roomManager);
+
+        ConnectionFixture fixture = newConnection();
+        fixture.handler.setState(ConnectionState.PRE_REGISTERED);
+        fixture.channel.writeInbound(playerInfoPacket("Alice", "uuid-game-started"));
+
+        assertNull(fixture.handler.getConn());
+        assertEquals(0, room.playerManager.getPlayerCount());
+        assertEquals(0, room.connectionManager.size());
+        assertEquals(0, globalConnectionManager.size());
+        assertTrue(drainPacketTypes(fixture.channel).contains(PacketType.KICK));
+    }
+
+    @Test
+    void doesNotPublishConnectionWhenPlayerSlotsAreFull() throws Exception {
+        Rukkit.getConfig().maxPlayer = 1;
+        roomManager = new ServerRoomManager(Rukkit.getRoundConfig(), 1);
+        globalConnectionManager = new ServerGlobalConnectionManager(roomManager);
+
+        ConnectionFixture first = registerPlayer("Alice", "uuid-capacity-first");
+        ConnectionFixture spare = newConnection();
+        ServerRoomConnection extra = new ServerRoomConnection(spare.handler, first.room);
+        extra.player = new NetworkPlayer(extra);
+        extra.player.name = "Bob";
+        extra.player.uuid = "uuid-capacity-second";
+
+        first.room.connectionManager.add(extra);
+
+        assertEquals(1, first.room.playerManager.getPlayerCount());
+        assertEquals(1, first.room.connectionManager.getConnections().size());
+        assertEquals(1, first.room.connectionManager.size());
     }
 
     @Test
@@ -154,6 +273,48 @@ class ServerPlayerInfoHandlerBehaviorTest {
         assertEquals(ConnectionState.IN_GAME, reconnect.handler.getState());
     }
 
+    @Test
+    void oldConnectionClosingAfterReconnectDoesNotDisconnectReplacement() throws Exception {
+        TestServerRoom room = new TestServerRoom(0);
+        roomManager.roomList.set(0, room);
+        ConnectionFixture first = registerPlayer("Alice", "uuid-overlapping-reconnect");
+        NetworkPlayer player = first.handler.getConn().player;
+
+        room.currentStep = 10;
+        ConnectionFixture reconnect = newConnection();
+        reconnect.handler.setState(ConnectionState.PRE_REGISTERED);
+        reconnect.channel.writeInbound(
+                playerInfoPacket("Alice-Reconnected", "uuid-overlapping-reconnect"));
+
+        assertSame(player, reconnect.handler.getConn().player);
+        assertEquals(1, room.connectionManager.getConnections().size());
+        assertEquals(1, globalConnectionManager.getConnections().size());
+
+        first.channel.close();
+
+        assertSame(reconnect.handler.getConn(), player.getServerConnection());
+        assertFalse(player.isDisconnected);
+        assertEquals(1, room.connectionManager.getConnections().size(),
+                room.connectionManager.getConnections().toString());
+        assertEquals(1, globalConnectionManager.getConnections().size());
+    }
+
+    @Test
+    void transfersAdminToLivePlayerWhenAdminLeavesDuringGame() throws Exception {
+        ConnectionFixture admin = registerPlayer("Admin", "uuid-admin");
+        ConnectionFixture survivor = registerPlayer("Survivor", "uuid-survivor");
+        admin.handler.getConn().player.isAdmin = true;
+        survivor.handler.getConn().player.isAdmin = false;
+        admin.room.currentStep = 10;
+
+        admin.channel.close();
+
+        assertFalse(admin.handler.getConn().player.isAdmin);
+        assertTrue(survivor.handler.getConn().player.isAdmin);
+        assertEquals(1, admin.room.connectionManager.getConnections().size());
+        assertEquals(1, globalConnectionManager.getConnections().size());
+    }
+
     private ConnectionFixture registerPlayer(String name, String uuid) throws Exception {
         ConnectionFixture fixture = newConnection();
         fixture.handler.setState(ConnectionState.PRE_REGISTERED);
@@ -162,8 +323,12 @@ class ServerPlayerInfoHandlerBehaviorTest {
     }
 
     private ConnectionFixture newConnection() {
+        return newConnection(null);
+    }
+
+    private ConnectionFixture newConnection(ServerChatCommandDispatcher commandDispatcher) {
         ServerPacketHandlerManager handlerManager = new ServerPacketHandlerManager();
-        handlerManager.register(new ServerPlayerInfoHandler(roomManager, globalConnectionManager));
+        handlerManager.registerInternalHandler(roomManager, globalConnectionManager, commandDispatcher);
         ServerConnectionHandler handler = new ServerConnectionHandler(
                 handlerManager, globalConnectionManager::discard);
         EmbeddedChannel channel = new EmbeddedChannel(handler);
@@ -187,6 +352,12 @@ class ServerPlayerInfoHandlerBehaviorTest {
         return output.createPacket(PacketType.PLAYER_INFO);
     }
 
+    private static Packet chatPacket(String message) throws IOException {
+        GameOutputStream output = new GameOutputStream();
+        output.writeString(message);
+        return output.createPacket(PacketType.ADD_CHAT);
+    }
+
     private static List<Integer> drainPacketTypes(EmbeddedChannel channel) {
         List<Integer> types = new ArrayList<>();
         Packet packet;
@@ -207,6 +378,21 @@ class ServerPlayerInfoHandlerBehaviorTest {
     private record ConnectionFixture(ServerConnectionHandler handler,
                                      EmbeddedChannel channel,
                                      ServerRoom room) {
+    }
+
+    private static final class FixedRoomManager extends ServerRoomManager {
+        private final ServerRoom selectedRoom;
+
+        private FixedRoomManager(ServerRoom selectedRoom) {
+            super(Rukkit.getRoundConfig(), 1);
+            this.selectedRoom = selectedRoom;
+            roomList.set(0, selectedRoom);
+        }
+
+        @Override
+        public ServerRoom getAvailableRoom() {
+            return selectedRoom;
+        }
     }
 
     private static final class TestServerRoom extends ServerRoom {

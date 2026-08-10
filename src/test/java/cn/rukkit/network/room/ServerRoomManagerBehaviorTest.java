@@ -19,7 +19,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,6 +66,23 @@ class ServerRoomManagerBehaviorTest {
 
         assertNotNull(available);
         assertEquals(1, available.roomId);
+    }
+
+    @Test
+    void roomsOwnIndependentRoundConfigurations() {
+        ServerRoomManager manager = new ServerRoomManager(Rukkit.getRoundConfig(), 3);
+        ServerRoom first = manager.getRoom(0);
+        ServerRoom second = manager.getRoom(1);
+
+        assertNotSame(first.config, second.config);
+        assertEquals(Rukkit.getRoundConfig().mapName, first.config.mapName);
+
+        first.config.mapName = "room-one-map";
+        first.config.income = 2.0f;
+
+        assertNotEquals(first.config.mapName, second.config.mapName);
+        assertNotEquals(first.config.income, second.config.income);
+        assertEquals(Rukkit.getRoundConfig().mapName, second.config.mapName);
     }
 
     @Test
