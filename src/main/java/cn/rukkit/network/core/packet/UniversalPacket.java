@@ -26,6 +26,7 @@ import cn.rukkit.util.GameUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -94,12 +95,28 @@ public final class UniversalPacket {
     }
 
     public static Packet gameCommand(int tick, GameCommand command) throws IOException {
+        return gameCommands(tick, List.of(command));
+    }
+
+    /**
+     * Builds the server-to-client tick packet used by the original game.
+     * Each command is encoded as one raw {@code c} block inside the packet.
+     */
+    public static Packet gameCommands(int tick, List<GameCommand> commands) throws IOException {
+        if (commands == null) {
+            throw new IllegalArgumentException("commands must not be null");
+        }
         GameOutputStream output = new GameOutputStream();
         output.writeInt(tick);
-        output.writeInt(1);
-        output.startBlock("c", false);
-        output.write(command.arr);
-        output.endBlock();
+        output.writeInt(commands.size());
+        for (GameCommand command : commands) {
+            if (command == null) {
+                throw new IllegalArgumentException("commands must not contain null");
+            }
+            output.startBlock("c", false);
+            output.write(command.arr);
+            output.endBlock();
+        }
         return output.createPacket(PacketType.TICK);
     }
 
@@ -111,19 +128,29 @@ public final class UniversalPacket {
     }
 
     public static Packet gameStart() throws IOException {
-        return startGame();
+        return startGame(Rukkit.getRoundConfig());
     }
 
     public static Packet startGame() throws IOException {
+        return startGame(Rukkit.getRoundConfig());
+    }
+
+    /** Builds a start packet from the room-local configuration. */
+    public static Packet gameStart(RoundConfig config) throws IOException {
+        return startGame(config);
+    }
+
+    /** Builds a start packet from the room-local configuration. */
+    public static Packet startGame(RoundConfig config) throws IOException {
         GameOutputStream output = new GameOutputStream();
         output.writeByte(0);
-        if (Rukkit.getRoundConfig().mapType == 0) {
+        if (config.mapType == 0) {
             output.writeInt(0);
-            output.writeString("maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
-        } else if (Rukkit.getRoundConfig().mapType == 1) {
+            output.writeString("maps/skirmish/" + config.mapName + ".tmx");
+        } else if (config.mapType == 1) {
             output.writeInt(1);
-            output.writeFile(CustomMapLoader.getStreamByName(Rukkit.getRoundConfig().mapName + ".tmx"));
-            output.writeString(Rukkit.getRoundConfig().mapName + ".tmx");
+            output.writeFile(CustomMapLoader.getStreamByName(config.mapName + ".tmx"));
+            output.writeString(config.mapName + ".tmx");
         }
         output.writeBoolean(false);
         return output.createPacket(PacketType.START_GAME);
@@ -177,7 +204,7 @@ public final class UniversalPacket {
         }
         output.endBlock();
 
-        output.writeBoolean(false);
+        output.writeBoolean(config.sharedControl);
         output.writeBoolean(false);
         output.writeBoolean(false);
         return output.createPacket(PacketType.SERVER_INFO);
@@ -204,7 +231,9 @@ public final class UniversalPacket {
         output.writeFloat(1.0f);
         output.writeBoolean(isPullSave);
         output.writeBoolean(false);
+        output.startBlock("gameSave", false);
         output.write(save);
+        output.endBlock();
         return output.createPacket(PacketType.SYNC);
     }
 

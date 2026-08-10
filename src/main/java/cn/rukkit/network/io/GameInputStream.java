@@ -119,6 +119,16 @@ public class GameInputStream {
         return bytes;
     }
 
+    /** Reads a named, uncompressed block and returns only its payload. */
+    public byte[] getBlockRaw(String expectedName) throws IOException {
+        String actualName = readString();
+        if (!expectedName.equals(actualName)) {
+            throw new IOException("unexpected block name: expected "
+                    + expectedName + ", got " + actualName);
+        }
+        return readStreamBytes();
+    }
+
     public void skip(int count) {
         if (count < 0) {
             throw new IllegalArgumentException("count must not be negative");

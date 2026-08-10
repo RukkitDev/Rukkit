@@ -30,6 +30,9 @@ import java.util.HashMap;
 
 public class NetworkPlayer
 {
+	private static final long HEARTBEAT_TIMEOUT_MILLIS = 15_000L;
+	private static final long AFK_TIMEOUT_MILLIS = 60_000L;
+
 	NetworkPlayerData data;
 
 	public String name = "Player - Empty";
@@ -56,7 +59,54 @@ public class NetworkPlayer
 	public boolean isSurrounded = false;
 	public boolean isDisconnected = false;
 
-	public boolean isAfk = false;
+	public volatile boolean isAfk = false;
+	private volatile long lastHeartbeatAt = -1L;
+	private volatile long lastCommandAt = -1L;
+
+	/**
+	 * Returns whether this player contributes its index to a game command's
+	 * shared-control mask.
+	 */
+	public boolean isSharingControlForCommands() {
+		return isSharingControl || isSharingControlDueAfk();
+	}
+
+	/** Returns the automatic share state advertised in the team list. */
+	public boolean isSharingControlDueAfk() {
+		long now = System.currentTimeMillis();
+		boolean heartbeatTimedOut = lastHeartbeatAt > 0
+				&& now - lastHeartbeatAt >= HEARTBEAT_TIMEOUT_MILLIS;
+		boolean commandTimedOut = lastCommandAt > 0
+				&& now - lastCommandAt >= AFK_TIMEOUT_MILLIS;
+		if (commandTimedOut) {
+			isAfk = true;
+		}
+		return isDisconnected || isAfk || heartbeatTimedOut || commandTimedOut;
+	}
+
+	/** Records a response to the server heartbeat used by the original AFK detector. */
+	public void recordHeartbeat() {
+		lastHeartbeatAt = System.currentTimeMillis();
+	}
+
+	/** Starts tracking command activity for a new game. */
+	public void beginGameActivityTracking() {
+		lastCommandAt = System.currentTimeMillis();
+		isAfk = false;
+	}
+
+	/** Records a normal command from this player and clears automatic AFK sharing. */
+	public void markCommandActivity() {
+		lastCommandAt = System.currentTimeMillis();
+		isAfk = false;
+	}
+
+	/** Stops game-local AFK tracking when the room returns to the lobby. */
+	public void endGameActivityTracking() {
+		lastHeartbeatAt = -1L;
+		lastCommandAt = -1L;
+		isAfk = false;
+	}
 
 	public CheckSumList checkList = new CheckSumList();
 	private NetworkRoom room;
@@ -175,7 +225,7 @@ public class NetworkPlayer
 			stream.writeByte(0);
 			stream.writeInt(ping);
 			stream.writeBoolean(isSharingControl);
-			stream.writeBoolean(isDisconnected || isAfk);
+			stream.writeBoolean(isSharingControlDueAfk());
 		} else {
 			//玩家位置
 			stream.writeByte(playerIndex);
@@ -208,8 +258,8 @@ public class NetworkPlayer
 
 			//分享控制
 			stream.writeBoolean(isSharingControl);
-			//是否掉线
-			stream.writeBoolean(false);
+			//因 AFK/掉线自动分享控制
+			stream.writeBoolean(isSharingControlDueAfk());
 
 			//是否投降
 			stream.writeBoolean(isSurrounded);

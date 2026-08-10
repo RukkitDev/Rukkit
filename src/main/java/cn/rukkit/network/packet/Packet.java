@@ -120,13 +120,28 @@ public class Packet {
 	 * @params cmd gameCommand content.
 	 */
 	public static Packet gameCommand(int tick, GameCommand cmd) throws IOException {
+		return gameCommands(tick, java.util.List.of(cmd));
+	}
+
+	/**
+	 * Builds the server-to-client tick packet used by the original game.
+	 * Each command is encoded as one raw {@code c} block inside the packet.
+	 */
+	public static Packet gameCommands(int tick, java.util.List<GameCommand> commands) throws IOException {
+		if (commands == null) {
+			throw new IllegalArgumentException("commands must not be null");
+		}
 		GameOutputStream o = new GameOutputStream();
 		o.writeInt(tick);
-		o.writeInt(1);
-		o.startBlock("c", false);
-		o.stream.write(cmd.arr);
-		//o.stream.write(cmd.arr);
-		o.endBlock();
+		o.writeInt(commands.size());
+		for (GameCommand cmd : commands) {
+			if (cmd == null) {
+				throw new IllegalArgumentException("commands must not contain null");
+			}
+			o.startBlock("c", false);
+			o.write(cmd.arr);
+			o.endBlock();
+		}
 		return (o.createPacket(10));
 	}
 
@@ -235,7 +250,7 @@ public class Packet {
 		}
 		o.endBlock();
 
-		o.writeBoolean(false);
+		o.writeBoolean(config.sharedControl);
 		o.writeBoolean(false);
 		o.writeBoolean(false);
 
@@ -298,7 +313,9 @@ public class Packet {
         out.writeFloat((float) 1);
         out.writeBoolean(isPullSave);
         out.writeBoolean(false);
-        out.stream.write(bArr);
+		out.startBlock("gameSave", false);
+		out.write(bArr);
+		out.endBlock();
         Packet createPacket = out.createPacket(PACKET_SYNC);
         return createPacket;
     }

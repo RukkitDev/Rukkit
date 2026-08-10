@@ -86,6 +86,16 @@ public class GameInputStream
         return arrby;
     }
 
+	/** Reads a named, uncompressed block and returns only its payload. */
+	public byte[] getBlockRaw(String expectedName) throws IOException {
+		String actualName = this.readString();
+		if (!expectedName.equals(actualName)) {
+			throw new IOException("unexpected block name: expected "
+					+ expectedName + ", got " + actualName);
+		}
+		return readStreamBytes();
+	}
+
 	public DataInputStream getDecodeStream() throws IOException{
 		String blockName = this.readString();
 		// LoggerFactory.getLogger("GameInputStream").info("BlockName: {}", blockName);
